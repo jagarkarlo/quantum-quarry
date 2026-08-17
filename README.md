@@ -8,10 +8,16 @@ The project explores a complete platform-game loop across six levels: movement a
 
 - Six playable levels with a level-selection screen
 - Running, jumping, double jumping, ladder climbing, and shooting
-- Patrolling enemies, water and spike hazards, and moving platforms
+- State-driven enemies, water and spike hazards, and moving platforms
 - Coins, lives, score persistence, and game-over handling
 - Store upgrades for speed, invisibility, and double jump
 - Pause, victory, and game-over flows
+
+## Enemy AI
+
+Enemies use a deterministic finite-state machine with `Patrol`, `Alert`, `Chase`, and `Search` states. They detect visible players within a level-scaled range, respect terrain line of sight, and investigate briefly after losing their target. Patrol detection is directional, so approaching from behind or using the invisibility power-up creates a stealth option.
+
+Detection range and chase speed increase from Level 1 through Level 6. Both the standard and red enemy prefabs inherit the behavior from the same controller, keeping difficulty progression consistent across the campaign.
 
 ## Controls
 
@@ -81,7 +87,7 @@ Unity-generated folders such as `Library`, `Temp`, `Logs`, `obj`, IDE files, and
 
 ## Thesis Scope
 
-The implementation demonstrates scene management, Rigidbody2D movement, collision handling, tilemaps, animation, Unity's Input System, TextMesh Pro UI, persistent state through `PlayerPrefs`, and coroutine-driven temporary abilities.
+The implementation demonstrates scene management, Rigidbody2D movement, collision handling, tilemaps, animation, finite-state enemy AI, Unity's Input System, TextMesh Pro UI, persistent state through `PlayerPrefs`, and coroutine-driven temporary abilities.
 
 ## Repository History
 

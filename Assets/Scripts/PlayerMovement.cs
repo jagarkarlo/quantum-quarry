@@ -43,6 +43,9 @@ public class PlayerMovement : MonoBehaviour
     bool doubleJumpActive = false;
     bool usedDoubleJump = false;
 
+    public bool IsAlive => isAlive;
+    public bool IsInvisible => invisibleActive;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();

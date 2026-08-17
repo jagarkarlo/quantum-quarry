@@ -87,12 +87,34 @@ public class GameSession : MonoBehaviour
 
     public bool SpendCoins(int cost)
     {
-        if (coins < cost) return false;
+        if (!StoreEconomy.CanAfford(coins, cost)) return false;
         coins -= cost;
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.Save();
         if (scoreText) scoreText.text = coins.ToString();
         return true;
+    }
+
+    public static int GetQueuedPowerupSeconds(string key, int legacySeconds)
+    {
+        return StoreEconomy.NormalizeQueuedSeconds(PlayerPrefs.GetInt(key, 0), legacySeconds);
+    }
+
+    public static int QueuePowerupSeconds(string key, int purchasedSeconds, int legacySeconds)
+    {
+        int queuedSeconds = StoreEconomy.AddQueuedSeconds(
+            PlayerPrefs.GetInt(key, 0), purchasedSeconds, legacySeconds);
+        PlayerPrefs.SetInt(key, queuedSeconds);
+        PlayerPrefs.Save();
+        return queuedSeconds;
+    }
+
+    public static int ConsumeQueuedPowerupSeconds(string key, int legacySeconds)
+    {
+        int queuedSeconds = GetQueuedPowerupSeconds(key, legacySeconds);
+        PlayerPrefs.DeleteKey(key);
+        PlayerPrefs.Save();
+        return queuedSeconds;
     }
 
     public void SetLives(int newLives)

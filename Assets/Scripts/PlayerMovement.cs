@@ -61,25 +61,24 @@ public class PlayerMovement : MonoBehaviour
         if (!doubleJumpTimerUI)  doubleJumpTimerUI  = FindTimerByNamePart("double");
 
         // Consume queued powerups from the Store
-        if (PlayerPrefs.GetInt(GameSession.SpeedBoostQueuedKey, 0) == 1)
+        int speedBoostQueued = GameSession.ConsumeQueuedPowerupSeconds(
+            GameSession.SpeedBoostQueuedKey, Mathf.RoundToInt(defaultSpeedBoostSeconds));
+        if (speedBoostQueued > 0)
         {
-            PlayerPrefs.DeleteKey(GameSession.SpeedBoostQueuedKey);
-            PlayerPrefs.Save();
-            ActivateSpeedBoost(defaultSpeedBoostSeconds);
+            ActivateSpeedBoost(speedBoostQueued);
         }
 
-        if (PlayerPrefs.GetInt(GameSession.InvisibilityQueuedKey, 0) == 1)
+        int invisibilityQueued = GameSession.ConsumeQueuedPowerupSeconds(
+            GameSession.InvisibilityQueuedKey, Mathf.RoundToInt(defaultInvisibilitySeconds));
+        if (invisibilityQueued > 0)
         {
-            PlayerPrefs.DeleteKey(GameSession.InvisibilityQueuedKey);
-            PlayerPrefs.Save();
-            ActivateInvisibility(defaultInvisibilitySeconds);
+            ActivateInvisibility(invisibilityQueued);
         }
 
-        int doubleJumpQueued = PlayerPrefs.GetInt(GameSession.DoubleJumpQueuedSecs, 0);
+        int doubleJumpQueued = GameSession.ConsumeQueuedPowerupSeconds(
+            GameSession.DoubleJumpQueuedSecs, defaultDoubleJumpSeconds);
         if (doubleJumpQueued > 0)
         {
-            PlayerPrefs.DeleteKey(GameSession.DoubleJumpQueuedSecs);
-            PlayerPrefs.Save();
             ActivateDoubleJump(doubleJumpQueued);
         }
         // IMPORTANT: we do NOT auto-activate any powerup at start unless queued.

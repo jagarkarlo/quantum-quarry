@@ -10,7 +10,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - Running, jumping, double jumping, ladder climbing, and shooting
 - State-driven enemies, water and spike hazards, and moving platforms
 - Coins, lives, score persistence, and game-over handling
-- Store upgrades for speed, invisibility, and double jump
+- A store with stackable speed, invisibility, and double-jump inventory
 - Pause, victory, and game-over flows
 
 ## Enemy AI
@@ -68,6 +68,17 @@ flowchart LR
 ```
 
 All 11 scenes in this flow are already enabled in `ProjectSettings/EditorBuildSettings.asset`.
+
+## Expansion
+
+Development is continuing in small, testable milestones: a deeper store and progression system, a versioned custom-level format, an in-game level creator with playtesting and undo/redo, and safe local level sharing. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation order and acceptance boundaries.
+
+Run **Tools > QuantumQuarry > Validate Project** in Unity before testing a change. For command-line validation:
+
+```bash
+Unity -batchmode -quit -projectPath "$PWD" \
+  -executeMethod QuantumQuarryProjectValidator.ValidateBatch -logFile -
+```
 
 ## Project Structure
 

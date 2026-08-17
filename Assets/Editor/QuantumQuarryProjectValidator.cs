@@ -84,6 +84,8 @@ public static class QuantumQuarryProjectValidator
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Enemy.prefab", errors);
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Red Enemy.prefab", errors);
         ValidatePrefabComponent<Collecting>("Assets/Prefabs/Coin.prefab", errors);
+        ValidatePrefabComponent<FollowingPoint>("Assets/Prefabs/Platform.prefab", errors);
+        ValidatePrefabComponent<StickyPlatform>("Assets/Prefabs/Platform.prefab", errors);
     }
 
     static void ValidatePrefabComponent<T>(string path, List<string> errors) where T : Component

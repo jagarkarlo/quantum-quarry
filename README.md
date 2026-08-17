@@ -39,17 +39,17 @@ Menus support mouse, keyboard, and gamepad navigation through Unity's Input Syst
 
 ### Open and run
 
-1. Clone the repository:
+Clone the repository:
 
-   ```bash
-  git clone https://github.com/jagarkarlo/quantum-quarry.git
-  cd quantum-quarry
-   ```
+```bash
+git clone https://github.com/jagarkarlo/quantum-quarry.git
+cd quantum-quarry
+```
 
-2. In Unity Hub, select **Add project from disk** and choose the repository root.
-3. Open the project with Unity `2022.3.12f1` and allow Unity to restore the packages.
-4. Open `Assets/Levels/Start.unity`.
-5. Press **Play**.
+1. In Unity Hub, select **Add project from disk** and choose the repository root.
+2. Open the project with Unity `2022.3.12f1` and allow Unity to restore the packages.
+3. Open `Assets/Levels/Start.unity`.
+4. Press **Play**.
 
 To create a standalone build, open **File > Build Settings**, choose a supported desktop target, confirm the configured scenes, and select **Build**.
 

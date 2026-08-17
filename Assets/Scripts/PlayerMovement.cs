@@ -43,6 +43,8 @@ public class PlayerMovement : MonoBehaviour
     bool doubleJumpActive = false;
     bool usedDoubleJump = false;
     Vector2 lastSafeGhostPosition;
+    StickyPlatform activePlatform;
+    float platformAttachBlockedUntil;
 
     public bool IsAlive => isAlive;
     public bool IsInvisible => invisibleActive;
@@ -131,7 +133,10 @@ public class PlayerMovement : MonoBehaviour
         bool onGround = feetCol.IsTouchingLayers(LayerMask.GetMask("Ground"));
         if (onGround)
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
+            Vector2 inheritedVelocity = activePlatform ? activePlatform.Velocity : Vector2.zero;
+            DetachFromPlatform(activePlatform, true);
+            rb.velocity = new Vector2(moveInput.x * runSpeed + inheritedVelocity.x,
+                jumpSpeed + Mathf.Max(0f, inheritedVelocity.y));
             usedDoubleJump = false;
         }
         else if (doubleJumpActive && !usedDoubleJump)
@@ -156,7 +161,8 @@ public class PlayerMovement : MonoBehaviour
     // ---------- Movement helpers ----------
     void Run()
     {
-        Vector2 vel = new Vector2(moveInput.x * runSpeed, rb.velocity.y);
+        float platformVelocity = activePlatform ? activePlatform.Velocity.x : 0f;
+        Vector2 vel = new Vector2(moveInput.x * runSpeed + platformVelocity, rb.velocity.y);
         rb.velocity = vel;
 
         bool hasX = Mathf.Abs(rb.velocity.x) > Mathf.Epsilon;
@@ -203,10 +209,24 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public void AttachToPlatform(StickyPlatform platform)
+    {
+        if (!platform || invisibleActive || Time.time < platformAttachBlockedUntil) return;
+        activePlatform = platform;
+    }
+
+    public void DetachFromPlatform(StickyPlatform platform, bool jumped)
+    {
+        if (platform && activePlatform != platform) return;
+        activePlatform = null;
+        if (jumped) platformAttachBlockedUntil = Time.time + 0.1f;
+    }
+
     // Immediately restore player to normal physics (use before leaving the scene)
     public void CancelAllPowerupsImmediately()
     {
         StopAllCoroutines();
+        DetachFromPlatform(activePlatform, false);
 
         speedBoostActive = false;
         if (invisibleActive) EndInvisibility(gravityAtStart, true, true);

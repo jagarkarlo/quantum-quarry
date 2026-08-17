@@ -1,26 +1,37 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class StickyPlatform : MonoBehaviour
 {
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        Debug.Log("Collision with: " + collision.gameObject.name);
+    FollowingPoint movement;
+    Collider2D platformCollider;
 
-        if (collision.gameObject.CompareTag("Player") && collision.contacts[0].normal.y > 0.5f)
-        {
-            collision.gameObject.transform.SetParent(transform);
-            Debug.Log("Player attached to platform.");
-        }
+    public Vector2 DeltaPosition => movement ? movement.DeltaPosition : Vector2.zero;
+    public Vector2 Velocity => movement ? movement.Velocity : Vector2.zero;
+
+    void Awake()
+    {
+        movement = GetComponent<FollowingPoint>();
+        platformCollider = GetComponent<Collider2D>();
     }
 
-
-    private void OnCollisionExit2D(Collision2D collision)
+    void OnCollisionStay2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            collision.gameObject.transform.SetParent(null);
-        }
+        if (!collision.gameObject.CompareTag("Player") || !platformCollider) return;
+
+        PlayerMovement player = collision.gameObject.GetComponent<PlayerMovement>();
+        Collider2D playerCollider = collision.collider;
+        if (!player || !playerCollider) return;
+
+        float platformCenter = platformCollider.bounds.center.y;
+        bool playerIsAbove = playerCollider.bounds.min.y >= platformCenter - 0.1f;
+        if (playerIsAbove) player.AttachToPlatform(this);
+    }
+
+    void OnCollisionExit2D(Collision2D collision)
+    {
+        if (!collision.gameObject.CompareTag("Player")) return;
+
+        PlayerMovement player = collision.gameObject.GetComponent<PlayerMovement>();
+        if (player) player.DetachFromPlatform(this, false);
     }
 }

@@ -9,6 +9,13 @@ public static class StoreEconomy
         return cost >= 0 && balance >= cost;
     }
 
+    public static bool HasQueueCapacity(int storedSeconds, int purchasedSeconds)
+    {
+        int safePurchase = Math.Max(0, purchasedSeconds);
+        int currentSeconds = NormalizeQueuedSeconds(storedSeconds, safePurchase);
+        return safePurchase > 0 && currentSeconds <= MaxQueuedSeconds - safePurchase;
+    }
+
     public static int NormalizeQueuedSeconds(int storedSeconds, int legacySeconds)
     {
         int normalized = storedSeconds == 1 ? legacySeconds : storedSeconds;

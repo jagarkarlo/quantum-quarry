@@ -9,8 +9,9 @@ The project explores a complete platform-game loop across six levels: movement a
 - Six playable levels with a level-selection screen
 - Running, jumping, double jumping, ladder climbing, and shooting
 - State-driven enemies, water and spike hazards, and moving platforms
-- Coins, lives, score persistence, and game-over handling
-- A store with stackable speed, invisibility, and double-jump inventory
+- Distinct 100, 150, and 200-value coins with size, color, pulse, and pickup feedback
+- A responsive store with stackable speed, invisibility, and double-jump inventory
+- Safe ghost movement that prevents rematerializing inside solid platforms
 - Pause, victory, and game-over flows
 
 ## Enemy AI
@@ -73,7 +74,7 @@ All 11 scenes in this flow are already enabled in `ProjectSettings/EditorBuildSe
 
 Development is continuing in small, testable milestones: a deeper store and progression system, a versioned custom-level format, an in-game level creator with playtesting and undo/redo, and safe local level sharing. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation order and acceptance boundaries.
 
-Run **Tools > QuantumQuarry > Validate Project** in Unity before testing a change. For command-line validation:
+Run **Tools > QuantumQuarry > Validate Project** in Unity before testing a change. The validator checks build scenes, core prefabs, store bindings and economy rules, and large-coin placement. For command-line validation:
 
 ```bash
 Unity -batchmode -quit -projectPath "$PWD" \

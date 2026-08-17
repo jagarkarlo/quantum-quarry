@@ -42,6 +42,7 @@ public class PlayerMovement : MonoBehaviour
     bool invisibleActive = false;
     bool doubleJumpActive = false;
     bool usedDoubleJump = false;
+    Vector2 lastSafeGhostPosition;
 
     public bool IsAlive => isAlive;
     public bool IsInvisible => invisibleActive;
@@ -208,7 +209,7 @@ public class PlayerMovement : MonoBehaviour
         StopAllCoroutines();
 
         speedBoostActive = false;
-        invisibleActive  = false;
+        if (invisibleActive) EndInvisibility(gravityAtStart, true, true);
         doubleJumpActive = false;
         usedDoubleJump   = false;
 
@@ -257,6 +258,7 @@ public class PlayerMovement : MonoBehaviour
     IEnumerator InvisibilityCR(float seconds)
     {
         invisibleActive = true;
+        lastSafeGhostPosition = rb.position;
 
         float oldGrav = rb.gravityScale;
         rb.gravityScale = 0f;
@@ -267,10 +269,48 @@ public class PlayerMovement : MonoBehaviour
         if (invisTimerUI) invisTimerUI.StartTimer(seconds);
 
         float t = 0f;
-        while (t < seconds) { t += Time.unscaledDeltaTime; yield return null; }
+        while (t < seconds)
+        {
+            t += Time.unscaledDeltaTime;
+            if (CanRematerializeAt(rb.position)) lastSafeGhostPosition = rb.position;
+            yield return null;
+        }
 
-        bodyCol.enabled = bodyWas; feetCol.enabled = feetWas;
-        rb.gravityScale = oldGrav;
+        EndInvisibility(oldGrav, bodyWas, feetWas);
+    }
+
+    bool CanRematerializeAt(Vector2 position)
+    {
+        Vector2 scale = new Vector2(Mathf.Abs(transform.lossyScale.x),
+            Mathf.Abs(transform.lossyScale.y));
+        Vector2 size = Vector2.Scale(bodyCol.size, scale) * 0.95f;
+        Vector2 centerOffset = Vector2.Scale(bodyCol.offset, scale);
+        Vector2 center = position + centerOffset;
+        int solidLayers = LayerMask.GetMask("Ground", "Jump");
+        var filter = new ContactFilter2D
+        {
+            useLayerMask = true,
+            layerMask = solidLayers,
+            useTriggers = false
+        };
+        var overlaps = new Collider2D[1];
+
+        return Physics2D.OverlapCapsule(center, size, bodyCol.direction,
+            transform.eulerAngles.z, filter, overlaps) == 0;
+    }
+
+    void EndInvisibility(float restoredGravity, bool restoreBody, bool restoreFeet)
+    {
+        if (!CanRematerializeAt(rb.position))
+        {
+            rb.position = lastSafeGhostPosition;
+            transform.position = lastSafeGhostPosition;
+        }
+
+        rb.velocity = Vector2.zero;
+        bodyCol.enabled = restoreBody;
+        feetCol.enabled = restoreFeet;
+        rb.gravityScale = restoredGravity;
         invisibleActive = false;
         if (invisTimerUI) invisTimerUI.StopTimer();
     }

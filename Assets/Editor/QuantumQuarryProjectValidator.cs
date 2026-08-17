@@ -10,6 +10,9 @@ using UnityEngine.UI;
 public static class QuantumQuarryProjectValidator
 {
     const string StoreScenePath = "Assets/Levels/Store.unity";
+    const string Level4ScenePath = "Assets/Levels/Level 4.unity";
+    const string Level5ScenePath = "Assets/Levels/Level 5.unity";
+    const string Level6ScenePath = "Assets/Levels/Level 6.unity";
 
     [MenuItem("Tools/QuantumQuarry/Validate Project")]
     public static void ValidateFromMenu()
@@ -37,6 +40,10 @@ public static class QuantumQuarryProjectValidator
         ValidateBuildScenes(errors);
         ValidatePrefabs(errors);
         ValidateStoreScene(errors);
+        ValidateCoinTier(Level4ScenePath, 150, errors);
+        ValidateCoinTier(Level5ScenePath, 200, errors);
+        ValidateCoinTier(Level6ScenePath, 150, errors);
+        ValidateCoinTier(Level6ScenePath, 200, errors);
         return errors;
     }
 
@@ -44,6 +51,10 @@ public static class QuantumQuarryProjectValidator
     {
         if (StoreEconomy.CanAfford(99, 100)) errors.Add("Store allows an unaffordable purchase.");
         if (!StoreEconomy.CanAfford(100, 100)) errors.Add("Store rejects an exact-balance purchase.");
+        if (!StoreEconomy.HasQueueCapacity(110, 10))
+            errors.Add("Power-up inventory reports a non-full queue as full.");
+        if (StoreEconomy.HasQueueCapacity(111, 10))
+            errors.Add("Power-up inventory accepts a purchase without room for its full duration.");
         if (StoreEconomy.NormalizeQueuedSeconds(1, 10) != 10)
             errors.Add("Legacy power-up queue migration is invalid.");
         if (StoreEconomy.AddQueuedSeconds(115, 10, 10) != StoreEconomy.MaxQueuedSeconds)
@@ -72,6 +83,7 @@ public static class QuantumQuarryProjectValidator
         ValidatePrefabComponent<PlayerMovement>("Assets/Prefabs/Player.prefab", errors);
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Enemy.prefab", errors);
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Red Enemy.prefab", errors);
+        ValidatePrefabComponent<Collecting>("Assets/Prefabs/Coin.prefab", errors);
     }
 
     static void ValidatePrefabComponent<T>(string path, List<string> errors) where T : Component
@@ -109,6 +121,35 @@ public static class QuantumQuarryProjectValidator
         {
             if (openedForValidation && storeScene.isLoaded)
                 EditorSceneManager.CloseScene(storeScene, true);
+        }
+    }
+
+    static void ValidateCoinTier(string scenePath, int expectedValue, List<string> errors)
+    {
+        Scene scene = SceneManager.GetSceneByPath(scenePath);
+        bool openedForValidation = !scene.isLoaded;
+
+        try
+        {
+            if (openedForValidation)
+                scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                foreach (Collecting coin in root.GetComponentsInChildren<Collecting>(true))
+                {
+                    var serializedCoin = new SerializedObject(coin);
+                    if (serializedCoin.FindProperty("pointsForCoinPickup").intValue == expectedValue)
+                        return;
+                }
+            }
+
+            errors.Add($"{scenePath} is missing a {expectedValue}-value coin.");
+        }
+        finally
+        {
+            if (openedForValidation && scene.isLoaded)
+                EditorSceneManager.CloseScene(scene, true);
         }
     }
 

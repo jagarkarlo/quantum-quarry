@@ -1486,9 +1486,13 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5015993208639642218, guid: 4c3ce8d78596e2d4798965cd1623ce5e, type: 3}
+      propertyPath: pointsForCoinPickup
+      value: 200
+      objectReference: {fileID: 0}
     - target: {fileID: 8308028460401889722, guid: 4c3ce8d78596e2d4798965cd1623ce5e, type: 3}
       propertyPath: m_Name
-      value: Coin
+      value: Quantum Coin (200)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

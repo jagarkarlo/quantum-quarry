@@ -9,6 +9,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - Six playable levels with a level-selection screen
 - Running, jumping, double jumping, ladder climbing, and shooting
 - State-driven enemies, water and spike hazards, and moving platforms
+- Physics-driven moving platforms that carry idle players and preserve jump momentum
 - Distinct 100, 150, and 200-value coins with size, color, pulse, and pickup feedback
 - A responsive store with stackable speed, invisibility, and double-jump inventory
 - Safe ghost movement that prevents rematerializing inside solid platforms
@@ -58,21 +59,40 @@ To create a standalone build, open **File > Build Settings**, choose a supported
 
 ```mermaid
 flowchart LR
+  subgraph Current[Current campaign]
     Start[Start menu] --> Select[Level selector]
     Select --> Levels[Levels 1-6]
-    Levels --> Store[Store]
-    Store --> Levels
+    Levels <--> Store[Store]
     Levels --> Victory[Victory]
     Levels --> GameOver[Game over]
     Victory --> Start
     GameOver --> Start
+  end
+
+  subgraph Planned[Planned expansion]
+    Results[Level results and medals]
+    Hub[Challenge hub]
+    Creator[Level creator]
+    Community[Local level library]
+    CustomRun[Custom level run]
+  end
+
+  Levels -. planned .-> Results
+  Results -. planned .-> Hub
+  Select -. planned .-> Creator
+  Creator -. planned .-> Community
+  Creator -. playtest .-> CustomRun
+  Community -. choose level .-> CustomRun
+  CustomRun -. planned results .-> Results
 ```
 
-All 11 scenes in this flow are already enabled in `ProjectSettings/EditorBuildSettings.asset`.
+Solid arrows describe the 11 scenes already enabled in `ProjectSettings/EditorBuildSettings.asset`. Dashed arrows show planned systems and are not implemented yet.
 
 ## Expansion
 
 Development is continuing in small, testable milestones: a deeper store and progression system, a versioned custom-level format, an in-game level creator with playtesting and undo/redo, and safe local level sharing. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation order and acceptance boundaries.
+
+See [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md) for Git synchronization and the Unity 6 migration procedure.
 
 Run **Tools > QuantumQuarry > Validate Project** in Unity before testing a change. The validator checks build scenes, core prefabs, store bindings and economy rules, and large-coin placement. For command-line validation:
 

@@ -9,6 +9,8 @@ The project explores a complete platform-game loop across six levels: movement a
 - Six playable levels with a level-selection screen
 - Running, jumping, double jumping, ladder climbing, and shooting
 - State-driven enemies, water and spike hazards, and moving platforms
+- Quantum Stability: enemy and spike damage, knockback, hit invulnerability, and lethal water
+- Critical-stability overdrive that doubles collected coin value at one remaining stability
 - Physics-driven moving platforms that carry idle players and preserve jump momentum
 - Distinct 100, 150, and 200-value coins with size, color, pulse, and pickup feedback
 - A responsive store with stackable speed, invisibility, and double-jump inventory
@@ -90,11 +92,11 @@ Solid arrows describe the 11 scenes already enabled in `ProjectSettings/EditorBu
 
 ## Expansion
 
-Development is continuing in small, testable milestones: a deeper store and progression system, a versioned custom-level format, an in-game level creator with playtesting and undo/redo, and safe local level sharing. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation order and acceptance boundaries.
+Development is continuing in small, testable milestones: dynamic Quarry Pressure, a deeper store and progression system, a versioned custom-level format, an in-game level creator with playtesting and undo/redo, and safe local level sharing. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the implementation order and acceptance boundaries.
 
 See [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md) for Git synchronization and the Unity 6 migration procedure.
 
-Run **Tools > QuantumQuarry > Validate Project** in Unity before testing a change. The validator checks build scenes, core prefabs, store bindings and economy rules, and large-coin placement. For command-line validation:
+Run **Tools > QuantumQuarry > Validate Project** in Unity before testing a change. The validator checks build scenes, core prefabs, Store and Quantum Stability rules, Store bindings, and large-coin placement. For command-line validation:
 
 ```bash
 Unity -batchmode -quit -projectPath "$PWD" \

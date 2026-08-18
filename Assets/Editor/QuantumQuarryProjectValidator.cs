@@ -37,6 +37,7 @@ public static class QuantumQuarryProjectValidator
     {
         var errors = new List<string>();
         ValidateEconomy(errors);
+        ValidateStability(errors);
         ValidateBuildScenes(errors);
         ValidatePrefabs(errors);
         ValidateStoreScene(errors);
@@ -61,6 +62,25 @@ public static class QuantumQuarryProjectValidator
             errors.Add("Power-up inventory does not enforce its duration cap.");
     }
 
+    static void ValidateStability(List<string> errors)
+    {
+        var stability = new QuantumStability(3, 3);
+        if (!stability.TakeDamage(1) || stability.Current != 2)
+            errors.Add("Quantum Stability does not apply contact damage.");
+        if (!stability.TakeDamage(1) || !stability.IsCritical)
+            errors.Add("Quantum Stability does not enter critical state at one point.");
+        if (!stability.Heal(10) || stability.Current != stability.Max)
+            errors.Add("Quantum Stability healing does not clamp to its maximum.");
+        if (!stability.TakeDamage(10) || !stability.IsDepleted)
+            errors.Add("Quantum Stability cannot be depleted by lethal damage.");
+        if (stability.Heal(1))
+            errors.Add("Depleted Quantum Stability can be healed before a life is processed.");
+
+        stability.Restore();
+        if (stability.Current != stability.Max)
+            errors.Add("Quantum Stability does not restore after losing a life.");
+    }
+
     static void ValidateBuildScenes(List<string> errors)
     {
         int enabledSceneCount = 0;
@@ -81,6 +101,7 @@ public static class QuantumQuarryProjectValidator
     static void ValidatePrefabs(List<string> errors)
     {
         ValidatePrefabComponent<PlayerMovement>("Assets/Prefabs/Player.prefab", errors);
+        ValidatePrefabComponent<PlayerStability>("Assets/Prefabs/Player.prefab", errors);
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Enemy.prefab", errors);
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Red Enemy.prefab", errors);
         ValidatePrefabComponent<Collecting>("Assets/Prefabs/Coin.prefab", errors);

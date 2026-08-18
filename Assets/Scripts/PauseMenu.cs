@@ -8,7 +8,7 @@ public class PauseMenu : MonoBehaviour
     public static bool GameIsPaused = false;
     public GameObject pauseMenuUI;
 
-    void Awake()
+    void Start()
     {
         CreatePauseButton();
     }
@@ -53,11 +53,11 @@ public class PauseMenu : MonoBehaviour
         buttonTransform.anchorMin = Vector2.one;
         buttonTransform.anchorMax = Vector2.one;
         buttonTransform.pivot = Vector2.one;
-        buttonTransform.anchoredPosition = new Vector2(-24f, -24f);
-        buttonTransform.sizeDelta = new Vector2(96f, 48f);
+        buttonTransform.anchoredPosition = new Vector2(-18f, -18f);
+        buttonTransform.sizeDelta = new Vector2(116f, 46f);
 
         Image image = buttonObject.GetComponent<Image>();
-        image.color = new Color(0f, 0.44f, 0.72f, 0.9f);
+        image.color = new Color(0.04f, 0.12f, 0.18f, 0.82f);
 
         Button button = buttonObject.GetComponent<Button>();
         button.targetGraphic = image;
@@ -72,10 +72,12 @@ public class PauseMenu : MonoBehaviour
         labelTransform.sizeDelta = Vector2.zero;
 
         TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
-        label.font = TMP_Settings.defaultFontAsset;
-        label.text = "||";
+        GameObject scoreObject = GameObject.FindGameObjectWithTag("ScoreText");
+        TextMeshProUGUI scoreLabel = scoreObject ? scoreObject.GetComponent<TextMeshProUGUI>() : null;
+        label.font = scoreLabel && scoreLabel.font ? scoreLabel.font : TMP_Settings.defaultFontAsset;
+        label.text = "PAUSE";
         label.alignment = TextAlignmentOptions.Center;
-        label.fontSize = 28f;
+        label.fontSize = 24f;
         label.color = Color.white;
         label.raycastTarget = false;
     }

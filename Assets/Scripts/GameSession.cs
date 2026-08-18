@@ -84,18 +84,18 @@ public class GameSession : MonoBehaviour
     void RefreshUI()
     {
         RefreshPlayerStateUI();
-        if (scoreText) scoreText.text = coins.ToString();
+        RefreshCoinsUI();
     }
 
     void RefreshPlayerStateUI()
     {
         if (!livesText) return;
 
-        string overdrive = stability.IsCritical ? "  <color=#55E8FF>x2</color>" : string.Empty;
+        string bonus = stability.IsCritical ? "  <color=#55E8FF>Coins x2</color>" : string.Empty;
         string breath = breathRemaining >= 0f
             ? $"  <color=#70DFFF>Breath {breathRemaining:0.0}s</color>"
             : string.Empty;
-        livesText.text = $"L {playerLives}  Q {stability.Current:0.#}/{stability.Max:0.#}{overdrive}{breath}";
+        livesText.text = $"Lives {playerLives}  Stability {stability.Current:0.#}/{stability.Max:0.#}{bonus}{breath}";
     }
 
     // ---------- Coins & Lives ----------
@@ -112,7 +112,7 @@ public class GameSession : MonoBehaviour
         coins += awardedCoins;
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.Save();
-        if (scoreText) scoreText.text = coins.ToString();
+        RefreshCoinsUI();
         return awardedCoins;
     }
 
@@ -183,8 +183,13 @@ public class GameSession : MonoBehaviour
         coins -= cost;
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.Save();
-        if (scoreText) scoreText.text = coins.ToString();
+        RefreshCoinsUI();
         return true;
+    }
+
+    void RefreshCoinsUI()
+    {
+        if (scoreText) scoreText.text = $"Coins {coins}";
     }
 
     public static int GetQueuedPowerupSeconds(string key, int legacySeconds)

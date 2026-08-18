@@ -38,6 +38,7 @@ public static class QuantumQuarryProjectValidator
         var errors = new List<string>();
         ValidateEconomy(errors);
         ValidateStability(errors);
+        ValidateLiquids(errors);
         ValidateBuildScenes(errors);
         ValidatePrefabs(errors);
         ValidateStoreScene(errors);
@@ -79,6 +80,23 @@ public static class QuantumQuarryProjectValidator
         stability.Restore();
         if (stability.Current != stability.Max)
             errors.Add("Quantum Stability does not restore after losing a life.");
+
+        if (!stability.TakeDamageUnits(1) || stability.Current != 2.5f)
+            errors.Add("Quantum Stability does not support half-point drowning damage.");
+    }
+
+    static void ValidateLiquids(List<string> errors)
+    {
+        if (LiquidRules.ClassifyTile("SPA_Rock_Grass_Water_28", 3) != LiquidKind.Water)
+            errors.Add("Water tiles are not swimmable before the lava level.");
+        if (LiquidRules.ClassifyTile("SPA_Rock_Grass_Water_29", 6) != LiquidKind.Lava)
+            errors.Add("Level 6 liquid tiles are not classified as lava.");
+        if (LiquidRules.ClassifyTile("Spikes", 6) != LiquidKind.None)
+            errors.Add("Spike tiles are incorrectly classified as liquid.");
+        if (Math.Abs(LiquidRules.GetBreathSeconds(1, 6f, 0.5f, 3f) - 6f) > 0.001f)
+            errors.Add("Early-level breath duration is invalid.");
+        if (Math.Abs(LiquidRules.GetBreathSeconds(5, 6f, 0.5f, 3f) - 4f) > 0.001f)
+            errors.Add("Hard-level breath scaling is invalid.");
     }
 
     static void ValidateBuildScenes(List<string> errors)

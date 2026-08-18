@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+using UnityEngine.Tilemaps;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -9,6 +11,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] float jumpSpeed = 5f;
     [SerializeField] float climbSpeed = 5f;
     [SerializeField] Vector2 deathKick = new Vector2(10f, 10f);
+
+    [Header("Swimming")]
+    [SerializeField] float swimSpeed = 5f;
+    [SerializeField] float swimAcceleration = 18f;
+    [SerializeField] float waterGravityMultiplier = 0.08f;
+    [SerializeField] float swimJumpSpeed = 7f;
 
     [Header("Combat")]
     [SerializeField] GameObject bullet;
@@ -36,6 +44,9 @@ public class PlayerMovement : MonoBehaviour
 
     float gravityAtStart;
     bool isAlive = true;
+    Tilemap[] levelTilemaps;
+    LiquidKind currentLiquid;
+    int levelNumber = 1;
 
     // states
     bool speedBoostActive = false;
@@ -48,6 +59,9 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsAlive => isAlive;
     public bool IsInvisible => invisibleActive;
+    public bool IsSwimming => currentLiquid == LiquidKind.Water && !invisibleActive;
+    public bool IsInLava => currentLiquid == LiquidKind.Lava;
+    public bool IsSubmerged { get; private set; }
 
     void Start()
     {
@@ -57,6 +71,9 @@ public class PlayerMovement : MonoBehaviour
         feetCol = GetComponent<BoxCollider2D>();
         playerInput = GetComponent<PlayerInput>();
         gravityAtStart = rb.gravityScale;
+        levelNumber = GetLevelNumber(SceneManager.GetActiveScene().name);
+        levelTilemaps = FindObjectsOfType<Tilemap>();
+        TintLavaTiles();
 
         // Auto-wire timers if left unassigned in Inspector
         if (!speedBoostTimerUI)  speedBoostTimerUI  = FindTimerByNamePart("speed");
@@ -100,6 +117,9 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!isAlive) return;
 
+        currentLiquid = GetLiquidAtPlayer();
+        IsSubmerged = currentLiquid == LiquidKind.Water && IsHeadInWater();
+
         // reset double-jump when on ground
         if (feetCol.IsTouchingLayers(LayerMask.GetMask("Ground"))) usedDoubleJump = false;
 
@@ -110,6 +130,14 @@ public class PlayerMovement : MonoBehaviour
             return; // skip normal movement/hazards while ghosting
         }
 
+        if (IsSwimming)
+        {
+            Swim();
+            FlipSpriteFromVelocity();
+            return;
+        }
+
+        rb.gravityScale = gravityAtStart;
         Run();
         FlipSpriteFromVelocity();
         ClimbLadder();
@@ -128,6 +156,12 @@ public class PlayerMovement : MonoBehaviour
         if (!value.isPressed) return;
 
         if (invisibleActive) return; // ghost mode uses free-flight, no jump
+
+        if (IsSwimming)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, swimJumpSpeed);
+            return;
+        }
 
         bool onGround = feetCol.IsTouchingLayers(LayerMask.GetMask("Ground"));
         if (onGround)
@@ -174,6 +208,133 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = new Vector2(moveInput.x * ghostSpeed, moveInput.y * ghostSpeed);
     }
 
+    void Swim()
+    {
+        DetachFromPlatform(activePlatform, false);
+        rb.gravityScale = gravityAtStart * waterGravityMultiplier;
+        Vector2 targetVelocity = moveInput * swimSpeed;
+        rb.velocity = Vector2.MoveTowards(rb.velocity, targetVelocity,
+            swimAcceleration * Time.deltaTime);
+
+        if (anim)
+        {
+            anim.SetBool("run", Mathf.Abs(rb.velocity.x) > Mathf.Epsilon);
+            anim.SetBool("climbing", Mathf.Abs(rb.velocity.y) > Mathf.Epsilon);
+        }
+    }
+
+    public LiquidKind GetLiquidAtPlayer()
+    {
+        if (levelTilemaps == null || levelTilemaps.Length == 0)
+            levelTilemaps = FindObjectsOfType<Tilemap>();
+
+        Bounds bounds = bodyCol ? bodyCol.bounds : new Bounds(transform.position, Vector3.one * 0.5f);
+        LiquidKind result = LiquidKind.None;
+        foreach (Tilemap tilemap in levelTilemaps)
+        {
+            if (!tilemap || !tilemap.isActiveAndEnabled) continue;
+
+            LiquidKind liquid = GetLiquidInBounds(tilemap, bounds);
+            if (liquid == LiquidKind.Lava) return liquid;
+            if (liquid == LiquidKind.Water) result = liquid;
+        }
+
+        return result;
+    }
+
+    public LiquidKind GetContactLiquid(GameObject contactObject)
+    {
+        Tilemap tilemap = contactObject ? contactObject.GetComponent<Tilemap>() : null;
+        if (!tilemap) return LiquidKind.None;
+
+        Bounds bounds = bodyCol ? bodyCol.bounds : new Bounds(transform.position, Vector3.one * 0.5f);
+        Vector3 center = bounds.center;
+        LiquidKind result = LiquidKind.None;
+
+        if (!MergeContactTile(tilemap, center, ref result)) return LiquidKind.None;
+        if (!MergeContactTile(tilemap,
+            new Vector3(center.x, bounds.min.y + 0.05f, center.z), ref result))
+            return LiquidKind.None;
+        if (!MergeContactTile(tilemap,
+            new Vector3(center.x, bounds.max.y - 0.05f, center.z), ref result))
+            return LiquidKind.None;
+
+        return result;
+    }
+
+    bool MergeContactTile(Tilemap tilemap, Vector3 point, ref LiquidKind result)
+    {
+        TileBase tile = tilemap.GetTile(tilemap.WorldToCell(point));
+        if (!tile) return true;
+
+        LiquidKind liquid = LiquidRules.ClassifyTile(tile.name, levelNumber);
+        if (liquid == LiquidKind.None) return false;
+
+        result = MergeLiquid(result, liquid);
+        return true;
+    }
+
+    LiquidKind GetLiquidInBounds(Tilemap tilemap, Bounds bounds)
+    {
+        Vector3 center = bounds.center;
+        LiquidKind result = LiquidKind.None;
+        result = MergeLiquid(result, GetLiquidAtPoint(tilemap, center));
+        result = MergeLiquid(result, GetLiquidAtPoint(tilemap,
+            new Vector3(center.x, bounds.min.y + 0.05f, center.z)));
+        result = MergeLiquid(result, GetLiquidAtPoint(tilemap,
+            new Vector3(center.x, bounds.max.y - 0.05f, center.z)));
+
+        return result;
+    }
+
+    LiquidKind GetLiquidAtPoint(Tilemap tilemap, Vector3 point)
+    {
+        TileBase tile = tilemap.GetTile(tilemap.WorldToCell(point));
+        return LiquidRules.ClassifyTile(tile ? tile.name : null, levelNumber);
+    }
+
+    static LiquidKind MergeLiquid(LiquidKind current, LiquidKind candidate)
+    {
+        return (LiquidKind)Mathf.Max((int)current, (int)candidate);
+    }
+
+    bool IsHeadInWater()
+    {
+        Bounds bounds = bodyCol ? bodyCol.bounds : new Bounds(transform.position, Vector3.one * 0.5f);
+        Vector3 headPosition = new Vector3(bounds.center.x, bounds.max.y - 0.05f, bounds.center.z);
+
+        foreach (Tilemap tilemap in levelTilemaps)
+        {
+            if (!tilemap || !tilemap.isActiveAndEnabled) continue;
+
+            TileBase tile = tilemap.GetTile(tilemap.WorldToCell(headPosition));
+            if (LiquidRules.ClassifyTile(tile ? tile.name : null, levelNumber) == LiquidKind.Water)
+                return true;
+        }
+
+        return false;
+    }
+
+    void TintLavaTiles()
+    {
+        if (levelNumber < 6 || levelTilemaps == null) return;
+
+        Color lavaColor = new Color(1f, 0.28f, 0.05f, 1f);
+        foreach (Tilemap tilemap in levelTilemaps)
+        {
+            if (!tilemap) continue;
+
+            foreach (Vector3Int cell in tilemap.cellBounds.allPositionsWithin)
+            {
+                TileBase tile = tilemap.GetTile(cell);
+                if (!tile || LiquidRules.ClassifyTile(tile.name, levelNumber) != LiquidKind.Lava) continue;
+
+                tilemap.SetTileFlags(cell, TileFlags.None);
+                tilemap.SetColor(cell, lavaColor);
+            }
+        }
+    }
+
     void FlipSpriteFromVelocity()
     {
         bool hasX = Mathf.Abs(rb.velocity.x) > Mathf.Epsilon;
@@ -202,7 +363,14 @@ public class PlayerMovement : MonoBehaviour
         if (!isAlive) return;
 
         isAlive = false;
-        if (anim) anim.SetTrigger("dead");
+        IsSubmerged = false;
+        currentLiquid = LiquidKind.None;
+        if (anim)
+        {
+            anim.SetBool("climbing", false);
+            anim.SetBool("run", false);
+            anim.SetTrigger("dead");
+        }
         rb.velocity = kick == Vector2.zero ? deathKick : kick;
 
         GameSession session = FindObjectOfType<GameSession>();
@@ -354,5 +522,11 @@ public class PlayerMovement : MonoBehaviour
     void StopCoroutineSafe(Coroutine c)
     {
         if (c != null) StopCoroutine(c);
+    }
+
+    static int GetLevelNumber(string sceneName)
+    {
+        if (!sceneName.StartsWith("Level ")) return 1;
+        return int.TryParse(sceneName.Substring(6), out int parsedLevel) ? Mathf.Max(1, parsedLevel) : 1;
     }
 }

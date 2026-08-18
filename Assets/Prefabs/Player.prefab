@@ -253,6 +253,10 @@ MonoBehaviour:
   jumpSpeed: 20
   climbSpeed: 5
   deathKick: {x: 20, y: 20}
+  swimSpeed: 5
+  swimAcceleration: 18
+  waterGravityMultiplier: 0.08
+  swimJumpSpeed: 7
   bullet: {fileID: 1074195590514379850, guid: 540b80387a2a0fc4289b44c884e6f2ac, type: 3}
   gun: {fileID: 8976783524844221006}
   speedBoostMultiplier: 1.5

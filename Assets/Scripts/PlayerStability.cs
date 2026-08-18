@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(PlayerMovement), typeof(Rigidbody2D))]
 public sealed class PlayerStability : MonoBehaviour
@@ -9,14 +10,22 @@ public sealed class PlayerStability : MonoBehaviour
     [SerializeField] float invulnerabilitySeconds = 1f;
     [SerializeField] Vector2 knockback = new Vector2(10f, 12f);
 
+    [Header("Underwater Breath")]
+    [SerializeField] float baseBreathSeconds = 6f;
+    [SerializeField] float breathPenaltyPerLevel = 0.5f;
+    [SerializeField] float minimumBreathSeconds = 3f;
+    [SerializeField] float drowningTickSeconds = 1.25f;
+
     PlayerMovement movement;
     Rigidbody2D rb;
     GameSession session;
     SpriteRenderer playerRenderer;
     int enemyLayer;
     int hazardLayer;
-    int waterLayer;
     float invulnerableUntil;
+    float breathRemaining;
+    float breathMaximum;
+    float drowningTimer;
 
     public bool IsInvulnerable => Time.time < invulnerableUntil;
 
@@ -27,7 +36,9 @@ public sealed class PlayerStability : MonoBehaviour
         playerRenderer = GetComponent<SpriteRenderer>();
         enemyLayer = LayerMask.NameToLayer("Enemy");
         hazardLayer = LayerMask.NameToLayer("Hazard");
-        waterLayer = LayerMask.NameToLayer("Water");
+        breathMaximum = LiquidRules.GetBreathSeconds(GetLevelNumber(), baseBreathSeconds,
+            breathPenaltyPerLevel, minimumBreathSeconds);
+        breathRemaining = breathMaximum;
     }
 
     void Start()
@@ -38,6 +49,8 @@ public sealed class PlayerStability : MonoBehaviour
 
     void Update()
     {
+        ProcessLiquid();
+
         if (playerRenderer)
             playerRenderer.color = IsInvulnerable && Mathf.FloorToInt(Time.unscaledTime * 16f) % 2 == 0
                 ? new Color(0.45f, 0.95f, 1f, 0.35f)
@@ -47,6 +60,7 @@ public sealed class PlayerStability : MonoBehaviour
     void OnDisable()
     {
         if (playerRenderer) playerRenderer.color = Color.white;
+        if (session) session.ClearBreathStatus();
     }
 
     void OnCollisionEnter2D(Collision2D collision)
@@ -76,11 +90,14 @@ public sealed class PlayerStability : MonoBehaviour
         int layer = contactObject.layer;
         Vector2 kick = CalculateKnockback(contactObject.transform.position);
 
-        if (layer == waterLayer)
+        LiquidKind contactLiquid = movement.GetContactLiquid(contactObject);
+        if (contactLiquid == LiquidKind.Lava)
         {
             movement.Kill(kick);
             return;
         }
+
+        if (contactLiquid == LiquidKind.Water) return;
 
         if (IsInvulnerable) return;
 
@@ -98,11 +115,61 @@ public sealed class PlayerStability : MonoBehaviour
         rb.velocity = kick;
     }
 
+    void ProcessLiquid()
+    {
+        if (!movement.IsAlive || movement.IsInvisible || !session)
+        {
+            ResetBreath();
+            return;
+        }
+
+        if (movement.IsInLava)
+        {
+            session.ClearBreathStatus();
+            movement.Kill(Vector2.up * knockback.y);
+            return;
+        }
+
+        if (!movement.IsSwimming || !movement.IsSubmerged)
+        {
+            ResetBreath();
+            return;
+        }
+
+        breathRemaining = Mathf.Max(0f, breathRemaining - Time.deltaTime);
+        session.SetBreathStatus(breathRemaining, breathMaximum);
+        if (breathRemaining > 0f) return;
+
+        drowningTimer += Time.deltaTime;
+        if (drowningTimer < drowningTickSeconds) return;
+
+        drowningTimer = 0f;
+        if (session.TakeStabilityDamageUnits(1))
+        {
+            session.ClearBreathStatus();
+            movement.Kill(Vector2.up * knockback.y);
+        }
+    }
+
+    void ResetBreath()
+    {
+        breathRemaining = breathMaximum;
+        drowningTimer = 0f;
+        if (session) session.ClearBreathStatus();
+    }
+
     Vector2 CalculateKnockback(Vector3 contactPosition)
     {
         float direction = Mathf.Sign(transform.position.x - contactPosition.x);
         if (Mathf.Approximately(direction, 0f)) direction = -Mathf.Sign(rb.velocity.x);
         if (Mathf.Approximately(direction, 0f)) direction = 1f;
         return new Vector2(direction * knockback.x, knockback.y);
+    }
+
+    static int GetLevelNumber()
+    {
+        string sceneName = SceneManager.GetActiveScene().name;
+        if (!sceneName.StartsWith("Level ")) return 1;
+        return int.TryParse(sceneName.Substring(6), out int parsedLevel) ? Mathf.Max(1, parsedLevel) : 1;
     }
 }

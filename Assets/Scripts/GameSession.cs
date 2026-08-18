@@ -29,6 +29,8 @@ public class GameSession : MonoBehaviour
 
     static GameSession instance;
     QuantumStability stability;
+    float breathRemaining = -1f;
+    float breathMaximum;
 
     void Awake()
     {
@@ -90,7 +92,10 @@ public class GameSession : MonoBehaviour
         if (!livesText) return;
 
         string overdrive = stability.IsCritical ? "  <color=#55E8FF>x2</color>" : string.Empty;
-        livesText.text = $"L {playerLives}  Q {stability.Current:0.#}/{stability.Max:0.#}{overdrive}";
+        string breath = breathRemaining >= 0f
+            ? $"  <color=#70DFFF>Breath {breathRemaining:0.0}s</color>"
+            : string.Empty;
+        livesText.text = $"L {playerLives}  Q {stability.Current:0.#}/{stability.Max:0.#}{overdrive}{breath}";
     }
 
     // ---------- Coins & Lives ----------
@@ -127,6 +132,26 @@ public class GameSession : MonoBehaviour
         SaveStability();
         RefreshPlayerStateUI();
         return stability.IsDepleted;
+    }
+
+    public void SetBreathStatus(float remaining, float maximum)
+    {
+        float safeMaximum = Mathf.Max(0.5f, maximum);
+        float safeRemaining = Mathf.Ceil(Mathf.Clamp(remaining, 0f, safeMaximum) * 10f) / 10f;
+        if (Mathf.Approximately(breathRemaining, safeRemaining) &&
+            Mathf.Approximately(breathMaximum, safeMaximum)) return;
+
+        breathRemaining = safeRemaining;
+        breathMaximum = safeMaximum;
+        RefreshPlayerStateUI();
+    }
+
+    public void ClearBreathStatus()
+    {
+        if (breathRemaining < 0f) return;
+        breathRemaining = -1f;
+        breathMaximum = 0f;
+        RefreshPlayerStateUI();
     }
 
     public bool HealStability(int amount)

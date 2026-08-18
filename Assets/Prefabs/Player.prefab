@@ -339,3 +339,7 @@ MonoBehaviour:
   hazardDamage: 2
   invulnerabilitySeconds: 1
   knockback: {x: 10, y: 12}
+  baseBreathSeconds: 6
+  breathPenaltyPerLevel: 0.5
+  minimumBreathSeconds: 3
+  drowningTickSeconds: 1.25

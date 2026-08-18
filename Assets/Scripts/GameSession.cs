@@ -20,6 +20,7 @@ public class GameSession : MonoBehaviour
     public const string FinalCoinsKey = "FinalCoins";
     public const string FinalLivesKey = "FinalLives";
     public const string StabilityKey = "QuantumStability";
+    public const string StabilityUnitsKey = "QuantumStabilityUnits";
 
     // Powerup queue keys (store can set, player consumes)
     public const string SpeedBoostQueuedKey   = "SpeedBoostQueued";
@@ -40,8 +41,11 @@ public class GameSession : MonoBehaviour
         coins = PlayerPrefs.GetInt(CoinsKey, coins);
         playerLives = PlayerPrefs.GetInt(LivesKey, playerLives);
         maxStability = Mathf.Max(1, maxStability);
-        int persistedStability = PlayerPrefs.GetInt(StabilityKey, maxStability);
-        stability = new QuantumStability(maxStability, persistedStability);
+        int persistedUnits = PlayerPrefs.HasKey(StabilityUnitsKey)
+            ? PlayerPrefs.GetInt(StabilityUnitsKey)
+            : PlayerPrefs.GetInt(StabilityKey, maxStability) * QuantumStability.UnitsPerPoint;
+        stability = QuantumStability.FromUnits(
+            maxStability * QuantumStability.UnitsPerPoint, persistedUnits);
     }
 
     void Start()
@@ -86,14 +90,14 @@ public class GameSession : MonoBehaviour
         if (!livesText) return;
 
         string overdrive = stability.IsCritical ? "  <color=#55E8FF>x2</color>" : string.Empty;
-        livesText.text = $"L {playerLives}  Q {stability.Current}/{stability.Max}{overdrive}";
+        livesText.text = $"L {playerLives}  Q {stability.Current:0.#}/{stability.Max:0.#}{overdrive}";
     }
 
     // ---------- Coins & Lives ----------
     public int GetCoins() => coins;
     public int GetLives() => playerLives;
-    public int GetStability() => stability.Current;
-    public int GetMaxStability() => stability.Max;
+    public float GetStability() => stability.Current;
+    public float GetMaxStability() => stability.Max;
     public bool IsCriticalStability() => stability.IsCritical;
 
     public int AddCoins(int amount)
@@ -110,6 +114,15 @@ public class GameSession : MonoBehaviour
     public bool TakeStabilityDamage(int amount)
     {
         if (!stability.TakeDamage(amount)) return stability.IsDepleted;
+
+        SaveStability();
+        RefreshPlayerStateUI();
+        return stability.IsDepleted;
+    }
+
+    public bool TakeStabilityDamageUnits(int units)
+    {
+        if (!stability.TakeDamageUnits(units)) return stability.IsDepleted;
 
         SaveStability();
         RefreshPlayerStateUI();
@@ -134,7 +147,8 @@ public class GameSession : MonoBehaviour
 
     void SaveStability()
     {
-        PlayerPrefs.SetInt(StabilityKey, stability.Current);
+        PlayerPrefs.SetInt(StabilityUnitsKey, stability.CurrentUnits);
+        PlayerPrefs.DeleteKey(StabilityKey);
         PlayerPrefs.Save();
     }
 
@@ -250,7 +264,8 @@ public class GameSession : MonoBehaviour
 
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.SetInt(LivesKey, playerLives);
-        PlayerPrefs.SetInt(StabilityKey, stability.Current);
+        PlayerPrefs.SetInt(StabilityUnitsKey, stability.CurrentUnits);
+        PlayerPrefs.DeleteKey(StabilityKey);
 
         // clear queued powerups
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
@@ -266,6 +281,7 @@ public class GameSession : MonoBehaviour
         PlayerPrefs.DeleteKey(CoinsKey);
         PlayerPrefs.DeleteKey(LivesKey);
         PlayerPrefs.DeleteKey(StabilityKey);
+        PlayerPrefs.DeleteKey(StabilityUnitsKey);
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
         PlayerPrefs.DeleteKey(InvisibilityQueuedKey);
         PlayerPrefs.DeleteKey(DoubleJumpQueuedSecs);

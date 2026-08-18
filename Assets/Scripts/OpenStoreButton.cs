@@ -15,9 +15,10 @@ public class OpenStoreButton : MonoBehaviour
             var pos = player.transform.position;
 
             PlayerPrefs.SetString("ReturnScene", sceneName);
-            PlayerPrefs.SetFloat("ReturnX", pos.x);
-            PlayerPrefs.SetFloat("ReturnY", pos.y);
-            PlayerPrefs.SetInt("HasReturnPos", 1);
+            PlayerPrefs.SetInt("ReturnFromStore", 1);
+            PlayerPrefs.SetFloat("ReturnPosX", pos.x);
+            PlayerPrefs.SetFloat("ReturnPosY", pos.y);
+            PlayerPrefs.SetFloat("ReturnPosZ", pos.z);
             PlayerPrefs.Save();
 
             // Leave physics in a clean state

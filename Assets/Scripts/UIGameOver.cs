@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 public class UIGameOver : MonoBehaviour
@@ -6,12 +7,13 @@ public class UIGameOver : MonoBehaviour
     [SerializeField] TextMeshProUGUI scoreText;   // Drag a TMP Text here in the GameOver scene
     [SerializeField] TextMeshProUGUI bestText;    // Optional: best score display
 
-    const string LastScoreKey = "LastScore";
     const string BestScoreKey = "BestScore";
 
     void Start()
     {
-        int final = PlayerPrefs.GetInt(LastScoreKey, 0);
+        int final = SceneManager.GetActiveScene().name == "Victory"
+            ? PlayerPrefs.GetInt(GameSession.FinalCoinsKey, 0)
+            : PlayerPrefs.GetInt(GameSession.LastScoreKey, 0);
         if (scoreText) scoreText.text = final.ToString();
 
         int best = Mathf.Max(final, PlayerPrefs.GetInt(BestScoreKey, 0));

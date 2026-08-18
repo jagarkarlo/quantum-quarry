@@ -16,6 +16,8 @@ public class GameSession : MonoBehaviour
     public const string CoinsKey = "Coins";
     public const string LivesKey = "Lives";
     public const string LastScoreKey = "LastScore";
+    public const string FinalCoinsKey = "FinalCoins";
+    public const string FinalLivesKey = "FinalLives";
 
     // Powerup queue keys (store can set, player consumes)
     public const string SpeedBoostQueuedKey   = "SpeedBoostQueued";
@@ -162,8 +164,8 @@ public class GameSession : MonoBehaviour
     // ---------- Victory summary ----------
     public void SaveFinalScoreForSummary()
     {
-        PlayerPrefs.SetInt("FinalCoins", coins);
-        PlayerPrefs.SetInt("FinalLives", playerLives);
+        PlayerPrefs.SetInt(FinalCoinsKey, coins);
+        PlayerPrefs.SetInt(FinalLivesKey, playerLives);
         PlayerPrefs.Save();
     }
 

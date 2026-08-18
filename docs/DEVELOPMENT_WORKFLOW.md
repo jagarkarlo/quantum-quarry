@@ -24,6 +24,16 @@ When an automated change is made directly in the same local folder that Unity Hu
 
 The current runtime Store layout is an intermediate compatibility layer around the existing thesis scene. Its product data and visual layout should move to ScriptableObject assets and a dedicated Store prefab before the catalog grows.
 
+## Quantum Stability smoke test
+
+After the project compiles and passes **Tools > QuantumQuarry > Validate Project**:
+
+1. Touch an enemy and verify stability drops by one, knockback applies, and rapid contact does not cause repeated damage for one second.
+2. Touch spikes and verify stability drops by two; touch water and verify the current life is lost immediately.
+3. At one stability, collect a coin and verify the HUD shows `x2`, the pickup value is doubled, and the stored score receives that exact value.
+4. Lose a life and verify stability restores to three while coins and remaining lives persist.
+5. Enter and leave the Store and verify current stability persists with the rest of the run state.
+
 ## Unity upgrade procedure
 
 The project currently targets Unity `2022.3.12f1`. Unity 6.3 LTS is the recommended stable migration target as of August 2026, but the upgrade must be isolated from feature work.

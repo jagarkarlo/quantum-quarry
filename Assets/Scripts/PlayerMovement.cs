@@ -113,7 +113,6 @@ public class PlayerMovement : MonoBehaviour
         Run();
         FlipSpriteFromVelocity();
         ClimbLadder();
-        Die();
     }
 
     // ---------- Input ----------
@@ -198,15 +197,17 @@ public class PlayerMovement : MonoBehaviour
         if (anim) anim.SetBool("climbing", hasY);
     }
 
-    void Die()
+    public void Kill(Vector2 kick)
     {
-        if (bodyCol.IsTouchingLayers(LayerMask.GetMask("Enemy", "Water", "Hazard")))
-        {
-            isAlive = false;
-            if (anim) anim.SetTrigger("dead");
-            rb.velocity = deathKick;
-            FindObjectOfType<GameSession>().ProcessPlayerDeath();
-        }
+        if (!isAlive) return;
+
+        isAlive = false;
+        if (anim) anim.SetTrigger("dead");
+        rb.velocity = kick == Vector2.zero ? deathKick : kick;
+
+        GameSession session = FindObjectOfType<GameSession>();
+        if (session) session.ProcessPlayerDeath();
+        else Debug.LogError("GameSession not found: player death cannot be processed.");
     }
 
     public void AttachToPlatform(StickyPlatform platform)

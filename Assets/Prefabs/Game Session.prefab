@@ -34,8 +34,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 138.19995, y: -1.9001465}
-  m_SizeDelta: {x: 200, y: 50}
+  m_AnchoredPosition: {x: 220, y: -25}
+  m_SizeDelta: {x: 420, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5573384345726495796
 CanvasRenderer:
@@ -65,7 +65,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 99
+  m_text: L 3  Q 3/3
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 393087a715f15344dab08a0b7fa68370, type: 2}
   m_sharedMaterial: {fileID: 4346880729992939727, guid: 393087a715f15344dab08a0b7fa68370, type: 2}
@@ -92,12 +92,12 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 150
-  m_fontSizeBase: 150
+  m_fontSize: 42
+  m_fontSizeBase: 42
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_fontSizeMax: 42
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -128,7 +128,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: -24.668983, y: 31.807894, z: 71.740814, w: -65.46502}
+  m_margin: {x: 8, y: 0, z: 8, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -465,6 +465,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerLives: 3
   coins: 0
+  maxStability: 3
   livesText: {fileID: 3744419680642753581}
   scoreText: {fileID: 6713885369542993103}
 --- !u!1 &5944127055726051303

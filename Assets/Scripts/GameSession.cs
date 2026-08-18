@@ -7,6 +7,7 @@ public class GameSession : MonoBehaviour
     [Header("Player State")]
     [SerializeField] int playerLives = 3;
     [SerializeField] int coins = 0;
+    [SerializeField] int maxStability = 3;
 
     [Header("UI (auto-assigned by tag in each scene)")]
     [SerializeField] TextMeshProUGUI livesText;
@@ -18,6 +19,7 @@ public class GameSession : MonoBehaviour
     public const string LastScoreKey = "LastScore";
     public const string FinalCoinsKey = "FinalCoins";
     public const string FinalLivesKey = "FinalLives";
+    public const string StabilityKey = "QuantumStability";
 
     // Powerup queue keys (store can set, player consumes)
     public const string SpeedBoostQueuedKey   = "SpeedBoostQueued";
@@ -25,6 +27,7 @@ public class GameSession : MonoBehaviour
     public const string DoubleJumpQueuedSecs  = "DoubleJumpQueuedSeconds";
 
     static GameSession instance;
+    QuantumStability stability;
 
     void Awake()
     {
@@ -36,6 +39,9 @@ public class GameSession : MonoBehaviour
         // Pull persisted values (for Store / continue same session)
         coins = PlayerPrefs.GetInt(CoinsKey, coins);
         playerLives = PlayerPrefs.GetInt(LivesKey, playerLives);
+        maxStability = Mathf.Max(1, maxStability);
+        int persistedStability = PlayerPrefs.GetInt(StabilityKey, maxStability);
+        stability = new QuantumStability(maxStability, persistedStability);
     }
 
     void Start()
@@ -71,13 +77,23 @@ public class GameSession : MonoBehaviour
 
     void RefreshUI()
     {
-        if (livesText) livesText.text = playerLives.ToString();
+        RefreshPlayerStateUI();
         if (scoreText) scoreText.text = coins.ToString();
+    }
+
+    void RefreshPlayerStateUI()
+    {
+        if (!livesText) return;
+
+        livesText.text = $"L {playerLives}  Q {stability.Current}/{stability.Max}";
     }
 
     // ---------- Coins & Lives ----------
     public int GetCoins() => coins;
     public int GetLives() => playerLives;
+    public int GetStability() => stability.Current;
+    public int GetMaxStability() => stability.Max;
+    public bool IsCriticalStability() => stability.IsCritical;
 
     public void AddCoins(int amount)
     {
@@ -85,6 +101,37 @@ public class GameSession : MonoBehaviour
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.Save();
         if (scoreText) scoreText.text = coins.ToString();
+    }
+
+    public bool TakeStabilityDamage(int amount)
+    {
+        if (!stability.TakeDamage(amount)) return stability.IsDepleted;
+
+        SaveStability();
+        RefreshPlayerStateUI();
+        return stability.IsDepleted;
+    }
+
+    public bool HealStability(int amount)
+    {
+        if (!stability.Heal(amount)) return false;
+
+        SaveStability();
+        RefreshPlayerStateUI();
+        return true;
+    }
+
+    void RestoreStability()
+    {
+        stability.Restore();
+        SaveStability();
+        RefreshPlayerStateUI();
+    }
+
+    void SaveStability()
+    {
+        PlayerPrefs.SetInt(StabilityKey, stability.Current);
+        PlayerPrefs.Save();
     }
 
     public bool SpendCoins(int cost)
@@ -124,7 +171,7 @@ public class GameSession : MonoBehaviour
         playerLives = Mathf.Max(0, newLives);
         PlayerPrefs.SetInt(LivesKey, playerLives);
         PlayerPrefs.Save();
-        if (livesText) livesText.text = playerLives.ToString();
+        RefreshPlayerStateUI();
     }
 
     // ---------- Death / Reload ----------
@@ -154,11 +201,12 @@ public class GameSession : MonoBehaviour
     {
         playerLives--;
         PlayerPrefs.SetInt(LivesKey, playerLives);
+        RestoreStability();
         PlayerPrefs.Save();
 
         int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
         SceneManager.LoadScene(currentSceneIndex);
-        if (livesText) livesText.text = playerLives.ToString();
+        RefreshPlayerStateUI();
     }
 
     // ---------- Victory summary ----------
@@ -194,9 +242,11 @@ public class GameSession : MonoBehaviour
     {
         coins = 0;
         playerLives = 3;
+        stability = new QuantumStability(maxStability, maxStability);
 
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.SetInt(LivesKey, playerLives);
+        PlayerPrefs.SetInt(StabilityKey, stability.Current);
 
         // clear queued powerups
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
@@ -211,6 +261,7 @@ public class GameSession : MonoBehaviour
     {
         PlayerPrefs.DeleteKey(CoinsKey);
         PlayerPrefs.DeleteKey(LivesKey);
+        PlayerPrefs.DeleteKey(StabilityKey);
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
         PlayerPrefs.DeleteKey(InvisibilityQueuedKey);
         PlayerPrefs.DeleteKey(DoubleJumpQueuedSecs);

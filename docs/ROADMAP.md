@@ -5,8 +5,9 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 ## 1. Quantum Stability
 
 - Implemented: three persistent stability points, contact damage, knockback, and one second of hit invulnerability.
-- Implemented: enemies deal one damage, spikes deal two, and water remains lethal.
+- Implemented: enemies deal one damage, spikes deal two, and drowning drains half a point after breath expires.
 - Implemented: critical stability activates overdrive and doubles collected coin value.
+- Implemented: buoyant swimming, level-scaled breath duration, and lethal lava in the final level.
 - Next: add stabilization pickups, Store armor tiers, damage statistics, and dedicated hit feedback.
 
 ## 2. Quarry Pressure

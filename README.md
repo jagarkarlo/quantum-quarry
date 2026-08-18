@@ -9,8 +9,9 @@ The project explores a complete platform-game loop across six levels: movement a
 - Six playable levels with a level-selection screen
 - Running, jumping, double jumping, ladder climbing, and shooting
 - State-driven enemies, water and spike hazards, and moving platforms
-- Quantum Stability: enemy and spike damage, knockback, hit invulnerability, and lethal water
+- Quantum Stability: enemy and spike damage, knockback, and hit invulnerability
 - Critical-stability overdrive that doubles collected coin value at one remaining stability
+- Buoyant swimming with level-scaled breath, half-point drowning damage, and lethal lava
 - Physics-driven moving platforms that carry idle players and preserve jump momentum
 - Distinct 100, 150, and 200-value coins with size, color, pulse, and pickup feedback
 - A responsive store with stackable speed, invisibility, and double-jump inventory
@@ -28,10 +29,13 @@ Detection range and chase speed increase from Level 1 through Level 6. Both the 
 | Action | Keyboard and mouse | Gamepad |
 | --- | --- | --- |
 | Move / climb | `WASD` or arrow keys | Left stick |
+| Swim | `WASD` or arrow keys | Left stick |
 | Jump | `Space` | South button |
 | Shoot | Left mouse button | Right trigger |
 
 Menus support mouse, keyboard, and gamepad navigation through Unity's Input System.
+
+The HUD spells out `Lives`, `Stability`, and `Coins`. `Coins x2` appears when Stability is at one point or lower, meaning collected coins award twice their displayed base value. While the player's head is underwater, `Breath` shows the remaining safe submersion time; after it reaches zero, drowning removes `0.5` Stability per tick until the player surfaces.
 
 ## Getting Started
 

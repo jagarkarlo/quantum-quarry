@@ -85,7 +85,8 @@ public class GameSession : MonoBehaviour
     {
         if (!livesText) return;
 
-        livesText.text = $"L {playerLives}  Q {stability.Current}/{stability.Max}";
+        string overdrive = stability.IsCritical ? "  <color=#55E8FF>x2</color>" : string.Empty;
+        livesText.text = $"L {playerLives}  Q {stability.Current}/{stability.Max}{overdrive}";
     }
 
     // ---------- Coins & Lives ----------
@@ -95,12 +96,15 @@ public class GameSession : MonoBehaviour
     public int GetMaxStability() => stability.Max;
     public bool IsCriticalStability() => stability.IsCritical;
 
-    public void AddCoins(int amount)
+    public int AddCoins(int amount)
     {
-        coins += Mathf.Max(0, amount);
+        int multiplier = stability.IsCritical ? 2 : 1;
+        int awardedCoins = Mathf.Max(0, amount) * multiplier;
+        coins += awardedCoins;
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.Save();
         if (scoreText) scoreText.text = coins.ToString();
+        return awardedCoins;
     }
 
     public bool TakeStabilityDamage(int amount)

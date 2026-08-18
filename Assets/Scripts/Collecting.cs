@@ -46,27 +46,28 @@ public class Collecting : MonoBehaviour
 
         wasCollected = true;
 
+        int awardedValue = pointsForCoinPickup;
         var gs = FindObjectOfType<GameSession>();
-        if (gs) gs.AddCoins(pointsForCoinPickup);
+        if (gs) awardedValue = gs.AddCoins(pointsForCoinPickup);
         else Debug.LogWarning("GameSession not found: score not added.");
 
         if (coinPickup && Camera.main)
             AudioSource.PlayClipAtPoint(coinPickup, Camera.main.transform.position);
 
-        ShowPickupValue();
+        ShowPickupValue(awardedValue);
         if (coinRenderer) coinRenderer.enabled = false;
         Collider2D pickupCollider = GetComponent<Collider2D>();
         if (pickupCollider) pickupCollider.enabled = false;
         StartCoroutine(DestroyAfterFeedback());
     }
 
-    void ShowPickupValue()
+    void ShowPickupValue(int awardedValue)
     {
         GameObject feedbackObject = new GameObject("CoinValueFeedback");
         feedbackObject.transform.position = transform.position + Vector3.up * 0.5f;
 
         TextMeshPro feedback = feedbackObject.AddComponent<TextMeshPro>();
-        feedback.text = $"+{pointsForCoinPickup}";
+        feedback.text = $"+{awardedValue}";
         feedback.fontSize = pointsForCoinPickup >= 200 ? 5f : 4f;
         feedback.alignment = TextAlignmentOptions.Center;
         feedback.color = coinRenderer ? coinRenderer.color : Color.yellow;

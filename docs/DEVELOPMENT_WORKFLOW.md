@@ -29,10 +29,14 @@ The current runtime Store layout is an intermediate compatibility layer around t
 After the project compiles and passes **Tools > QuantumQuarry > Validate Project**:
 
 1. Touch an enemy and verify stability drops by one, knockback applies, and rapid contact does not cause repeated damage for one second.
-2. Touch spikes and verify stability drops by two; touch water and verify the current life is lost immediately.
-3. At one stability, collect a coin and verify the HUD shows `x2`, the pickup value is doubled, and the stored score receives that exact value.
-4. Lose a life and verify stability restores to three while coins and remaining lives persist.
-5. Enter and leave the Store and verify current stability persists with the rest of the run state.
+2. Touch spikes and verify Stability drops by two while enemy contact still removes one.
+3. Enter water and verify movement becomes buoyant; keep the player's head above water and verify Breath does not drain.
+4. Submerge fully and verify the Breath countdown appears. After it expires, verify Stability drops by `0.5` every `1.25` seconds and surfacing resets Breath.
+5. Enter the red liquid in Level 6 and verify lava removes the current life immediately.
+6. At one Stability, collect a coin and verify the HUD shows `Coins x2`, the pickup value is doubled, and the stored score receives that exact value.
+7. Lose a life and verify Stability restores to three while coins and remaining lives persist.
+8. Enter and leave the Store and verify half-point Stability values persist with the rest of the run state.
+9. Verify the medium-sized `Lives`, `Stability`, and `Coins` labels do not overlap the matching `PAUSE` control at the reference resolution and at 16:9 window sizes.
 
 ## Unity upgrade procedure
 

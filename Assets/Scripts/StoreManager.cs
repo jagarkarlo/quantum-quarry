@@ -23,6 +23,7 @@ public class StoreManager : MonoBehaviour
     Button speedButton;
     Button invisibilityButton;
     Button doubleJumpButton;
+    Button armorButton;
     Button backButton;
     TextMeshProUGUI statusText;
     Coroutine statusRoutine;
@@ -42,6 +43,7 @@ public class StoreManager : MonoBehaviour
         speedButton = FindButton("Button_SpeedBoost");
         invisibilityButton = FindButton("Button_Invisibility");
         doubleJumpButton = FindButton("Button_DoubleJump");
+        armorButton = FindButton("Button_Armor");
         backButton = FindButton("Button_Back");
     }
 
@@ -63,8 +65,10 @@ public class StoreManager : MonoBehaviour
 
         Canvas canvas = panel.GetComponentInParent<Canvas>();
         Rect canvasRect = canvas ? ((RectTransform)canvas.transform).rect : new Rect(0f, 0f, 800f, 600f);
+        // Panel is taller than the 4 original products to leave room for the
+        // armor button once Button_Armor is added to the Store scene.
         float panelWidth = Mathf.Min(720f, Mathf.Max(320f, canvasRect.width - 40f));
-        float panelHeight = Mathf.Min(560f, Mathf.Max(520f, canvasRect.height - 40f));
+        float panelHeight = Mathf.Min(660f, Mathf.Max(600f, canvasRect.height - 40f));
 
         panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
         panel.anchoredPosition = Vector2.zero;
@@ -93,7 +97,8 @@ public class StoreManager : MonoBehaviour
         ConfigureButton(speedButton, -260f, new Color(0.18f, 0.72f, 0.92f), contentWidth);
         ConfigureButton(invisibilityButton, -332f, new Color(0.35f, 0.82f, 0.63f), contentWidth);
         ConfigureButton(doubleJumpButton, -404f, new Color(0.78f, 0.48f, 0.86f), contentWidth);
-        ConfigureButton(backButton, -492f, new Color(0.25f, 0.29f, 0.35f), 260f, 52f);
+        ConfigureButton(armorButton, -476f, new Color(0.55f, 0.60f, 0.68f), contentWidth);
+        ConfigureButton(backButton, -568f, new Color(0.25f, 0.29f, 0.35f), 260f, 52f);
     }
 
     TextMeshProUGUI GetOrCreateLabel(RectTransform parent, string objectName)
@@ -158,6 +163,7 @@ public class StoreManager : MonoBehaviour
             GameSession.InvisibilityQueuedKey, coins);
         RefreshPowerupButton(doubleJumpButton, "DOUBLE JUMP", doubleJumpSeconds,
             priceDoubleJump, GameSession.DoubleJumpQueuedSecs, coins);
+        RefreshArmorButton(coins);
 
         if (backButton)
         {
@@ -192,6 +198,24 @@ public class StoreManager : MonoBehaviour
         buttonText.lineSpacing = -8f;
         buttonText.color = new Color(0.08f, 0.10f, 0.13f);
         buttonText.text = label;
+    }
+
+    void RefreshArmorButton(int coins)
+    {
+        if (!armorButton) return;
+
+        int currentTier = GS ? GS.GetArmorTier() : 0;
+        int nextTier = currentTier + 1;
+        if (!StoreEconomy.IsValidArmorTier(nextTier))
+        {
+            RefreshButton(armorButton, "<b>ARMOR</b>  MAX TIER", coins, int.MaxValue, false);
+            return;
+        }
+
+        int cost = StoreEconomy.GetArmorUpgradeCost(nextTier);
+        int reduction = StoreEconomy.GetArmorDamageReductionPercent(nextTier);
+        string label = $"<b>ARMOR TIER {nextTier}</b>  -{reduction}% DMG\n{cost} COINS";
+        RefreshButton(armorButton, label, coins, cost, true);
     }
 
     bool Spend(int cost)
@@ -253,6 +277,30 @@ public class StoreManager : MonoBehaviour
         GameSession.QueuePowerupSeconds(GameSession.DoubleJumpQueuedSecs,
             doubleJumpSeconds, doubleJumpSeconds);
         ShowStatus("Double jump added");
+    }
+
+    public void BuyArmor()
+    {
+        GameSession session = GS;
+        if (!session)
+        {
+            ShowStatus("ARMOR PURCHASE UNAVAILABLE", false);
+            return;
+        }
+
+        if (!StoreEconomy.IsValidArmorTier(session.GetArmorTier() + 1))
+        {
+            ShowStatus("ARMOR ALREADY AT MAX TIER", false);
+            return;
+        }
+
+        if (!session.PurchaseArmorUpgrade())
+        {
+            ShowStatus("NOT ENOUGH COINS", false);
+            return;
+        }
+
+        ShowStatus("Armor upgraded");
     }
 
     public void ReturnToGame()

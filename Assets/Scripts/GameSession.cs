@@ -21,6 +21,7 @@ public class GameSession : MonoBehaviour
     public const string FinalLivesKey = "FinalLives";
     public const string StabilityKey = "QuantumStability";
     public const string StabilityUnitsKey = "QuantumStabilityUnits";
+    public const string ArmorTierKey = "ArmorTier";
 
     // Powerup queue keys (store can set, player consumes)
     public const string SpeedBoostQueuedKey   = "SpeedBoostQueued";
@@ -29,6 +30,7 @@ public class GameSession : MonoBehaviour
 
     static GameSession instance;
     QuantumStability stability;
+    int armorTier;
     float breathRemaining = -1f;
     float breathMaximum;
 
@@ -48,6 +50,7 @@ public class GameSession : MonoBehaviour
             : PlayerPrefs.GetInt(StabilityKey, maxStability) * QuantumStability.UnitsPerPoint;
         stability = QuantumStability.FromUnits(
             maxStability * QuantumStability.UnitsPerPoint, persistedUnits);
+        armorTier = Mathf.Clamp(PlayerPrefs.GetInt(ArmorTierKey, 0), 0, StoreEconomy.MaxArmorTier);
     }
 
     void Start()
@@ -104,6 +107,7 @@ public class GameSession : MonoBehaviour
     public float GetStability() => stability.Current;
     public float GetMaxStability() => stability.Max;
     public bool IsCriticalStability() => stability.IsCritical;
+    public int GetArmorTier() => armorTier;
 
     public int AddCoins(int amount)
     {
@@ -128,11 +132,24 @@ public class GameSession : MonoBehaviour
 
     bool ApplyStabilityDamage(int units)
     {
-        if (!stability.TakeDamageUnits(units)) return stability.IsDepleted;
+        int reducedUnits = StoreEconomy.ApplyArmorReductionUnits(units, armorTier);
+        if (!stability.TakeDamageUnits(reducedUnits)) return stability.IsDepleted;
 
         SaveStability();
         RefreshPlayerStateUI();
         return stability.IsDepleted;
+    }
+
+    public bool PurchaseArmorUpgrade()
+    {
+        int nextTier = armorTier + 1;
+        if (!StoreEconomy.IsValidArmorTier(nextTier)) return false;
+        if (!SpendCoins(StoreEconomy.GetArmorUpgradeCost(nextTier))) return false;
+
+        armorTier = nextTier;
+        PlayerPrefs.SetInt(ArmorTierKey, armorTier);
+        PlayerPrefs.Save();
+        return true;
     }
 
     public void SetBreathStatus(float remaining, float maximum)
@@ -292,11 +309,13 @@ public class GameSession : MonoBehaviour
         coins = 0;
         playerLives = 3;
         stability = new QuantumStability(maxStability, maxStability);
+        armorTier = 0;
 
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.SetInt(LivesKey, playerLives);
         PlayerPrefs.SetInt(StabilityUnitsKey, stability.CurrentUnits);
         PlayerPrefs.DeleteKey(StabilityKey);
+        PlayerPrefs.DeleteKey(ArmorTierKey);
 
         // clear queued powerups
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
@@ -313,6 +332,7 @@ public class GameSession : MonoBehaviour
         PlayerPrefs.DeleteKey(LivesKey);
         PlayerPrefs.DeleteKey(StabilityKey);
         PlayerPrefs.DeleteKey(StabilityUnitsKey);
+        PlayerPrefs.DeleteKey(ArmorTierKey);
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
         PlayerPrefs.DeleteKey(InvisibilityQueuedKey);
         PlayerPrefs.DeleteKey(DoubleJumpQueuedSecs);

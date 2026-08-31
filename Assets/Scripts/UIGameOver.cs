@@ -6,12 +6,14 @@ public class UIGameOver : MonoBehaviour
 {
     [SerializeField] TextMeshProUGUI scoreText;   // Drag a TMP Text here in the GameOver scene
     [SerializeField] TextMeshProUGUI bestText;    // Optional: best score display
+    [SerializeField] TextMeshProUGUI statsText;   // Optional: run damage summary
 
     const string BestScoreKey = "BestScore";
 
     void Start()
     {
-        int final = SceneManager.GetActiveScene().name == "Victory"
+        bool isVictory = SceneManager.GetActiveScene().name == "Victory";
+        int final = isVictory
             ? PlayerPrefs.GetInt(GameSession.FinalCoinsKey, 0)
             : PlayerPrefs.GetInt(GameSession.LastScoreKey, 0);
         if (scoreText) scoreText.text = final.ToString();
@@ -20,5 +22,15 @@ public class UIGameOver : MonoBehaviour
         PlayerPrefs.SetInt(BestScoreKey, best);
         PlayerPrefs.Save();
         if (bestText) bestText.text = best.ToString();
+
+        if (statsText)
+        {
+            int hitsTaken = PlayerPrefs.GetInt(
+                isVictory ? GameSession.FinalHitsTakenKey : GameSession.LastHitsTakenKey, 0);
+            int stabilityUnitsLost = PlayerPrefs.GetInt(
+                isVictory ? GameSession.FinalStabilityLostUnitsKey : GameSession.LastStabilityLostUnitsKey, 0);
+            float stabilityLost = stabilityUnitsLost / (float)QuantumStability.UnitsPerPoint;
+            statsText.text = $"Hits Taken {hitsTaken}   Stability Lost {stabilityLost:0.#}";
+        }
     }
 }

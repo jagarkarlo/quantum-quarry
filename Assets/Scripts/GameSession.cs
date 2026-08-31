@@ -118,14 +118,15 @@ public class GameSession : MonoBehaviour
 
     public bool TakeStabilityDamage(int amount)
     {
-        if (!stability.TakeDamage(amount)) return stability.IsDepleted;
-
-        SaveStability();
-        RefreshPlayerStateUI();
-        return stability.IsDepleted;
+        return ApplyStabilityDamage(amount * QuantumStability.UnitsPerPoint);
     }
 
     public bool TakeStabilityDamageUnits(int units)
+    {
+        return ApplyStabilityDamage(units);
+    }
+
+    bool ApplyStabilityDamage(int units)
     {
         if (!stability.TakeDamageUnits(units)) return stability.IsDepleted;
 

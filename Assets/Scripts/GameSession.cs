@@ -22,6 +22,12 @@ public class GameSession : MonoBehaviour
     public const string StabilityKey = "QuantumStability";
     public const string StabilityUnitsKey = "QuantumStabilityUnits";
     public const string ArmorTierKey = "ArmorTier";
+    public const string HitsTakenKey = "RunHitsTaken";
+    public const string StabilityLostUnitsKey = "RunStabilityLostUnits";
+    public const string LastHitsTakenKey = "LastHitsTaken";
+    public const string LastStabilityLostUnitsKey = "LastStabilityLostUnits";
+    public const string FinalHitsTakenKey = "FinalHitsTaken";
+    public const string FinalStabilityLostUnitsKey = "FinalStabilityLostUnits";
 
     // Powerup queue keys (store can set, player consumes)
     public const string SpeedBoostQueuedKey   = "SpeedBoostQueued";
@@ -30,6 +36,7 @@ public class GameSession : MonoBehaviour
 
     static GameSession instance;
     QuantumStability stability;
+    DamageLog damageLog;
     int armorTier;
     float breathRemaining = -1f;
     float breathMaximum;
@@ -51,6 +58,9 @@ public class GameSession : MonoBehaviour
         stability = QuantumStability.FromUnits(
             maxStability * QuantumStability.UnitsPerPoint, persistedUnits);
         armorTier = Mathf.Clamp(PlayerPrefs.GetInt(ArmorTierKey, 0), 0, StoreEconomy.MaxArmorTier);
+        damageLog = new DamageLog(
+            PlayerPrefs.GetInt(HitsTakenKey, 0),
+            PlayerPrefs.GetInt(StabilityLostUnitsKey, 0));
     }
 
     void Start()
@@ -108,6 +118,8 @@ public class GameSession : MonoBehaviour
     public float GetMaxStability() => stability.Max;
     public bool IsCriticalStability() => stability.IsCritical;
     public int GetArmorTier() => armorTier;
+    public int GetHitsTaken() => damageLog.HitsTaken;
+    public float GetStabilityLost() => damageLog.StabilityPointsLost;
 
     public int AddCoins(int amount)
     {
@@ -135,9 +147,18 @@ public class GameSession : MonoBehaviour
         int reducedUnits = StoreEconomy.ApplyArmorReductionUnits(units, armorTier);
         if (!stability.TakeDamageUnits(reducedUnits)) return stability.IsDepleted;
 
+        damageLog.RecordHit(reducedUnits);
+        SaveDamageLog();
         SaveStability();
         RefreshPlayerStateUI();
         return stability.IsDepleted;
+    }
+
+    void SaveDamageLog()
+    {
+        PlayerPrefs.SetInt(HitsTakenKey, damageLog.HitsTaken);
+        PlayerPrefs.SetInt(StabilityLostUnitsKey, damageLog.StabilityUnitsLost);
+        PlayerPrefs.Save();
     }
 
     public bool PurchaseArmorUpgrade()
@@ -251,6 +272,8 @@ public class GameSession : MonoBehaviour
         {
             // Save summary for GameOver screen
             PlayerPrefs.SetInt(LastScoreKey, coins);
+            PlayerPrefs.SetInt(LastHitsTakenKey, damageLog.HitsTaken);
+            PlayerPrefs.SetInt(LastStabilityLostUnitsKey, damageLog.StabilityUnitsLost);
 
             // NEW: clear carry-over so next run starts fresh
             ClearPersistentRunState();
@@ -280,6 +303,8 @@ public class GameSession : MonoBehaviour
     {
         PlayerPrefs.SetInt(FinalCoinsKey, coins);
         PlayerPrefs.SetInt(FinalLivesKey, playerLives);
+        PlayerPrefs.SetInt(FinalHitsTakenKey, damageLog.HitsTaken);
+        PlayerPrefs.SetInt(FinalStabilityLostUnitsKey, damageLog.StabilityUnitsLost);
         PlayerPrefs.Save();
     }
 
@@ -310,12 +335,15 @@ public class GameSession : MonoBehaviour
         playerLives = 3;
         stability = new QuantumStability(maxStability, maxStability);
         armorTier = 0;
+        damageLog = new DamageLog(0, 0);
 
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.SetInt(LivesKey, playerLives);
         PlayerPrefs.SetInt(StabilityUnitsKey, stability.CurrentUnits);
         PlayerPrefs.DeleteKey(StabilityKey);
         PlayerPrefs.DeleteKey(ArmorTierKey);
+        PlayerPrefs.DeleteKey(HitsTakenKey);
+        PlayerPrefs.DeleteKey(StabilityLostUnitsKey);
 
         // clear queued powerups
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
@@ -333,6 +361,8 @@ public class GameSession : MonoBehaviour
         PlayerPrefs.DeleteKey(StabilityKey);
         PlayerPrefs.DeleteKey(StabilityUnitsKey);
         PlayerPrefs.DeleteKey(ArmorTierKey);
+        PlayerPrefs.DeleteKey(HitsTakenKey);
+        PlayerPrefs.DeleteKey(StabilityLostUnitsKey);
         PlayerPrefs.DeleteKey(SpeedBoostQueuedKey);
         PlayerPrefs.DeleteKey(InvisibilityQueuedKey);
         PlayerPrefs.DeleteKey(DoubleJumpQueuedSecs);

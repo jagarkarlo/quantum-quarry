@@ -39,6 +39,7 @@ public static class QuantumQuarryProjectValidator
         ValidateEconomy(errors);
         ValidateArmor(errors);
         ValidateStability(errors);
+        ValidateDamageLog(errors);
         ValidateLiquids(errors);
         ValidateBuildScenes(errors);
         ValidatePrefabs(errors);
@@ -102,6 +103,24 @@ public static class QuantumQuarryProjectValidator
 
         if (!stability.TakeDamageUnits(1) || stability.Current != 2.5f)
             errors.Add("Quantum Stability does not support half-point drowning damage.");
+    }
+
+    static void ValidateDamageLog(List<string> errors)
+    {
+        var log = new DamageLog(0, 0);
+        log.RecordHit(2);
+        log.RecordHit(0);
+        if (log.HitsTaken != 1) errors.Add("Damage log counts a zero-damage hit.");
+        if (log.StabilityUnitsLost != 2) errors.Add("Damage log does not accumulate Stability units lost.");
+
+        log.RecordHit(1);
+        if (log.HitsTaken != 2) errors.Add("Damage log does not count a second hit.");
+        if (Math.Abs(log.StabilityPointsLost - 1.5f) > 0.001f)
+            errors.Add("Damage log does not convert Stability units lost into points correctly.");
+
+        var restored = new DamageLog(-1, -1);
+        if (restored.HitsTaken != 0 || restored.StabilityUnitsLost != 0)
+            errors.Add("Damage log accepts negative persisted stats.");
     }
 
     static void ValidateLiquids(List<string> errors)

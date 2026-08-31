@@ -37,6 +37,7 @@ public static class QuantumQuarryProjectValidator
     {
         var errors = new List<string>();
         ValidateEconomy(errors);
+        ValidateArmor(errors);
         ValidateStability(errors);
         ValidateLiquids(errors);
         ValidateBuildScenes(errors);
@@ -61,6 +62,24 @@ public static class QuantumQuarryProjectValidator
             errors.Add("Legacy power-up queue migration is invalid.");
         if (StoreEconomy.AddQueuedSeconds(115, 10, 10) != StoreEconomy.MaxQueuedSeconds)
             errors.Add("Power-up inventory does not enforce its duration cap.");
+    }
+
+    static void ValidateArmor(List<string> errors)
+    {
+        if (StoreEconomy.IsValidArmorTier(0))
+            errors.Add("Armor tier 0 (no armor) is incorrectly treated as purchasable.");
+        if (!StoreEconomy.IsValidArmorTier(1) || !StoreEconomy.IsValidArmorTier(StoreEconomy.MaxArmorTier))
+            errors.Add("A valid armor tier is rejected.");
+        if (StoreEconomy.IsValidArmorTier(StoreEconomy.MaxArmorTier + 1))
+            errors.Add("An armor tier beyond the maximum is incorrectly accepted.");
+        if (StoreEconomy.GetArmorUpgradeCost(1) >= StoreEconomy.GetArmorUpgradeCost(StoreEconomy.MaxArmorTier))
+            errors.Add("Higher armor tiers do not cost more than lower tiers.");
+        if (StoreEconomy.ApplyArmorReductionUnits(4, 0) != 4)
+            errors.Add("Unarmored damage is incorrectly reduced.");
+        if (StoreEconomy.ApplyArmorReductionUnits(4, StoreEconomy.MaxArmorTier) >= 4)
+            errors.Add("Maximum armor tier does not reduce incoming damage.");
+        if (StoreEconomy.ApplyArmorReductionUnits(1, StoreEconomy.MaxArmorTier) < 1)
+            errors.Add("Armor incorrectly reduces a hit to zero damage.");
     }
 
     static void ValidateStability(List<string> errors)

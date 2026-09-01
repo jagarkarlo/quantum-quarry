@@ -10,6 +10,10 @@ public sealed class PlayerStability : MonoBehaviour
     [SerializeField] float invulnerabilitySeconds = 1f;
     [SerializeField] Vector2 knockback = new Vector2(10f, 12f);
 
+    [Header("Hit Feedback")]
+    [SerializeField] float hitFlashSeconds = 0.15f;
+    [SerializeField] Color hitFlashColor = new Color(1f, 0.35f, 0.35f);
+
     [Header("Underwater Breath")]
     [SerializeField] float baseBreathSeconds = 6f;
     [SerializeField] float breathPenaltyPerLevel = 0.5f;
@@ -23,6 +27,7 @@ public sealed class PlayerStability : MonoBehaviour
     int enemyLayer;
     int hazardLayer;
     float invulnerableUntil;
+    float hitFlashUntil;
     float breathRemaining;
     float breathMaximum;
     float drowningTimer;
@@ -51,8 +56,11 @@ public sealed class PlayerStability : MonoBehaviour
     {
         ProcessLiquid();
 
-        if (playerRenderer)
-            playerRenderer.color = IsInvulnerable && Mathf.FloorToInt(Time.unscaledTime * 16f) % 2 == 0
+        if (!playerRenderer) return;
+
+        playerRenderer.color = Time.time < hitFlashUntil
+            ? hitFlashColor
+            : IsInvulnerable && Mathf.FloorToInt(Time.unscaledTime * 16f) % 2 == 0
                 ? new Color(0.45f, 0.95f, 1f, 0.35f)
                 : Color.white;
     }
@@ -112,6 +120,7 @@ public sealed class PlayerStability : MonoBehaviour
         }
 
         invulnerableUntil = Time.time + invulnerabilitySeconds;
+        hitFlashUntil = Time.time + hitFlashSeconds;
         rb.velocity = kick;
     }
 
@@ -148,6 +157,10 @@ public sealed class PlayerStability : MonoBehaviour
         {
             session.ClearBreathStatus();
             movement.Kill(Vector2.up * knockback.y);
+        }
+        else
+        {
+            hitFlashUntil = Time.time + hitFlashSeconds;
         }
     }
 

@@ -28666,6 +28666,35 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: be711a29cdc007b4d9e8cdc82e8c0f3c, type: 3}
+--- !u!1001 &636441854
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 7792364549821346702, guid: 5e847b0b1bf143d7951cb5e5e2ad9d77, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 22.14
+      objectReference: {fileID: 0}
+    - target: {fileID: 7792364549821346702, guid: 5e847b0b1bf143d7951cb5e5e2ad9d77, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -3.31
+      objectReference: {fileID: 0}
+    - target: {fileID: 7792364549821346702, guid: 5e847b0b1bf143d7951cb5e5e2ad9d77, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7792364549821346701, guid: 5e847b0b1bf143d7951cb5e5e2ad9d77, type: 3}
+      propertyPath: m_Name
+      value: StabilizationPickup
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 5e847b0b1bf143d7951cb5e5e2ad9d77, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -28679,3 +28708,4 @@ SceneRoots:
   - {fileID: 878822732}
   - {fileID: 1288636957}
   - {fileID: 2071634795}
+  - {fileID: 636441854}

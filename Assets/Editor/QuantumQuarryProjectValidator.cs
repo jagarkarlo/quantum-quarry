@@ -13,6 +13,7 @@ public static class QuantumQuarryProjectValidator
     const string Level4ScenePath = "Assets/Levels/Level 4.unity";
     const string Level5ScenePath = "Assets/Levels/Level 5.unity";
     const string Level6ScenePath = "Assets/Levels/Level 6.unity";
+    const string StabilizationPickupPrefabPath = "Assets/Prefabs/StabilizationPickup.prefab";
 
     [MenuItem("Tools/QuantumQuarry/Validate Project")]
     public static void ValidateFromMenu()
@@ -48,6 +49,7 @@ public static class QuantumQuarryProjectValidator
         ValidateCoinTier(Level5ScenePath, 200, errors);
         ValidateCoinTier(Level6ScenePath, 150, errors);
         ValidateCoinTier(Level6ScenePath, 200, errors);
+        ValidateStabilizationPickupPlacement(errors);
         return errors;
     }
 
@@ -161,6 +163,7 @@ public static class QuantumQuarryProjectValidator
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Enemy.prefab", errors);
         ValidatePrefabComponent<EnemyPatrol2D>("Assets/Prefabs/Red Enemy.prefab", errors);
         ValidatePrefabComponent<Collecting>("Assets/Prefabs/Coin.prefab", errors);
+        ValidatePrefabComponent<StabilizationPickup>(StabilizationPickupPrefabPath, errors);
         ValidatePrefabComponent<FollowingPoint>("Assets/Prefabs/Platform.prefab", errors);
         ValidatePrefabComponent<StickyPlatform>("Assets/Prefabs/Platform.prefab", errors);
     }
@@ -194,6 +197,7 @@ public static class QuantumQuarryProjectValidator
             ValidateButton(storeScene, "Button_SpeedBoost", "BuySpeed", storeManager, errors);
             ValidateButton(storeScene, "Button_Invisibility", "BuyInvisibility", storeManager, errors);
             ValidateButton(storeScene, "Button_DoubleJump", "BuyDoubleJump", storeManager, errors);
+            ValidateButton(storeScene, "Button_Armor", "BuyArmor", storeManager, errors);
             ValidateButton(storeScene, "Button_Back", "ReturnToGame", storeManager, errors);
         }
         finally
@@ -224,6 +228,26 @@ public static class QuantumQuarryProjectValidator
             }
 
             errors.Add($"{scenePath} is missing a {expectedValue}-value coin.");
+        }
+        finally
+        {
+            if (openedForValidation && scene.isLoaded)
+                EditorSceneManager.CloseScene(scene, true);
+        }
+    }
+
+    static void ValidateStabilizationPickupPlacement(List<string> errors)
+    {
+        Scene scene = SceneManager.GetSceneByPath(Level6ScenePath);
+        bool openedForValidation = !scene.isLoaded;
+
+        try
+        {
+            if (openedForValidation)
+                scene = EditorSceneManager.OpenScene(Level6ScenePath, OpenSceneMode.Additive);
+
+            if (!FindInScene<StabilizationPickup>(scene))
+                errors.Add($"{Level6ScenePath} is missing a StabilizationPickup.");
         }
         finally
         {

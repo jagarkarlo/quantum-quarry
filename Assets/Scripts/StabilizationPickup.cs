@@ -6,6 +6,7 @@ public class StabilizationPickup : MonoBehaviour
 {
     [SerializeField] AudioClip pickupSound;
     [SerializeField] int restoreAmount = 1;
+    [SerializeField] float respawnSeconds = 20f; // 0 or less: one-time pickup
 
     bool wasCollected;
     SpriteRenderer pickupRenderer;
@@ -61,6 +62,21 @@ public class StabilizationPickup : MonoBehaviour
     IEnumerator DestroyAfterFeedback()
     {
         yield return new WaitForSecondsRealtime(0.5f);
-        Destroy(gameObject);
+
+        if (respawnSeconds <= 0f)
+        {
+            Destroy(gameObject);
+            yield break;
+        }
+
+        yield return new WaitForSecondsRealtime(respawnSeconds);
+        Respawn();
+    }
+
+    void Respawn()
+    {
+        wasCollected = false;
+        if (pickupRenderer) pickupRenderer.enabled = true;
+        if (pickupCollider) pickupCollider.enabled = true;
     }
 }

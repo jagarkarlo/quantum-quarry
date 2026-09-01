@@ -8,7 +8,13 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Implemented: enemies deal one damage, spikes deal two, and drowning drains half a point after breath expires.
 - Implemented: critical stability activates overdrive and doubles collected coin value.
 - Implemented: buoyant swimming, level-scaled breath duration, and lethal lava in the final level.
-- Next: add stabilization pickups, Store armor tiers, damage statistics, and dedicated hit feedback.
+- Implemented: two purchasable Store armor tiers that reduce incoming Stability damage (never to zero), per-run damage statistics (hits taken, Stability lost) surfaced on the Game Over and Victory screens, and a dedicated hit-flash separate from invulnerability blinking.
+- Implemented, pending Editor wiring: a `StabilizationPickup` component that restores Stability on contact and respawns after a cooldown. To finish this in the Unity Editor:
+  1. Create a prefab combining a `SpriteRenderer`, a trigger `Collider2D`, and `StabilizationPickup`, following `Coin.prefab`'s structure.
+  2. Place instances in one or more levels.
+  3. Add a `Button_Armor` object to the Store scene, wired to `StoreManager.BuyArmor`, matching the existing Store buttons; the responsive layout already reserves its position and panel height.
+  4. Once both exist, extend `QuantumQuarryProjectValidator` with a `ValidatePrefabComponent<StabilizationPickup>` check and a `ValidateButton(..., "Button_Armor", "BuyArmor", ...)` check, matching the existing patterns.
+- Next: Quarry Pressure (see below).
 
 ## 2. Quarry Pressure
 

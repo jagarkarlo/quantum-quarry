@@ -107,9 +107,13 @@ public sealed class PlayerStability : MonoBehaviour
 
         if (contactLiquid == LiquidKind.Water) return;
 
+        PressurePulseHazard pulse = contactObject.GetComponentInParent<PressurePulseHazard>();
+        if (pulse && !pulse.IsActive) return;
+
         if (IsInvulnerable) return;
 
-        int damage = layer == enemyLayer ? enemyDamage : layer == hazardLayer ? hazardDamage : 0;
+        int damage = pulse ? pulse.Damage :
+            layer == enemyLayer ? enemyDamage : layer == hazardLayer ? hazardDamage : 0;
         if (damage <= 0) return;
 
         bool depleted = session.TakeStabilityDamage(damage);

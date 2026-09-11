@@ -53,6 +53,21 @@ static class Program
         Equal(int.MaxValue, capped.PendingCoins, "pending cannot overflow");
         Equal(int.MaxValue, capped.CarriedOre, "ore cannot overflow");
         Equal(0, capped.Collect(100, false), "full pending wallet");
+        Equal(QuarryPressure.PulsePhase.Dormant, pressure.GetPulsePhase(5.5f), "low pressure dormant");
+        var pulses = new QuarryPressure(7319, 1500);
+        Equal(QuarryPressure.PulsePhase.Idle, pulses.GetPulsePhase(0f), "activation grace");
+        Equal(QuarryPressure.PulsePhase.Idle, pulses.GetPulsePhase(3.49f), "before warning");
+        Equal(QuarryPressure.PulsePhase.Warning, pulses.GetPulsePhase(3.5f), "warning boundary");
+        Equal(QuarryPressure.PulsePhase.Warning, pulses.GetPulsePhase(4.99f), "warning is safe");
+        Equal(QuarryPressure.PulsePhase.Active, pulses.GetPulsePhase(5f), "active boundary");
+        Equal(QuarryPressure.PulsePhase.Active, pulses.GetPulsePhase(5.99f), "active window");
+        Equal(QuarryPressure.PulsePhase.Idle, pulses.GetPulsePhase(6f), "cycle resets");
+        Equal(QuarryPressure.PulsePhase.Active, pulses.GetPulsePhase(11f), "cycle repeats");
+        Equal(QuarryPressure.PulsePhase.Idle, pulses.GetPulsePhase(-1f), "negative clock safe");
+        Equal(QuarryPressure.PulsePhase.Dormant, pulses.GetPulsePhase(float.NaN), "invalid clock safe");
+        Equal(QuarryPressure.PulsePhase.Dormant, pulses.GetPulsePhase(float.PositiveInfinity), "infinite clock safe");
+        pulses.Bank();
+        Equal(QuarryPressure.PulsePhase.Dormant, pulses.GetPulsePhase(5f), "bank disables pulses");
         for (int seed = -10; seed <= 10; seed++)
         {
             for (int tierOre = 0; tierOre <= 3000; tierOre += 500)

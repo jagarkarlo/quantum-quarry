@@ -33,13 +33,15 @@ public class EnemyPatrol2D : MonoBehaviour
 
     Rigidbody2D rb;
     PlayerMovement player;
+    GameSession session;
     EnemyState currentState;
     float stateTimer;
     int levelNumber = 1;
     int dir = 1;
 
     public EnemyState CurrentState => currentState;
-    public float DetectionRange => baseDetectionRange + (levelNumber - 1) * detectionRangePerLevel;
+    public float DetectionRange => (baseDetectionRange + (levelNumber - 1) * detectionRangePerLevel)
+        * (session ? session.Pressure.PerceptionMultiplier : 1f);
 
     void Awake()
     {
@@ -50,6 +52,7 @@ public class EnemyPatrol2D : MonoBehaviour
 
     void Start()
     {
+        session = FindObjectOfType<GameSession>();
         FindPlayer();
     }
 
@@ -101,7 +104,8 @@ public class EnemyPatrol2D : MonoBehaviour
 
         FacePlayer();
         float difficulty = 1f + (levelNumber - 1) * difficultyPerLevel;
-        Move(speed * chaseSpeedMultiplier * difficulty);
+        float pressureSpeed = session ? session.Pressure.ChaseMultiplier : 1f;
+        Move(speed * chaseSpeedMultiplier * difficulty * pressureSpeed);
     }
 
     void Search()

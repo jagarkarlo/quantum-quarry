@@ -3,6 +3,10 @@ using System;
 [Serializable]
 public sealed class QuarryPressure
 {
+    public enum PulsePhase { Dormant, Idle, Warning, Active }
+    public const float PulseCycleSeconds = 6f;
+    public const float PulseWarningStart = 3.5f;
+    public const float PulseActiveStart = 5f;
     public const int DefaultSeed = 7319;
     public const int FirstThreshold = 500;
     public const int SecondThreshold = 1500;
@@ -55,5 +59,14 @@ public sealed class QuarryPressure
     {
         CarriedOre = 0;
         PendingCoins = 0;
+    }
+
+    public PulsePhase GetPulsePhase(float elapsedSeconds)
+    {
+        if (!HasHazardPulses || float.IsNaN(elapsedSeconds) || float.IsInfinity(elapsedSeconds))
+            return PulsePhase.Dormant;
+        float cycle = Math.Max(0f, elapsedSeconds) % PulseCycleSeconds;
+        return cycle >= PulseActiveStart ? PulsePhase.Active :
+            cycle >= PulseWarningStart ? PulsePhase.Warning : PulsePhase.Idle;
     }
 }

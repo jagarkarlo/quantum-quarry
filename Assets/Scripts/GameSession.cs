@@ -15,6 +15,9 @@ public class GameSession : MonoBehaviour
 
     // Keys
     public const string CoinsKey = "Coins";
+    public const string CarriedOreKey = "PressureCarriedOre";
+    public const string PendingCoinsKey = "PressurePendingCoins";
+    public const string PressureSeedKey = "PressureSeed";
     public const string LivesKey = "Lives";
     public const string LastScoreKey = "LastScore";
     public const string FinalCoinsKey = "FinalCoins";
@@ -36,6 +39,9 @@ public class GameSession : MonoBehaviour
 
     static GameSession instance;
     QuantumStability stability;
+    QuarryPressure pressure;
+    public QuarryPressure Pressure => pressure;
+    public event System.Action PressureChanged;
     DamageLog damageLog;
     int armorTier;
     float breathRemaining = -1f;
@@ -49,7 +55,11 @@ public class GameSession : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         // Pull persisted values (for Store / continue same session)
-        coins = PlayerPrefs.GetInt(CoinsKey, coins);
+        coins = Mathf.Max(0, PlayerPrefs.GetInt(CoinsKey, coins));
+        pressure = new QuarryPressure(
+            PlayerPrefs.GetInt(PressureSeedKey, QuarryPressure.DefaultSeed),
+            PlayerPrefs.GetInt(CarriedOreKey, 0),
+            PlayerPrefs.GetInt(PendingCoinsKey, 0));
         playerLives = PlayerPrefs.GetInt(LivesKey, playerLives);
         maxStability = Mathf.Max(1, maxStability);
         int persistedUnits = PlayerPrefs.HasKey(StabilityUnitsKey)
@@ -123,13 +133,38 @@ public class GameSession : MonoBehaviour
 
     public int AddCoins(int amount)
     {
-        int multiplier = stability.IsCritical ? 2 : 1;
-        int awardedCoins = Mathf.Max(0, amount) * multiplier;
-        coins += awardedCoins;
-        PlayerPrefs.SetInt(CoinsKey, coins);
-        PlayerPrefs.Save();
+        int awardedCoins = pressure.Collect(amount, stability.IsCritical);
+        SavePressure();
         RefreshCoinsUI();
+        PressureChanged?.Invoke();
         return awardedCoins;
+    }
+
+    public int BankOre()
+    {
+        int deposited = (int)System.Math.Min(int.MaxValue - (long)coins, pressure.Bank());
+        coins += deposited;
+        PlayerPrefs.SetInt(CoinsKey, coins);
+        SavePressure();
+        RefreshCoinsUI();
+        PressureChanged?.Invoke();
+        return deposited;
+    }
+
+    void SavePressure()
+    {
+        PlayerPrefs.SetInt(CarriedOreKey, pressure.CarriedOre);
+        PlayerPrefs.SetInt(PendingCoinsKey, pressure.PendingCoins);
+        PlayerPrefs.SetInt(PressureSeedKey, pressure.Seed);
+        PlayerPrefs.Save();
+    }
+
+    void DiscardOre()
+    {
+        pressure.Discard();
+        SavePressure();
+        RefreshCoinsUI();
+        PressureChanged?.Invoke();
     }
 
     public bool TakeStabilityDamage(int amount)
@@ -264,6 +299,7 @@ public class GameSession : MonoBehaviour
     // ---------- Death / Reload ----------
     public void ProcessPlayerDeath()
     {
+        DiscardOre();
         if (playerLives > 1)
         {
             TakeLifeAndReload();
@@ -301,6 +337,7 @@ public class GameSession : MonoBehaviour
     // ---------- Victory summary ----------
     public void SaveFinalScoreForSummary()
     {
+        BankOre();
         PlayerPrefs.SetInt(FinalCoinsKey, coins);
         PlayerPrefs.SetInt(FinalLivesKey, playerLives);
         PlayerPrefs.SetInt(FinalHitsTakenKey, damageLog.HitsTaken);
@@ -311,6 +348,7 @@ public class GameSession : MonoBehaviour
     // ---------- Hard reset current level (for Pause Reset) ----------
     public void ResetCurrentLevelToStart()
     {
+        DiscardOre();
         // Reset any persistent scene objects
         var sp = FindObjectOfType<ScenePersist>();
         if (sp) sp.ResetScenePersist();
@@ -336,6 +374,9 @@ public class GameSession : MonoBehaviour
         stability = new QuantumStability(maxStability, maxStability);
         armorTier = 0;
         damageLog = new DamageLog(0, 0);
+        pressure = new QuarryPressure();
+        SavePressure();
+        PressureChanged?.Invoke();
 
         PlayerPrefs.SetInt(CoinsKey, coins);
         PlayerPrefs.SetInt(LivesKey, playerLives);
@@ -356,6 +397,9 @@ public class GameSession : MonoBehaviour
 
     public static void ClearPersistentRunState()
     {
+        PlayerPrefs.DeleteKey(CarriedOreKey);
+        PlayerPrefs.DeleteKey(PendingCoinsKey);
+        PlayerPrefs.DeleteKey(PressureSeedKey);
         PlayerPrefs.DeleteKey(CoinsKey);
         PlayerPrefs.DeleteKey(LivesKey);
         PlayerPrefs.DeleteKey(StabilityKey);

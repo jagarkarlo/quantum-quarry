@@ -7,6 +7,8 @@ public class OpenStoreButton : MonoBehaviour
 
     public void OpenStore()
     {
+        var session = FindObjectOfType<GameSession>();
+        if (session) session.BankOre();
         var player = FindObjectOfType<PlayerMovement>();
         if (player)
         {

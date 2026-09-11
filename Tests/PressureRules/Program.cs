@@ -64,5 +64,6 @@ static class Program
             }
         }
         Console.WriteLine($"Quarry Pressure: {assertions} assertions passed.");
+        SessionTests.Run();
     }
 }

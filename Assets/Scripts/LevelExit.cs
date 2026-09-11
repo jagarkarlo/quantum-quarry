@@ -16,6 +16,9 @@ public class LevelExit : MonoBehaviour
     {
         yield return new WaitForSecondsRealtime(levelLoadDelay);
 
+        var session = FindObjectOfType<GameSession>();
+        if (session) session.BankOre();
+
         string currentName = SceneManager.GetActiveScene().name; // "Level N"
         int currentNumber = ParseLevelNumber(currentName);
         int nextNumber = currentNumber + 1;

@@ -32,6 +32,7 @@ public class StoreManager : MonoBehaviour
 
     void OnEnable()
     {
+        if (GS) GS.BankOre();
         BindStoreUI();
         BuildResponsiveLayout();
         RefreshUI();

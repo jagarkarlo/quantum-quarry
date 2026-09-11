@@ -9,20 +9,19 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Implemented: critical stability activates overdrive and doubles collected coin value.
 - Implemented: buoyant swimming, level-scaled breath duration, and lethal lava in the final level.
 - Implemented: two purchasable Store armor tiers that reduce incoming Stability damage (never to zero), per-run damage statistics (hits taken, Stability lost) surfaced on the Game Over and Victory screens, and a dedicated hit-flash separate from invulnerability blinking.
-- Implemented, pending Editor wiring: a `StabilizationPickup` component that restores Stability on contact and respawns after a cooldown. To finish this in the Unity Editor:
-  1. Create a prefab combining a `SpriteRenderer`, a trigger `Collider2D`, and `StabilizationPickup`, following `Coin.prefab`'s structure.
-  2. Place instances in one or more levels.
-  3. Add a `Button_Armor` object to the Store scene, wired to `StoreManager.BuyArmor`, matching the existing Store buttons; the responsive layout already reserves its position and panel height.
-  4. Once both exist, extend `QuantumQuarryProjectValidator` with a `ValidatePrefabComponent<StabilizationPickup>` check and a `ValidateButton(..., "Button_Armor", "BuyArmor", ...)` check, matching the existing patterns.
+- Implemented: the stabilization pickup prefab is placed in Level 6, the Store armor button is wired, and the project validator checks both.
 - Next: Quarry Pressure (see below).
 
 ## 2. Quarry Pressure
 
-- Increase pressure as the player carries valuable ore without banking it.
-- At deterministic thresholds, strengthen enemy perception, activate hazard pulses, and introduce encounter modifiers.
-- Telegraph every pressure increase and expose the exact reward multiplier before the player commits.
-- Let checkpoints and the Store bank ore, reset pressure, and preserve permanent progression.
-- Use a seeded modifier schedule so difficult runs are reproducible and testable.
+- Implemented in source: carried base ore raises pressure at 500, 1500, and 3000; subsequent pickups receive x1.25, x1.5, and x1.75 rewards. Critical Stability doubles those rewards.
+- Implemented in source: pressure increases enemy perception; a persisted seed selects swift-pursuit modifiers. Pulse vents use a safe warning phase before damage.
+- Implemented in source: a separate pressure HUD, threshold notices, and exact coin reward previews.
+- Implemented in source: Store entry, level exits, victory, and banking checkpoints deposit carried rewards and reset pressure. Death and manual level reset discard unbanked ore. Existing banked balances and level unlocks are preserved.
+- Implemented tooling: original checkpoint/vent pixel art and an Editor command that creates reusable prefabs without overwriting existing assets.
+- Verified outside Unity: deterministic C# rules, session transitions with Unity test doubles, artwork dimensions/palette, and C# 9 syntax.
+- Pending milestone gate: run the prefab builder in Unity 2022.3.12f1, place checkpoints/vents, validate the project and custom prefabs, and complete the [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation). Serialized pressure prefabs and placements are not yet committed. Do not start the next milestone before this gate passes.
+- Future refinement: an in-game seed selector and authored campaign encounter tuning. The current reproducibility contract covers modifier selection and local pulse cycles, not full physics replay.
 
 ## 3. Store and inventory
 

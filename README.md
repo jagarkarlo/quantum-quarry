@@ -22,6 +22,8 @@ The project explores a complete platform-game loop across six levels: movement a
 - A responsive store with stackable speed, invisibility, and double-jump inventory
 - Safe ghost movement that prevents rematerializing inside solid platforms
 - Pause, victory, and game-over flows
+- Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
+- Custom banking checkpoint and pulse-vent prefab authoring tools (Unity generation and Play Mode verification pending)
 
 ## Enemy AI
 
@@ -40,7 +42,7 @@ Detection range and chase speed increase from Level 1 through Level 6. Both the 
 
 Menus support mouse, keyboard, and gamepad navigation through Unity's Input System.
 
-The HUD spells out `Lives`, `Stability`, and `Coins`. `Coins x2` appears when Stability is at one point or lower, meaning collected coins award twice their displayed base value. While the player's head is underwater, `Breath` shows the remaining safe submersion time; after it reaches zero, drowning removes `0.5` Stability per tick until the player surfaces.
+The HUD spells out `Lives`, `Stability`, and `Banked`. `Coins x2` indicates the critical-Stability bonus, which stacks with Quarry Pressure. The pressure HUD shows the combined multiplier and carried rewards; labels over coins preview their exact award. Store entry and level exits bank carried rewards; death loses only unbanked ore. While the player's head is underwater, `Breath` shows the remaining safe submersion time; after it reaches zero, drowning removes `0.5` Stability per tick until the player surfaces.
 
 ## Getting Started
 
@@ -111,6 +113,14 @@ Run **Tools > QuantumQuarry > Validate Project** in Unity before testing a chang
 Unity -batchmode -quit -projectPath "$PWD" \
   -executeMethod QuantumQuarryProjectValidator.ValidateBatch -logFile -
 ```
+
+Quarry Pressure's package-free tests can run with .NET 8:
+
+```bash
+dotnet run --project Tests/PressureRules/PressureRules.csproj
+```
+
+These execute the real pressure rules and session logic against Unity test doubles, validate the custom artwork, and parse Unity sources for C# 9 syntax. They do not replace Unity compilation or Play Mode. See the [pressure authoring and verification procedure](docs/DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation).
 
 ## Project Structure
 

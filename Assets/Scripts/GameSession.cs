@@ -92,6 +92,7 @@ public class GameSession : MonoBehaviour
 
     void RebindUI()
     {
+        QuarryPressureHUD.EnsureForScene(this);
         if (!livesText)
         {
             var go = GameObject.FindGameObjectWithTag("LivesText");
@@ -263,7 +264,7 @@ public class GameSession : MonoBehaviour
 
     void RefreshCoinsUI()
     {
-        if (scoreText) scoreText.text = $"Coins {coins}";
+        if (scoreText) scoreText.text = $"Banked {coins}";
     }
 
     public static int GetQueuedPowerupSeconds(string key, int legacySeconds)

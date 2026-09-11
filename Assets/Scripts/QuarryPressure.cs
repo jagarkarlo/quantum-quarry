@@ -25,6 +25,13 @@ public sealed class QuarryPressure
         (uint)Tier * 1013904223u) >> 16) & 1u) != 0;
     public float PerceptionMultiplier => 1f + Tier * 0.15f;
     public float ChaseMultiplier => HasSwiftEnemies ? 1f + Tier * 0.1f : 1f;
+    public string ModifierName => Tier == 0 ? "Calm" : HasSwiftEnemies ? "Swift pursuit" : "Watchful patrols";
+
+    public string RewardLabel(bool critical)
+    {
+        return "x" + (RewardPercent * (critical ? 2 : 1) / 100m)
+            .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
 
     public QuarryPressure(int seed = DefaultSeed, int carriedOre = 0, int pendingCoins = 0)
     {

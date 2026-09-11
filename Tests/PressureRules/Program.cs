@@ -21,6 +21,8 @@ static class Program
         Equal(1, pressure.Collect(1, false), "crossing uses advertised reward");
         Equal(1, pressure.Tier, "exact first threshold");
         Equal(125, pressure.PreviewReward(100, false), "tier one preview");
+        Equal("x1.25", pressure.RewardLabel(false), "exact reward label");
+        Equal("x2.5", pressure.RewardLabel(true), "exact critical reward label");
         Equal(250, pressure.PreviewReward(100, true), "critical stacks with pressure");
         Equal(1250, pressure.Collect(1000, false), "tier one collection");
         Equal(2, pressure.Tier, "exact second threshold");

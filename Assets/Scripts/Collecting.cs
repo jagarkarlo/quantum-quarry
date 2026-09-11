@@ -10,6 +10,9 @@ public class Collecting : MonoBehaviour
     bool wasCollected = false;
     SpriteRenderer coinRenderer;
     Vector3 baseScale;
+    TextMeshPro rewardPreview;
+    GameSession session;
+    int lastPreview = -1;
 
     void Awake()
     {
@@ -19,9 +22,34 @@ public class Collecting : MonoBehaviour
 
     void Update()
     {
+        RefreshRewardPreview();
         float pulseSpeed = pointsForCoinPickup >= 200 ? 4.5f : 3f;
         float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * 0.04f;
         transform.localScale = baseScale * pulse;
+    }
+
+    void Start()
+    {
+        session = FindObjectOfType<GameSession>();
+        var previewObject = new GameObject("OreRewardPreview");
+        previewObject.transform.SetParent(transform, false);
+        previewObject.transform.localPosition = Vector3.up * 0.6f;
+        previewObject.transform.localScale = new Vector3(1f / baseScale.x, 1f / baseScale.y, 1f);
+        rewardPreview = previewObject.AddComponent<TextMeshPro>();
+        rewardPreview.fontSize = 2.5f;
+        rewardPreview.alignment = TextAlignmentOptions.Center;
+        rewardPreview.sortingOrder = 100;
+        rewardPreview.rectTransform.sizeDelta = new Vector2(2f, 0.5f);
+        RefreshRewardPreview();
+    }
+
+    void RefreshRewardPreview()
+    {
+        if (!session || !rewardPreview || wasCollected) return;
+        int preview = session.Pressure.PreviewReward(pointsForCoinPickup, session.IsCriticalStability());
+        if (preview == lastPreview) return;
+        lastPreview = preview;
+        rewardPreview.text = $"+{preview}";
     }
 
     void ConfigureDenomination()
@@ -45,6 +73,7 @@ public class Collecting : MonoBehaviour
         if (!other.CompareTag("Player")) return;
 
         wasCollected = true;
+        if (rewardPreview) rewardPreview.gameObject.SetActive(false);
 
         int awardedValue = pointsForCoinPickup;
         var gs = FindObjectOfType<GameSession>();

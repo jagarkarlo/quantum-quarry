@@ -58,3 +58,4 @@ namespace TMPro
     public class TextMeshProUGUI : UnityEngine.Object { public string text; }
 }
 public class ScenePersist : UnityEngine.Object { public void ResetScenePersist() { } }
+public static class QuarryPressureHUD { public static void EnsureForScene(GameSession session) { } }

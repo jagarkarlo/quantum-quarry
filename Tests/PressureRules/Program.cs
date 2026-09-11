@@ -81,6 +81,17 @@ static class Program
             }
         }
         Console.WriteLine($"Quarry Pressure: {assertions} assertions passed.");
+        foreach (string[] artwork in new[] { QuarryPressureArt.Checkpoint, QuarryPressureArt.Vent })
+        {
+            Equal(16, artwork.Length, "artwork height");
+            foreach (string row in artwork)
+            {
+                Equal(16, row.Length, "artwork width");
+                foreach (char pixel in row)
+                    Equal(true, QuarryPressureArt.Palette.Contains(pixel), "valid artwork palette");
+            }
+        }
+        Console.WriteLine("Custom pixel-art dimensions and palette passed.");
         SessionTests.Run();
     }
 }

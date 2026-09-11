@@ -7,6 +7,7 @@
   <ItemGroup>
     <Compile Include="../../Assets/Scripts/QuarryPressure.cs" Link="QuarryPressure.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="../../Assets/Editor/QuarryPressureArt.cs" Link="QuarryPressureArt.cs" />
     <Compile Include="SessionTests.cs" />
     <Compile Include="UnitySessionStubs.cs" />
     <Compile Include="../../Assets/Scripts/GameSession.cs" Link="GameSession.cs" />

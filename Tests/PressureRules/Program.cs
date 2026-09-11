@@ -1,4 +1,7 @@
 using System;
+using System.IO;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 static class Program
 {
@@ -80,7 +83,6 @@ static class Program
                 Equal(first.ChaseMultiplier, second.ChaseMultiplier, "reproducible speed");
             }
         }
-        Console.WriteLine($"Quarry Pressure: {assertions} assertions passed.");
         foreach (string[] artwork in new[] { QuarryPressureArt.Checkpoint, QuarryPressureArt.Vent })
         {
             Equal(16, artwork.Length, "artwork height");
@@ -91,7 +93,22 @@ static class Program
                     Equal(true, QuarryPressureArt.Palette.Contains(pixel), "valid artwork palette");
             }
         }
-        Console.WriteLine("Custom pixel-art dimensions and palette passed.");
+        Console.WriteLine($"Quarry Pressure rules and custom artwork: {assertions} assertions passed.");
         SessionTests.Run();
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+        int sourceCount = 0;
+        foreach (string directory in new[] { "Assets/Scripts", "Assets/Editor" })
+        {
+            foreach (string source in Directory.GetFiles(Path.Combine(root, directory), "*.cs"))
+            {
+                var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(source),
+                    new CSharpParseOptions(LanguageVersion.CSharp9), source);
+                foreach (Diagnostic diagnostic in tree.GetDiagnostics())
+                    if (diagnostic.Severity == DiagnosticSeverity.Error)
+                        throw new Exception(diagnostic.ToString());
+                sourceCount++;
+            }
+        }
+        Console.WriteLine($"C# 9 syntax: {sourceCount} Unity source files passed (not Unity API compilation).");
     }
 }

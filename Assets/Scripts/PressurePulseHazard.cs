@@ -8,6 +8,7 @@ public sealed class PressurePulseHazard : MonoBehaviour
     SpriteRenderer indicator;
     float elapsed;
     int previousTier;
+    Vector3 restingScale;
 
     public int Damage => Mathf.Max(1, damage);
     public bool IsActive => session && session.Pressure.GetPulsePhase(elapsed) == QuarryPressure.PulsePhase.Active;
@@ -16,6 +17,7 @@ public sealed class PressurePulseHazard : MonoBehaviour
     {
         session = FindObjectOfType<GameSession>();
         indicator = GetComponent<SpriteRenderer>();
+        restingScale = transform.localScale;
         GetComponent<Collider2D>().isTrigger = true;
     }
 
@@ -30,7 +32,7 @@ public sealed class PressurePulseHazard : MonoBehaviour
         indicator.color = phase == QuarryPressure.PulsePhase.Active ? new Color(1f, 0.25f, 0.2f) :
             phase == QuarryPressure.PulsePhase.Warning ? new Color(1f, 0.8f, 0.2f) :
             new Color(0.35f, 0.5f, 0.55f);
-        indicator.transform.localScale = Vector3.one *
+        indicator.transform.localScale = restingScale *
             (phase == QuarryPressure.PulsePhase.Warning ? 1f + Mathf.Sin(elapsed * 12f) * 0.05f : 1f);
     }
 }

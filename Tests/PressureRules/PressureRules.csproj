@@ -5,6 +5,12 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+    </Reference>
     <Compile Include="../../Assets/Scripts/QuarryPressure.cs" Link="QuarryPressure.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="../../Assets/Editor/QuarryPressureArt.cs" Link="QuarryPressureArt.cs" />

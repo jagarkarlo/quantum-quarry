@@ -42,6 +42,7 @@ public static class QuantumQuarryProjectValidator
         ValidateStability(errors);
         ValidateDamageLog(errors);
         ValidateLiquids(errors);
+        ValidatePressure(errors);
         ValidateBuildScenes(errors);
         ValidatePrefabs(errors);
         ValidateStoreScene(errors);
@@ -154,6 +155,55 @@ public static class QuantumQuarryProjectValidator
 
         if (enabledSceneCount != 11)
             errors.Add($"Expected 11 enabled build scenes, found {enabledSceneCount}.");
+    }
+
+    static void ValidatePressure(List<string> errors)
+    {
+        var pressure = new QuarryPressure();
+        if (pressure.Collect(500, false) != 500 || pressure.Tier != 1)
+            errors.Add("Pressure crossing must use the pre-pickup multiplier.");
+        if (pressure.PreviewReward(100, true) != 250)
+            errors.Add("Pressure reward does not stack with critical Stability.");
+        pressure.Collect(1000, false);
+        if (pressure.GetPulsePhase(3.5f) != QuarryPressure.PulsePhase.Warning ||
+            pressure.GetPulsePhase(5f) != QuarryPressure.PulsePhase.Active)
+            errors.Add("Pressure pulse warning or active window is invalid.");
+        var restored = new QuarryPressure(pressure.Seed, pressure.CarriedOre, pressure.PendingCoins);
+        if (restored.HasSwiftEnemies != pressure.HasSwiftEnemies)
+            errors.Add("Pressure encounter schedule is not reproducible.");
+        if (pressure.Bank() != 1750 || pressure.Tier != 0 || pressure.PendingCoins != 0)
+            errors.Add("Banking must preserve rewards and reset pressure.");
+        if (File.Exists(QuarryPressureAuthoring.CheckpointPath) || File.Exists(QuarryPressureAuthoring.VentPath))
+            ValidatePressurePrefabs(errors);
+    }
+
+    [MenuItem("Tools/QuantumQuarry/Pressure/Validate Custom Prefabs")]
+    public static void ValidatePressurePrefabsBatch()
+    {
+        var errors = new List<string>();
+        ValidatePressurePrefabs(errors);
+        if (errors.Count > 0) throw new InvalidOperationException(string.Join("\n", errors));
+        Debug.Log("Quarry Pressure custom prefab validation passed.");
+    }
+
+    static void ValidatePressurePrefabs(List<string> errors)
+    {
+        ValidatePrefabComponent<OreBankCheckpoint>(QuarryPressureAuthoring.CheckpointPath, errors);
+        ValidatePrefabComponent<PressurePulseHazard>(QuarryPressureAuthoring.VentPath, errors);
+        foreach (string path in new[] { QuarryPressureAuthoring.CheckpointPath, QuarryPressureAuthoring.VentPath })
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (!prefab) continue;
+            Collider2D trigger = prefab.GetComponent<Collider2D>();
+            if (!trigger || !trigger.enabled || !trigger.isTrigger)
+                errors.Add($"{path} requires an enabled trigger collider.");
+            SpriteRenderer renderer = prefab.GetComponent<SpriteRenderer>();
+            if (!renderer || !renderer.sprite)
+                errors.Add($"{path} requires custom sprite artwork.");
+            int playerLayer = LayerMask.NameToLayer("Player");
+            if (playerLayer >= 0 && Physics2D.GetIgnoreLayerCollision(playerLayer, prefab.layer))
+                errors.Add($"{path} cannot trigger against the Player layer.");
+        }
     }
 
     static void ValidatePrefabs(List<string> errors)

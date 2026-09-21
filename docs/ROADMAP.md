@@ -21,7 +21,9 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Implemented tooling: original checkpoint/vent pixel art and an Editor command that creates reusable prefabs without overwriting existing assets.
 - Verified outside Unity: deterministic C# rules, session transitions with Unity test doubles, artwork dimensions/palette, and C# 9 syntax.
 - Verified in Unity 2022.3.12f1 on 2026-09-21: package restoration, API compilation, custom sprite/prefab generation, strict custom-prefab validation, project validation, and a Windows x64 build of all 11 enabled scenes.
-- Pending milestone gate: place checkpoints/vents in the campaign and complete the [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation), including desktop gameplay and HUD checks. Generated prefab assets are available, but campaign placements are not authored yet. Do not start the next milestone before this gate passes.
+- Authored pilot: Level 4 has an optional bank, a warning-labelled exit vent, and a 1550-base-ore pickup route. Persistent collectibles are hidden and suspended in menus/Store without respawning on return.
+- Verified in the isolated Windows player: 144 controlled runtime checks and 18 screenshots covering all 11 scenes, including banking, vent phases/contact damage, pause, invisibility, death/reset, Store round trips, persistent-level transitions, and Pressure HUD bounds at three resolutions.
+- Pending milestone gate: manually complete the pilot route without upgrades, tune the risk/reward encounter, and finish the remaining [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation). Automated repositioning and seeded ore are not proof of full-route playability or enemy encounter balance. Do not start the next milestone before this gate passes.
 - Future refinement: an in-game seed selector and authored campaign encounter tuning. The current reproducibility contract covers modifier selection and local pulse cycles, not full physics replay.
 
 ## 3. Store and inventory

@@ -42,11 +42,13 @@ After the project compiles and passes **Tools > QuantumQuarry > Validate Project
 
 Status verified on 2026-09-21 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
 
-- All 888 rule/artwork assertions, 28 session assertions, and 33 C# 9 source syntax checks pass.
+- All 888 rule/artwork assertions, 34 session/scene-classification assertions, and 35 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
 - Unity package restoration and API compilation pass, including Cinemachine 2.9.7.
 - Custom checkpoint/vent sprites and prefabs have been generated through Unity; strict custom-prefab validation and project validation pass.
 - A Windows x64 build of all 11 enabled scenes succeeds.
-- Campaign placement, interactive Play Mode acceptance, and desktop gameplay/HUD checks remain pending. Build success is not a gameplay smoke test.
+- Level 4 now has an optional upper-left bank, an exit-approach vent, and 1550 total base ore across 15 pickups.
+- The isolated Windows-player suite passes 144 checks and captures 18 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, vent warning/damage/pause/invisibility, tier resets, armor retention, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
+- Manual end-to-end route completion without upgrades, encounter tuning, enemy line-of-sight/stealth checks, and the remaining interactive checklist are still required. Controlled tests reposition the player and seed carried ore; they do not prove that the complete route is naturally playable.
 
 Back up your PlayerPrefs before testing run resets.
 
@@ -56,7 +58,7 @@ From the project root:
 dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
-Expected: 888 rule/artwork assertions, 28 session assertions using Unity test doubles, and 33 Unity source files passing C# 9 syntax checks. No external test packages are required. This is not a Unity API compilation check.
+Expected: 888 rule/artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 35 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
 
 ### Windows validation
 
@@ -76,13 +78,34 @@ For a user-local .NET installation, use the installed SDK explicitly if `dotnet`
 
 Cinemachine is required by the serialized camera prefab even though gameplay scripts do not name its types. Do not remove the dependency to silence a package-network error. On a managed PC, keep HTTPS verification enabled and do not change proxy or certificate configuration without IT approval. The Windows verification above used the official Cinemachine archive downloaded with Windows' existing HTTPS trust, checked against the official registry checksum, and cached locally; repository package pins and security settings were unchanged. A different machine or a cleared cache still requires package restoration.
 
+### Isolated runtime validation
+
+With this project's Editor closed, run:
+
+```powershell
+.\Tests\ValidateRuntime.ps1
+```
+
+This builds and launches a separate Windows player with the `QUARRY_VALIDATION` compile define and product name `QuantumQuarry Validation`. Only that disposable PlayerPrefs namespace is cleared and seeded; the campaign save is not used. The builder restores the original product name in a `finally` block. The test runner is excluded from normal player builds.
+
+The player opens a window, changes resolution for captures, writes `report.json` and PNGs to a unique directory under `Logs\RuntimeValidation`, and exits with a failure code on errors or timeout. Leave it running without keyboard/mouse interaction until it exits. `-OutputDirectory` selects a new report directory; an existing report is never accepted as a fresh result. `-SceneSurvey` produces a Level 4 overview instead of running acceptance tests, and the report identifies that distinct mode.
+
+### Level 4 pilot
+
+- The bank is in the optional upper-left alcove near `(-12, 8.516)`. It banks ore only and is not a respawn checkpoint.
+- The vent is near `(27, 5.516)` before the exit. Its raised label changes from `VENT` to `WARNING` to `DANGER`, supplementing its color/pulse cues.
+- Thirteen 100-ore pickups follow existing solid platforms; a further 100-ore pickup sits on the exit-ladder approach. Together with the existing 150-ore coin, the scene contains 1550 base ore, enough to reach tier 2 if the player carries it rather than banking. The previous scene had only one actual 150-ore pickup; repeated prefab GUID references were not additional coins.
+- Coins belong to `ScenePersist`, so Store visits and death do not respawn collected ore. Its children are suspended outside their owning gameplay scene, then restored on return. Switching to another level replaces the old persistent group; manual reset restores that level's pickups.
+- **Tools > QuantumQuarry > Pressure > Create Level 4 Pilot** recreates missing pilot objects using Unity prefab APIs and checks floor/clearance before saving. It refuses to operate on an unsaved Level 4 scene and preserves existing placements. Repeated authoring must not duplicate objects.
+- **Update Prefab Label Sorting** explicitly matches the generated bank/vent labels to their artwork's sorting layer and raises them above a standing player. Unlike **Create Custom Prefabs**, this command intentionally saves those two existing prefabs.
+
 ### Create and place custom elements
 
 1. Open the project in Unity and resolve any compilation errors before proceeding.
 2. Run **Tools > QuantumQuarry > Pressure > Create Custom Prefabs**. This generates two original 16x16 pixel-art PNGs in `Assets/Sprites/QuarryPressure`, plus `Assets/Prefabs/OreBankCheckpoint.prefab` and `Assets/Prefabs/PressurePulseVent.prefab`. Unity creates their metadata. Existing files are preserved.
 3. Open a gameplay level, center the Scene view on safe ground, then use **Place Banking Checkpoint** or **Place Pulse Vent** in the same menu. Placement is snapped to the Scene view center, supports Undo, and does not save the scene. Inspect positioning and trigger bounds manually before saving.
 4. Place a checkpoint on an accessible route and a vent where the player has room to avoid it. The checkpoint banks ore only; it does not move the respawn point or restore Stability.
-5. Run **Validate Custom Prefabs**, then **Tools > QuantumQuarry > Validate Project**. The strict prefab check requires both generated assets, assigned artwork, enabled triggers, and player-layer contact. The normal project validator checks pressure rules and checks generated assets when present.
+5. Run **Validate Custom Prefabs**, then **Tools > QuantumQuarry > Validate Project**. The strict prefab check requires both generated assets, assigned artwork, enabled triggers, player-layer contact, and correctly sorted labels. The normal project validator also requires the Level 4 bank/vent and at least 1500 active base ore.
 6. Commit generated PNGs, prefabs, changed scenes, and all corresponding `.meta` files together after the smoke test passes. Do not commit `Library`, test `bin`, or `obj` output.
 
 Batch equivalents after Unity is available:

@@ -85,12 +85,14 @@ public class PauseMenu : MonoBehaviour
     public void LoadMenu()
     {
         Time.timeScale = 1f;
+        GameIsPaused = false;
         SceneManager.LoadScene("Level selector"); // ensure exact scene name
     }
 
     public void LoadStore()
     {
         Time.timeScale = 1f;
+        GameIsPaused = false;
 
         // Save scene + player position to return EXACTLY once
         PlayerPrefs.SetString("ReturnScene", SceneManager.GetActiveScene().name);

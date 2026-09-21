@@ -101,14 +101,18 @@ static class Program
         {
             foreach (string source in Directory.GetFiles(Path.Combine(root, directory), "*.cs"))
             {
-                var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(source),
-                    new CSharpParseOptions(LanguageVersion.CSharp9), source);
-                foreach (Diagnostic diagnostic in tree.GetDiagnostics())
-                    if (diagnostic.Severity == DiagnosticSeverity.Error)
-                        throw new Exception(diagnostic.ToString());
+                string text = File.ReadAllText(source);
+                foreach (string[] symbols in new[] { Array.Empty<string>(), new[] { "QUARRY_VALIDATION" } })
+                {
+                    var tree = CSharpSyntaxTree.ParseText(text,
+                        new CSharpParseOptions(LanguageVersion.CSharp9, preprocessorSymbols: symbols), source);
+                    foreach (Diagnostic diagnostic in tree.GetDiagnostics())
+                        if (diagnostic.Severity == DiagnosticSeverity.Error)
+                            throw new Exception(diagnostic.ToString());
+                }
                 sourceCount++;
             }
         }
-        Console.WriteLine($"C# 9 syntax: {sourceCount} Unity source files passed (not Unity API compilation).");
+        Console.WriteLine($"C# 9 syntax: {sourceCount} Unity source files passed in normal and validation configurations (not Unity API compilation).");
     }
 }

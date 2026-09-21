@@ -40,7 +40,15 @@ After the project compiles and passes **Tools > QuantumQuarry > Validate Project
 
 ## Quarry Pressure validation
 
-Status verified on 2026-09-11: standalone .NET tests pass; Unity Editor import, prefab generation, placement, and Play Mode are pending. Use Unity 2022.3.12f1 and .NET 8. Back up your PlayerPrefs before testing run resets.
+Status verified on 2026-09-21 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
+
+- All 888 rule/artwork assertions, 28 session assertions, and 33 C# 9 source syntax checks pass.
+- Unity package restoration and API compilation pass, including Cinemachine 2.9.7.
+- Custom checkpoint/vent sprites and prefabs have been generated through Unity; strict custom-prefab validation and project validation pass.
+- A Windows x64 build of all 11 enabled scenes succeeds.
+- Campaign placement, interactive Play Mode acceptance, and desktop gameplay/HUD checks remain pending. Build success is not a gameplay smoke test.
+
+Back up your PlayerPrefs before testing run resets.
 
 From the project root:
 
@@ -49,6 +57,24 @@ dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
 Expected: 888 rule/artwork assertions, 28 session assertions using Unity test doubles, and 33 Unity source files passing C# 9 syntax checks. No external test packages are required. This is not a Unity API compilation check.
+
+### Windows validation
+
+Save your scene changes and close this project's Unity Editor before batch validation. Unity Hub can stay open. From PowerShell in the project root:
+
+```powershell
+.\Tests\ValidateUnity.ps1 -GeneratePressurePrefabs -BuildWindowsPlayer
+```
+
+The script waits for each Unity process, checks its actual exit code and success message, and stops on failure. Logs are written to `Logs\Validation`; the player is written to `Builds\Windows\QuantumQuarry.exe`. Both directories are ignored by Git. Without the switches, it runs only strict prefab and project validation. Set `-UnityEditorPath` if the required editor is installed elsewhere. Existing generated assets are preserved by the prefab builder.
+
+For a user-local .NET installation, use the installed SDK explicitly if `dotnet` on PATH still resolves to a runtime-only system installation:
+
+```powershell
+& "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe" run --project Tests\PressureRules\PressureRules.csproj
+```
+
+Cinemachine is required by the serialized camera prefab even though gameplay scripts do not name its types. Do not remove the dependency to silence a package-network error. On a managed PC, keep HTTPS verification enabled and do not change proxy or certificate configuration without IT approval. The Windows verification above used the official Cinemachine archive downloaded with Windows' existing HTTPS trust, checked against the official registry checksum, and cached locally; repository package pins and security settings were unchanged. A different machine or a cleared cache still requires package restoration.
 
 ### Create and place custom elements
 

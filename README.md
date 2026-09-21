@@ -23,7 +23,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - Safe ghost movement that prevents rematerializing inside solid platforms
 - Pause, victory, and game-over flows
 - Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
-- Custom banking checkpoint and pulse-vent prefab authoring tools (Unity generation and Play Mode verification pending)
+- Generated custom banking checkpoint and pulse-vent prefabs with authoring tools (Unity validation passes; campaign placement and Play Mode verification pending)
 
 ## Enemy AI
 
@@ -121,6 +121,8 @@ dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
 These execute the real pressure rules and session logic against Unity test doubles, validate the custom artwork, and parse Unity sources for C# 9 syntax. They do not replace Unity compilation or Play Mode. See the [pressure authoring and verification procedure](docs/DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation).
+
+On Windows, close this project's Unity Editor and run `.\Tests\ValidateUnity.ps1 -BuildWindowsPlayer` in PowerShell to validate the project and custom prefabs and build the Windows player. See the [Windows validation instructions](docs/DEVELOPMENT_WORKFLOW.md#windows-validation) for options and log locations.
 
 ## Project Structure
 

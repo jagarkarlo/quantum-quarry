@@ -20,7 +20,8 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Implemented in source: Store entry, level exits, victory, and banking checkpoints deposit carried rewards and reset pressure. Death and manual level reset discard unbanked ore. Existing banked balances and level unlocks are preserved.
 - Implemented tooling: original checkpoint/vent pixel art and an Editor command that creates reusable prefabs without overwriting existing assets.
 - Verified outside Unity: deterministic C# rules, session transitions with Unity test doubles, artwork dimensions/palette, and C# 9 syntax.
-- Pending milestone gate: run the prefab builder in Unity 2022.3.12f1, place checkpoints/vents, validate the project and custom prefabs, and complete the [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation). Serialized pressure prefabs and placements are not yet committed. Do not start the next milestone before this gate passes.
+- Verified in Unity 2022.3.12f1 on 2026-09-21: package restoration, API compilation, custom sprite/prefab generation, strict custom-prefab validation, project validation, and a Windows x64 build of all 11 enabled scenes.
+- Pending milestone gate: place checkpoints/vents in the campaign and complete the [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation), including desktop gameplay and HUD checks. Generated prefab assets are available, but campaign placements are not authored yet. Do not start the next milestone before this gate passes.
 - Future refinement: an in-game seed selector and authored campaign encounter tuning. The current reproducibility contract covers modifier selection and local pulse cycles, not full physics replay.
 
 ## 3. Store and inventory

@@ -18,6 +18,12 @@ public static class QuantumQuarryProjectValidator
     [MenuItem("Tools/QuantumQuarry/Validate Project")]
     public static void ValidateFromMenu()
     {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            Debug.LogError("QuantumQuarry validation requires Edit Mode. Stop Play Mode, then run Tools > QuantumQuarry > Validate Project.");
+            return;
+        }
+
         List<string> errors = CollectErrors();
         if (errors.Count == 0)
         {
@@ -180,6 +186,12 @@ public static class QuantumQuarryProjectValidator
     [MenuItem("Tools/QuantumQuarry/Pressure/Validate Custom Prefabs")]
     public static void ValidatePressurePrefabsBatch()
     {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            Debug.LogError("Pressure prefab validation requires Edit Mode. Stop Play Mode, then run this command again.");
+            return;
+        }
+
         var errors = new List<string>();
         ValidatePressurePrefabs(errors);
         if (errors.Count > 0) throw new InvalidOperationException(string.Join("\n", errors));

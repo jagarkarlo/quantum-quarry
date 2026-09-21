@@ -57,6 +57,7 @@ public static class QuantumQuarryProjectValidator
         ValidateCoinTier(Level6ScenePath, 150, errors);
         ValidateCoinTier(Level6ScenePath, 200, errors);
         ValidateStabilizationPickupPlacement(errors);
+        ValidatePressurePilotPlacement(errors);
         return errors;
     }
 
@@ -212,6 +213,10 @@ public static class QuantumQuarryProjectValidator
             SpriteRenderer renderer = prefab.GetComponent<SpriteRenderer>();
             if (!renderer || !renderer.sprite)
                 errors.Add($"{path} requires custom sprite artwork.");
+            TMPro.TextMeshPro label = prefab.GetComponentInChildren<TMPro.TextMeshPro>();
+            if (!label || !label.font || (renderer &&
+                (label.sortingLayerID != renderer.sortingLayerID || label.sortingOrder <= renderer.sortingOrder)))
+                errors.Add($"{path} requires a readable label above its artwork on the same sorting layer.");
             int playerLayer = LayerMask.NameToLayer("Player");
             if (playerLayer >= 0 && Physics2D.GetIgnoreLayerCollision(playerLayer, prefab.layer))
                 errors.Add($"{path} cannot trigger against the Player layer.");
@@ -315,6 +320,29 @@ public static class QuantumQuarryProjectValidator
         {
             if (openedForValidation && scene.isLoaded)
                 EditorSceneManager.CloseScene(scene, true);
+        }
+    }
+
+    static void ValidatePressurePilotPlacement(List<string> errors)
+    {
+        Scene scene = SceneManager.GetSceneByPath(Level4ScenePath);
+        bool opened = !scene.isLoaded;
+        try
+        {
+            if (opened) scene = EditorSceneManager.OpenScene(Level4ScenePath, OpenSceneMode.Additive);
+            OreBankCheckpoint bank = FindInScene<OreBankCheckpoint>(scene);
+            PressurePulseHazard vent = FindInScene<PressurePulseHazard>(scene);
+            if (!bank || !bank.isActiveAndEnabled) errors.Add("Level 4 requires an active banking checkpoint.");
+            if (!vent || !vent.isActiveAndEnabled) errors.Add("Level 4 requires an active pressure vent.");
+            int ore = 0;
+            foreach (GameObject root in scene.GetRootGameObjects())
+                foreach (Collecting coin in root.GetComponentsInChildren<Collecting>())
+                    if (coin.isActiveAndEnabled) ore += coin.BaseOreValue;
+            if (ore < 1500) errors.Add($"Level 4 has only {ore} active base ore; its pressure vent needs at least 1500.");
+        }
+        finally
+        {
+            if (opened && scene.isLoaded) EditorSceneManager.CloseScene(scene, true);
         }
     }
 

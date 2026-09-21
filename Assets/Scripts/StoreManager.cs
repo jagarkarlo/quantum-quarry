@@ -148,6 +148,7 @@ public class StoreManager : MonoBehaviour
         colors.selectedColor = colors.highlightedColor;
         colors.pressedColor = Color.Lerp(color, Color.black, 0.2f);
         colors.disabledColor = new Color(0.28f, 0.30f, 0.33f, 0.65f);
+        if (button.targetGraphic) button.targetGraphic.color = Color.white;
         button.colors = colors;
     }
 
@@ -169,7 +170,11 @@ public class StoreManager : MonoBehaviour
         if (backButton)
         {
             TextMeshProUGUI backText = backButton.GetComponentInChildren<TextMeshProUGUI>(true);
-            if (backText) backText.text = "BACK TO GAME";
+            if (backText)
+            {
+                backText.text = "BACK TO GAME";
+                backText.color = Color.white;
+            }
         }
     }
 
@@ -197,7 +202,7 @@ public class StoreManager : MonoBehaviour
         buttonText.fontSizeMax = 22f;
         buttonText.alignment = TextAlignmentOptions.Center;
         buttonText.lineSpacing = -8f;
-        buttonText.color = new Color(0.08f, 0.10f, 0.13f);
+        buttonText.color = button.interactable ? new Color(0.08f, 0.10f, 0.13f) : Color.white;
         buttonText.text = label;
     }
 

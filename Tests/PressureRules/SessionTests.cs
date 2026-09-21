@@ -24,6 +24,12 @@ static class SessionTests
 
     public static void Run()
     {
+        Equal(true, GameSession.IsGameplayScene("Level 4"), "numbered level is gameplay");
+        Equal(false, GameSession.IsGameplayScene("Level selector"), "level selector is not gameplay");
+        Equal(false, GameSession.IsGameplayScene("Store"), "store is not gameplay");
+        Equal(false, GameSession.IsGameplayScene("Level 0"), "zero level is not gameplay");
+        Equal(false, GameSession.IsGameplayScene("Level -1"), "negative level is not gameplay");
+        Equal(false, GameSession.IsGameplayScene(""), "empty scene name is not gameplay");
         PlayerPrefs.DeleteAll();
         PlayerPrefs.SetInt(GameSession.CoinsKey, 700);
         PlayerPrefs.SetInt("UnlockedLevelNumber", 4);

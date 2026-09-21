@@ -16,7 +16,7 @@ public sealed class QuarryPressureHUD : MonoBehaviour
 
     public static void EnsureForScene(GameSession owner)
     {
-        if (!SceneManager.GetActiveScene().name.StartsWith("Level ") || FindObjectOfType<QuarryPressureHUD>()) return;
+        if (!GameSession.IsGameplayScene(SceneManager.GetActiveScene().name) || FindObjectOfType<QuarryPressureHUD>()) return;
         var root = new GameObject("QuarryPressureHUD", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
         Canvas canvas = root.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;

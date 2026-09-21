@@ -47,6 +47,11 @@ public class GameSession : MonoBehaviour
     float breathRemaining = -1f;
     float breathMaximum;
 
+    public static bool IsGameplayScene(string sceneName)
+    {
+        return sceneName.StartsWith("Level ") && int.TryParse(sceneName.Substring(6), out int level) && level > 0;
+    }
+
     void Awake()
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }

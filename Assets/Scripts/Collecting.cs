@@ -14,6 +14,8 @@ public class Collecting : MonoBehaviour
     GameSession session;
     int lastPreview = -1;
 
+    public int BaseOreValue => pointsForCoinPickup;
+
     void Awake()
     {
         coinRenderer = GetComponent<SpriteRenderer>();
@@ -38,6 +40,7 @@ public class Collecting : MonoBehaviour
         rewardPreview = previewObject.AddComponent<TextMeshPro>();
         rewardPreview.fontSize = 2.5f;
         rewardPreview.alignment = TextAlignmentOptions.Center;
+        if (coinRenderer) rewardPreview.sortingLayerID = coinRenderer.sortingLayerID;
         rewardPreview.sortingOrder = 100;
         rewardPreview.rectTransform.sizeDelta = new Vector2(2f, 0.5f);
         RefreshRewardPreview();
@@ -100,6 +103,7 @@ public class Collecting : MonoBehaviour
         feedback.fontSize = pointsForCoinPickup >= 200 ? 5f : 4f;
         feedback.alignment = TextAlignmentOptions.Center;
         feedback.color = coinRenderer ? coinRenderer.color : Color.yellow;
+        if (coinRenderer) feedback.sortingLayerID = coinRenderer.sortingLayerID;
         feedback.sortingOrder = 100;
 
         feedbackObject.AddComponent<CoinPickupFeedback>();

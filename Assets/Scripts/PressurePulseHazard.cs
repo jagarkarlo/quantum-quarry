@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 [RequireComponent(typeof(Collider2D), typeof(SpriteRenderer))]
@@ -6,6 +7,7 @@ public sealed class PressurePulseHazard : MonoBehaviour
     [SerializeField, Min(1)] int damage = 1;
     GameSession session;
     SpriteRenderer indicator;
+    TextMeshPro phaseLabel;
     float elapsed;
     int previousTier;
     Vector3 restingScale;
@@ -17,6 +19,7 @@ public sealed class PressurePulseHazard : MonoBehaviour
     {
         session = FindObjectOfType<GameSession>();
         indicator = GetComponent<SpriteRenderer>();
+        phaseLabel = GetComponentInChildren<TextMeshPro>();
         restingScale = transform.localScale;
         GetComponent<Collider2D>().isTrigger = true;
     }
@@ -29,6 +32,9 @@ public sealed class PressurePulseHazard : MonoBehaviour
         previousTier = tier;
         elapsed = session.Pressure.HasHazardPulses ? elapsed + Time.deltaTime : 0f;
         QuarryPressure.PulsePhase phase = session.Pressure.GetPulsePhase(elapsed);
+        if (phaseLabel)
+            phaseLabel.text = phase == QuarryPressure.PulsePhase.Active ? "DANGER" :
+                phase == QuarryPressure.PulsePhase.Warning ? "WARNING" : "VENT";
         indicator.color = phase == QuarryPressure.PulsePhase.Active ? new Color(1f, 0.25f, 0.2f) :
             phase == QuarryPressure.PulsePhase.Warning ? new Color(1f, 0.8f, 0.2f) :
             new Color(0.35f, 0.5f, 0.55f);

@@ -95,7 +95,40 @@ static class Program
                     Equal(true, QuarryPressureArt.Palette.Contains(pixel), "valid artwork palette");
             }
         }
-        Console.WriteLine($"Quarry Pressure rules and custom artwork: {assertions} assertions passed.");
+        foreach (bool surface in new[] { false, true })
+            for (int frame = 0; frame < QuarryLavaArt.FrameCount; frame++)
+            {
+                bool validPalette = true;
+                bool opaqueBody = true;
+                bool loops = true;
+                bool animated = false;
+                for (int y = 0; y < QuarryLavaArt.Size; y++)
+                    for (int x = 0; x < QuarryLavaArt.Size; x++)
+                    {
+                        char pixel = QuarryLavaArt.Pixel(x, y, frame, surface);
+                        validPalette &= QuarryLavaArt.Palette.Contains(pixel);
+                        opaqueBody &= surface || pixel != '.';
+                        loops &= pixel == QuarryLavaArt.Pixel(x, y, frame + QuarryLavaArt.FrameCount, surface);
+                        animated |= pixel != QuarryLavaArt.Pixel(x, y, frame + 1, surface);
+                    }
+                Equal(true, validPalette, "lava uses the original warm palette");
+                Equal(true, opaqueBody, "lava body has no transparent holes");
+                Equal(true, loops, "lava animation loops without a phase discontinuity");
+                Equal(true, animated, "each lava frame changes the flow");
+            }
+        for (int level = 1; level <= 6; level++)
+        {
+            Equal(LiquidKind.Lava, LiquidRules.ClassifyTile("LavaSurface", level), "explicit lava surface");
+            Equal(LiquidKind.Lava, LiquidRules.ClassifyTile("LavaBody", level), "explicit lava body");
+            Equal(level == 6 ? LiquidKind.Lava : LiquidKind.Water,
+                LiquidRules.ClassifyTile("SPA_Rock_Grass_Water_28", level), "legacy surface remains compatible");
+            Equal(level == 6 ? LiquidKind.Lava : LiquidKind.Water,
+                LiquidRules.ClassifyTile("SPA_Rock_Grass_Water_29", level), "legacy body remains compatible");
+        }
+        Equal(true, LiquidRules.IsLiquidTile("LavaSurface"), "authored lava is recognized as liquid");
+        Equal(false, LiquidRules.IsLiquidTile("LavaSurfacePreview"), "lava names match exactly");
+        Equal(LiquidKind.None, LiquidRules.ClassifyTile(null, 6), "empty cell is not lava");
+        Console.WriteLine($"Quarry Pressure/liquid rules and custom artwork: {assertions} assertions passed.");
         SessionTests.Run();
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         int sourceCount = 0;

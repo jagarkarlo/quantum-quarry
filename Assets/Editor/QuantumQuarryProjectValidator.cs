@@ -58,6 +58,7 @@ public static class QuantumQuarryProjectValidator
         ValidateCoinTier(Level6ScenePath, 200, errors);
         ValidateStabilizationPickupPlacement(errors);
         ValidatePressurePilotPlacement(errors);
+        QuarryLavaAuthoring.CollectValidationErrors(errors);
         return errors;
     }
 

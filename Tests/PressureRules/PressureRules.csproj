@@ -14,6 +14,8 @@
     <Compile Include="../../Assets/Scripts/QuarryPressure.cs" Link="QuarryPressure.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="../../Assets/Editor/QuarryPressureArt.cs" Link="QuarryPressureArt.cs" />
+    <Compile Include="../../Assets/Editor/QuarryLavaArt.cs" Link="QuarryLavaArt.cs" />
+    <Compile Include="../../Assets/Scripts/LiquidRules.cs" Link="LiquidRules.cs" />
     <Compile Include="SessionTests.cs" />
     <Compile Include="UnitySessionStubs.cs" />
     <Compile Include="../../Assets/Scripts/GameSession.cs" Link="GameSession.cs" />

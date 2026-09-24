@@ -6,6 +6,7 @@ using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Tilemaps;
 
 public sealed class QuarryRuntimeValidation : MonoBehaviour
 {
@@ -146,6 +147,8 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             Require(FindObjectOfType<PlayerMovement>() && Camera.main && FindObjectOfType<QuarryPressureHUD>(),
                 $"Level {level} initializes its player, camera, and Pressure HUD.");
             yield return Capture($"level-{level}", 1280, 720);
+            if (level == 5) yield return CheckWater(session);
+            if (level == 6) yield return CheckLava(session);
         }
         session.SaveFinalScoreForSummary();
         foreach (string scene in new[] { "Victory", "GameOver", "Start" })
@@ -180,6 +183,101 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
                 LayerMask.GetMask("Ground", "Jump")))
                 Debug.Log($"SURVEY FLOOR x={x} y={hit.point.y} normal={hit.normal} object={hit.collider.name}");
         }
+    }
+
+    IEnumerator CheckWater(GameSession session)
+    {
+        Tilemap waterMap = null;
+        Vector3Int waterCell = default;
+        foreach (Tilemap map in FindObjectsOfType<Tilemap>())
+            foreach (Vector3Int cell in map.cellBounds.allPositionsWithin)
+            {
+                TileBase tile = map.GetTile(cell);
+                if (LiquidRules.ClassifyTile(tile ? tile.name : null, 5) != LiquidKind.Water) continue;
+                Require(!(tile is LavaTile) && map.GetColor(cell) == Color.white,
+                    "Level 5 water retains its original untinted tiles.");
+                waterMap = map;
+                waterCell = cell;
+            }
+        Require(waterMap, "Level 5 contains water for the compatibility test.");
+        PlayerMovement player = FindObjectOfType<PlayerMovement>();
+        Rigidbody2D body = player.GetComponent<Rigidbody2D>();
+        Vector2 originalPosition = body.position;
+        RigidbodyConstraints2D originalConstraints = body.constraints;
+        int lives = session.GetLives();
+        body.constraints = RigidbodyConstraints2D.FreezeAll;
+        MovePlayer(body, waterMap.GetCellCenterWorld(waterCell));
+        yield return null;
+        yield return null;
+        Require(player.IsSwimming && !player.IsInLava && session.GetLives() == lives,
+            "Real Level 5 water contact still swims rather than killing the player.");
+        MovePlayer(body, originalPosition);
+        body.constraints = originalConstraints;
+        yield return null;
+    }
+
+    IEnumerator CheckLava(GameSession session)
+    {
+        Tilemap lavaMap = null;
+        Vector3Int surfaceCell = default;
+        int lavaCount = 0;
+        int bestNeighbors = -1;
+        foreach (Tilemap map in FindObjectsOfType<Tilemap>())
+            foreach (Vector3Int cell in map.cellBounds.allPositionsWithin)
+            {
+                TileBase tile = map.GetTile(cell);
+                if (LiquidRules.ClassifyTile(tile ? tile.name : null, 6) != LiquidKind.Lava) continue;
+                lavaCount++;
+                Require(tile is LavaTile && map.GetColor(cell) == Color.white &&
+                    map.GetAnimationFrameCount(cell) == 4, "Level 6 lava has four animated, untinted frames.");
+                if (tile.name != "LavaSurface") continue;
+                int neighbors = (map.GetTile(cell + Vector3Int.left) == tile ? 1 : 0) +
+                    (map.GetTile(cell + Vector3Int.right) == tile ? 1 : 0);
+                if (neighbors <= bestNeighbors) continue;
+                bestNeighbors = neighbors;
+                lavaMap = map;
+                surfaceCell = cell;
+            }
+        Require(lavaCount == 25 && lavaMap, "All 25 original Level 6 liquid cells have lava artwork and a visible surface.");
+        int frameBefore = lavaMap.GetAnimationFrame(surfaceCell);
+        yield return new WaitForSeconds(0.3f);
+        Require(lavaMap.GetAnimationFrame(surfaceCell) != frameBefore, "Lava animation advances in the real player.");
+        PlayerMovement player = FindObjectOfType<PlayerMovement>();
+        Rigidbody2D body = player.GetComponent<Rigidbody2D>();
+        player.enabled = false;
+        body.constraints = RigidbodyConstraints2D.FreezeAll;
+        Camera camera = Camera.main;
+        var brain = camera.GetComponent<Cinemachine.CinemachineBrain>();
+        Vector3 originalCameraPosition = camera.transform.position;
+        float originalSize = camera.orthographicSize;
+        bool brainEnabled = brain.enabled;
+        brain.enabled = false;
+        Vector3 surface = lavaMap.GetCellCenterWorld(surfaceCell);
+        camera.transform.position = new Vector3(surface.x, surface.y - 0.5f, -10f);
+        camera.orthographicSize = 4f;
+        yield return Capture("level-6-lava-closeup", 1280, 720);
+        camera.transform.position = originalCameraPosition;
+        camera.orthographicSize = originalSize;
+        brain.enabled = brainEnabled;
+        int lives = session.GetLives();
+        int banked = session.GetCoins();
+        session.AddCoins(100);
+        player.ActivateInvisibility(10f);
+        MovePlayer(body, surface);
+        yield return new WaitForSeconds(0.25f);
+        Require(player.IsInvisible && player.IsAlive && session.GetLives() == lives,
+            "Invisibility still protects the player while inside lava.");
+        player.CancelAllPowerupsImmediately();
+        MovePlayer(body, surface);
+        Require(player.GetLiquidAtPlayer() == LiquidKind.Lava, "Authored lava is detected by the actual player bounds query.");
+        player.enabled = true;
+        yield return Until(() => session.GetLives() == lives - 1, 2f,
+            "Real lava contact remains immediately lethal after invisibility ends.");
+        yield return null;
+        yield return new WaitForSecondsRealtime(0.2f);
+        Require(SceneManager.GetActiveScene().name == "Level 6" && FindObjectOfType<PlayerMovement>().IsAlive &&
+            session.GetCoins() == banked && session.Pressure.PendingCoins == 0,
+            "Lava death reloads Level 6, preserves banked coins, and loses only carried reward.");
     }
 
     IEnumerator CheckEnemyAwareness(GameSession session)

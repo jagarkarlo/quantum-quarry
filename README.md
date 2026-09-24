@@ -44,6 +44,27 @@ Menus support mouse, keyboard, and gamepad navigation through Unity's Input Syst
 
 The HUD spells out `Lives`, `Stability`, and `Banked`. `Coins x2` indicates the critical-Stability bonus, which stacks with Quarry Pressure. The pressure HUD shows the combined multiplier and carried rewards; labels over coins preview their exact award. Store entry and level exits bank carried rewards; death loses only unbanked ore. While the player's head is underwater, `Breath` shows the remaining safe submersion time; after it reaches zero, drowning removes `0.5` Stability per tick until the player surfaces.
 
+### Trying the Pressure vent
+
+Play **Level 4** from level selection, or open `Assets/Levels/Level 4.unity` in the Editor and press **Play**. Normal Editor play uses your campaign save; back it up before testing death or resets. The bank is in the upper-left alcove near `(-12, 8.516)` and the vent is before the right-hand exit near `(27, 5.516)`.
+
+The vent is a timed contact hazard, not a button, jump pad, or collectible. It arms automatically at **1500 carried base ore**. Banked coins and reward bonuses do not count toward that threshold. Level 4 has 1550 base ore in total, and every pickup is worth at least 100 base ore, so you currently need all 15 pickups without banking or dying to arm it naturally.
+
+| World label | Meaning | Contact damage |
+| --- | --- | --- |
+| `OFF` | Below 1500 carried ore; no pulse cycle | None |
+| `SAFE` | Armed, first 3.5 seconds of the cycle | None |
+| `WARNING` | Yellow pulsing warning for the next 1.5 seconds | None |
+| `DANGER` | Red active phase for the final 1 second | 1 Stability before armor rules |
+
+Once armed, the six-second cycle repeats even when you are far away. **Wait beside it, then cross or jump over its small trigger during `SAFE`.** `WARNING` is still harmless, but signals that you should clear the trigger before `DANGER`. Red text does not hurt you at a distance; your player must overlap the vent. Invisibility protects you, and the normal one-second hit-invulnerability window prevents repeated immediate hits. Armor uses the existing half-point rounding rules; the current armor tiers do not reduce this particular one-point hit.
+
+Touching the bank deposits your carried reward and turns the vent `OFF`; it requires no interaction key. The bank does not heal you or set a respawn point. Store entry and level completion also bank ore. Death/reset discard the carried reward and clear Pressure. Changing Pressure tier restarts the safe interval; pausing freezes the cycle. Reaching a vent does not restart its timer.
+
+The HUD's `Pressure 1/2/3` notices occur at **500/1500/3000 base ore**. Subsequent pickups pay **x1.25/x1.5/x1.75** (doubled at critical Stability). The pickup that crosses a threshold uses the previous multiplier. `Watchful patrols` means increased enemy detection range; `Swift pursuit` adds faster chasing as well. These are enemy modifiers, not vent phase names.
+
+The single bank/vent pair is a pilot, not a finished campaign-wide layout. In particular, Store entry is currently another way to bank, and the route barely exceeds the vent threshold. Those choices still need human playtesting before expanding the mechanic or claiming the bank creates a compelling detour.
+
 ## Getting Started
 
 ### Requirements

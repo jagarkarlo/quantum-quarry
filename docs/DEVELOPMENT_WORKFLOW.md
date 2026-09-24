@@ -40,15 +40,16 @@ After the project compiles and passes **Tools > QuantumQuarry > Validate Project
 
 ## Quarry Pressure validation
 
-Status verified on 2026-09-21 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
+Status verified on 2026-09-24 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
 
-- All 888 rule/artwork assertions, 34 session/scene-classification assertions, and 35 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
+- All 889 rule/artwork assertions, 34 session/scene-classification assertions, and 35 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
 - Unity package restoration and API compilation pass, including Cinemachine 2.9.7.
 - Custom checkpoint/vent sprites and prefabs have been generated through Unity; strict custom-prefab validation and project validation pass.
 - A Windows x64 build of all 11 enabled scenes succeeds.
 - Level 4 now has an optional upper-left bank, an exit-approach vent, and 1550 total base ore across 15 pickups.
-- The isolated Windows-player suite passes 144 checks and captures 18 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, vent warning/damage/pause/invisibility, tier resets, armor retention, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
-- Manual end-to-end route completion without upgrades, encounter tuning, enemy line-of-sight/stealth checks, and the remaining interactive checklist are still required. Controlled tests reposition the player and seed carried ore; they do not prove that the complete route is naturally playable.
+- The isolated Windows-player suite passes 188 checks and captures 20 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
+- A controlled fixture clones a real Level 4 enemy and uses Ground-layer colliders to verify blocked sight, Alert/Chase/Search transitions, pressure-scaled detection and chase speed at all three tiers, invisibility loss/reacquisition, and banking restoring calm perception.
+- Manual end-to-end route completion without upgrades, encounter tuning, knockback feel, and the remaining interactive checklist are still required. Controlled tests reposition the player and seed carried ore; they do not prove that the complete route is naturally playable.
 
 Back up your PlayerPrefs before testing run resets.
 
@@ -58,7 +59,7 @@ From the project root:
 dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
-Expected: 888 rule/artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 35 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
+Expected: 889 rule/artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 35 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
 
 ### Windows validation
 
@@ -93,11 +94,21 @@ The player opens a window, changes resolution for captures, writes `report.json`
 ### Level 4 pilot
 
 - The bank is in the optional upper-left alcove near `(-12, 8.516)`. It banks ore only and is not a respawn checkpoint.
-- The vent is near `(27, 5.516)` before the exit. Its raised label changes from `VENT` to `WARNING` to `DANGER`, supplementing its color/pulse cues.
+- The vent is near `(27, 5.516)` before the exit. Its raised label distinguishes `OFF` (disarmed) from `SAFE` (armed idle), then `WARNING` and `DANGER`, supplementing its color/pulse cues. See the [player-facing vent guide](../README.md#trying-the-pressure-vent).
 - Thirteen 100-ore pickups follow existing solid platforms; a further 100-ore pickup sits on the exit-ladder approach. Together with the existing 150-ore coin, the scene contains 1550 base ore, enough to reach tier 2 if the player carries it rather than banking. The previous scene had only one actual 150-ore pickup; repeated prefab GUID references were not additional coins.
 - Coins belong to `ScenePersist`, so Store visits and death do not respawn collected ore. Its children are suspended outside their owning gameplay scene, then restored on return. Switching to another level replaces the old persistent group; manual reset restores that level's pickups.
 - **Tools > QuantumQuarry > Pressure > Create Level 4 Pilot** recreates missing pilot objects using Unity prefab APIs and checks floor/clearance before saving. It refuses to operate on an unsaved Level 4 scene and preserves existing placements. Repeated authoring must not duplicate objects.
 - **Update Prefab Label Sorting** explicitly matches the generated bank/vent labels to their artwork's sorting layer and raises them above a standing player. Unlike **Create Custom Prefabs**, this command intentionally saves those two existing prefabs.
+
+### Remaining human route check
+
+Automated trigger and AI fixtures do not move through the complete platform route using normal controls. Before closing the Pressure milestone:
+
+1. Use a backed-up/disposable save with no armor or queued power-ups, reset Level 4, and complete it using normal movement, jumping, and climbing. Do not teleport, seed ore, or enable ghost movement.
+2. Attempt the carry route: collect at least 1500 base ore without banking, dying, or entering the Store. Confirm each required pickup is reachable, the approach leaves room to wait, and the vent can be crossed during `SAFE` without taking unavoidable damage.
+3. Attempt the banking detour: collect ore and touch the upper-left bank. Check that the secured reward and cleared Pressure are understandable without reading code. The bank is not a respawn checkpoint.
+4. Compare the choices honestly: the level only has 1550 base ore, so banking even one 100-ore pickup prevents reaching tier 2 with the remaining ore. Also, the pause-menu Store banks without walking to the physical bank. Record whether the bank detour offers any useful reason to take it; do not assume it does.
+5. Record deaths, unclear jumps, waiting time, earned rewards, and whether warnings can be read while moving. Tune the layout/economy only after that evidence, then rerun the automated checks.
 
 ### Create and place custom elements
 
@@ -125,7 +136,7 @@ Unity -batchmode -quit -projectPath "$PWD" \
 2. Reach 500, 1500, and 3000 base ore. Expect pressure tiers 1, 2, and 3, a visible tier notice, and next-pickup multipliers x1.25, x1.5, and x1.75. The crossing pickup uses the previously displayed multiplier. At critical Stability, verify x2.5, x3, and x3.5.
 3. Compare each coin's preview, pickup feedback, and carried balance delta. Integer rewards round down. Bonuses must not accelerate the base-ore pressure thresholds.
 4. Verify increasing enemy perception, seeded swift-pursuit speed changes, terrain line of sight, and invisibility. Seed 7319 is the default; the persisted `PressureSeed` integer selects modifiers. Repeating the same seed and tier must select the same modifier.
-5. At tier 2 or 3, a vent idles for 3.5 seconds, warns yellow for 1.5 seconds, then turns red and damages for 1 second. Its trigger remains present but cannot deal damage outside the active phase. Verify armor, hit invulnerability, knockback, and invisibility still apply. Banking disables vents; tier changes restart their safe phase. Pause must freeze the cycle.
+5. Below tier 2, the vent says `OFF` and contact is harmless. At tier 2 or 3, it says `SAFE` for 3.5 seconds, warns yellow with `WARNING` for 1.5 seconds, then turns red with `DANGER` and damages for 1 second. The six-second cycle runs regardless of player proximity. Its trigger remains present but cannot deal damage outside the active phase. Verify armor rounding, hit invulnerability, knockback, and invisibility still apply: with the current half-point damage units, neither existing armor tier reduces the vent's one-point hit. Banking disables vents; tier changes restart their safe phase. Pause must freeze the cycle.
 6. Enter a checkpoint with multiple player colliders: deposit exactly once, show `Banked +N`, clear pressure, and retain armor/unlocks. Re-enter with no ore: no duplicate money or feedback. Checkpoint banking occurs on entry, not continuously while standing inside.
 7. Enter the Store, buy something, and return: ore is banked exactly once and pressure stays zero. Completing a level banks ore; victory includes it in the final total.
 8. Lose a life or reset the level: only unbanked ore is lost. Finish a game over and start a new run: no carried ore or pressure leaks into the new run. Persisted level unlocks survive.

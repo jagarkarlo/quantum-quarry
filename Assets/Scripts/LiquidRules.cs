@@ -13,6 +13,7 @@ public static class LiquidRules
 
     public static LiquidKind ClassifyTile(string tileName, int levelNumber)
     {
+        if (tileName == "LavaSurface" || tileName == "LavaBody") return LiquidKind.Lava;
         if (!IsLiquidTile(tileName)) return LiquidKind.None;
         return levelNumber >= LavaLevel ? LiquidKind.Lava : LiquidKind.Water;
     }
@@ -20,7 +21,8 @@ public static class LiquidRules
     public static bool IsLiquidTile(string tileName)
     {
         return !string.IsNullOrEmpty(tileName) &&
-            (tileName.EndsWith("_28", StringComparison.Ordinal) ||
+            (tileName == "LavaSurface" || tileName == "LavaBody" ||
+             tileName.EndsWith("_28", StringComparison.Ordinal) ||
              tileName.EndsWith("_29", StringComparison.Ordinal));
     }
 

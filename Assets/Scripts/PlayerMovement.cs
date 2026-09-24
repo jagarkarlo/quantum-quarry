@@ -327,7 +327,7 @@ public class PlayerMovement : MonoBehaviour
             foreach (Vector3Int cell in tilemap.cellBounds.allPositionsWithin)
             {
                 TileBase tile = tilemap.GetTile(cell);
-                if (!tile || LiquidRules.ClassifyTile(tile.name, levelNumber) != LiquidKind.Lava) continue;
+                if (!tile || tile is LavaTile || LiquidRules.ClassifyTile(tile.name, levelNumber) != LiquidKind.Lava) continue;
 
                 tilemap.SetTileFlags(cell, TileFlags.None);
                 tilemap.SetColor(cell, lavaColor);

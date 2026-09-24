@@ -77,7 +77,8 @@ public sealed class QuarryPressureHUD : MonoBehaviour
         int tier = session.Pressure.Tier;
         if (tier > previousTier)
         {
-            notice.text = $"PRESSURE {tier}  |  {session.Pressure.ModifierName}";
+            string vents = tier == 2 ? "  |  Vents now armed" : string.Empty;
+            notice.text = $"PRESSURE {tier}  |  {session.Pressure.ModifierName}{vents}";
             noticeUntil = Time.time + 3f;
         }
         else if (tier < previousTier) noticeUntil = 0f;
@@ -92,9 +93,12 @@ public sealed class QuarryPressureHUD : MonoBehaviour
         displayedPending = pressure.PendingCoins;
         displayedCritical = session.IsCriticalStability();
         string next = pressure.NextThreshold > 0 ? $"Next {pressure.NextThreshold} ore" : "Maximum pressure";
-        string pulses = pressure.HasHazardPulses ? "  |  Vents armed" : string.Empty;
-        status.text = $"CARRIED {pressure.PendingCoins}  |  Pickup {pressure.RewardLabel(displayedCritical)}  |  Pressure {pressure.Tier}/3\n" +
-            $"Ore {pressure.CarriedOre}  |  {next}  |  {pressure.ModifierName}{pulses}  |  Seed {pressure.Seed}";
+        string ventHelp = pressure.HasHazardPulses
+            ? "Vents: SAFE > WARNING > DANGER (damage)  |  Bank/Store to disarm"
+            : $"Vents OFF below {QuarryPressure.SecondThreshold} ore  |  Bank/Store to secure reward";
+        status.text = $"CARRIED {pressure.PendingCoins} (lost on death/reset)  |  Pickup {pressure.RewardLabel(displayedCritical)}  |  Pressure {pressure.Tier}/3\n" +
+            $"Ore {pressure.CarriedOre}  |  {next}  |  {pressure.ModifierName}  |  Seed {pressure.Seed}\n" +
+            ventHelp;
     }
 
     void OnDestroy()

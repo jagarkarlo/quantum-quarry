@@ -34,9 +34,11 @@ public sealed class PressurePulseHazard : MonoBehaviour
         QuarryPressure.PulsePhase phase = session.Pressure.GetPulsePhase(elapsed);
         if (phaseLabel)
             phaseLabel.text = phase == QuarryPressure.PulsePhase.Active ? "DANGER" :
-                phase == QuarryPressure.PulsePhase.Warning ? "WARNING" : "VENT";
+                phase == QuarryPressure.PulsePhase.Warning ? "WARNING" :
+                phase == QuarryPressure.PulsePhase.Idle ? "SAFE" : "OFF";
         indicator.color = phase == QuarryPressure.PulsePhase.Active ? new Color(1f, 0.25f, 0.2f) :
             phase == QuarryPressure.PulsePhase.Warning ? new Color(1f, 0.8f, 0.2f) :
+            phase == QuarryPressure.PulsePhase.Idle ? new Color(0.35f, 0.85f, 0.7f) :
             new Color(0.35f, 0.5f, 0.55f);
         indicator.transform.localScale = restingScale *
             (phase == QuarryPressure.PulsePhase.Warning ? 1f + Mathf.Sin(elapsed * 12f) * 0.05f : 1f);

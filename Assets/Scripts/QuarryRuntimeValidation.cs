@@ -73,6 +73,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.5f);
         session = FindObjectOfType<GameSession>();
         Require(session, "Level 4 keeps a live GameSession.");
+        yield return CheckEnemyAwareness(session);
         yield return CheckPressureEncounter(session);
         session.AddCoins(3000);
         while (session.GetStability() > 1f) session.TakeStabilityDamageUnits(1);
@@ -181,6 +182,98 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         }
     }
 
+    IEnumerator CheckEnemyAwareness(GameSession session)
+    {
+        EnemyPatrol2D source = FindObjectOfType<EnemyPatrol2D>();
+        PlayerMovement player = FindObjectOfType<PlayerMovement>();
+        Require(source && player, "Level 4 supplies the real enemy and player for awareness checks.");
+        Rigidbody2D playerBody = player.GetComponent<Rigidbody2D>();
+        Vector2 originalPosition = playerBody.position;
+        RigidbodyConstraints2D originalConstraints = playerBody.constraints;
+        player.enabled = false;
+        playerBody.constraints = RigidbodyConstraints2D.FreezeAll;
+        var fixture = new GameObject("Validation awareness fixture");
+        EnemyPatrol2D enemy = Instantiate(source, new Vector3(1000f, 1000f), Quaternion.identity, fixture.transform);
+        Vector3 scale = enemy.transform.localScale;
+        enemy.transform.localScale = new Vector3(Mathf.Abs(scale.x), scale.y, scale.z);
+        Rigidbody2D enemyBody = enemy.GetComponent<Rigidbody2D>();
+        enemyBody.gravityScale = 0f;
+        enemyBody.constraints = RigidbodyConstraints2D.FreezePositionY | RigidbodyConstraints2D.FreezeRotation;
+        CreateTestGround(fixture.transform, "Floor", new Vector2(1000f, 999f), new Vector2(40f, 1f));
+        BoxCollider2D wall = CreateTestGround(fixture.transform, "Sight blocker",
+            new Vector2(1001.5f, 1001f), new Vector2(0.3f, 3f));
+        try
+        {
+            MovePlayer(playerBody, new Vector2(1003f, 1000f));
+            yield return new WaitForSeconds(0.25f);
+            Require(enemy.CurrentState == EnemyPatrol2D.EnemyState.Patrol,
+                "Real Ground-layer geometry blocks enemy sight even with the player in range.");
+            wall.enabled = false;
+            Physics2D.SyncTransforms();
+            yield return Until(() => enemy.CurrentState == EnemyPatrol2D.EnemyState.Alert, 1f,
+                "Removing the sight blocker lets the patrol notice the player.");
+            yield return Until(() => enemy.CurrentState == EnemyPatrol2D.EnemyState.Chase, 1f,
+                "Visible player triggers Alert then Chase.");
+            yield return new WaitForFixedUpdate();
+            yield return new WaitForFixedUpdate();
+            float calmSpeed = Mathf.Abs(enemyBody.velocity.x);
+            float calmRange = enemy.DetectionRange;
+            Require(calmSpeed > 0f && calmRange > 0f, "Calm chase has measurable speed and detection range.");
+            MovePlayer(playerBody, enemyBody.position + Vector2.right * (calmRange + 0.3f));
+            yield return Until(() => enemy.CurrentState == EnemyPatrol2D.EnemyState.Search, 0.2f,
+                "A player beyond calm detection range is lost from sight.");
+            foreach (int ore in new[] { 500, 1000, 1500 })
+            {
+                session.AddCoins(ore);
+                Require(Mathf.Approximately(enemy.DetectionRange, calmRange * session.Pressure.PerceptionMultiplier),
+                    $"Tier {session.Pressure.Tier} scales the real enemy detection range.");
+                yield return Until(() => enemy.CurrentState == EnemyPatrol2D.EnemyState.Chase, 0.5f,
+                    $"Tier {session.Pressure.Tier} detects the player beyond the original calm range.");
+                yield return new WaitForFixedUpdate();
+                yield return new WaitForFixedUpdate();
+                Require(Mathf.Abs(Mathf.Abs(enemyBody.velocity.x) - calmSpeed * session.Pressure.ChaseMultiplier) < 0.01f,
+                    $"Tier {session.Pressure.Tier} applies the seeded pursuit speed to real movement.");
+            }
+            player.ActivateInvisibility(10f);
+            yield return Until(() => enemy.CurrentState == EnemyPatrol2D.EnemyState.Search, 0.5f,
+                "Invisibility breaks an active enemy chase.");
+            yield return new WaitForSeconds(0.25f);
+            Require(enemy.CurrentState == EnemyPatrol2D.EnemyState.Search,
+                "An invisible player is not immediately reacquired.");
+            player.CancelAllPowerupsImmediately();
+            yield return Until(() => enemy.CurrentState == EnemyPatrol2D.EnemyState.Chase, 0.5f,
+                "A visible player in range is reacquired after invisibility ends.");
+            wall.transform.position = (enemyBody.position + playerBody.position) * 0.5f;
+            wall.enabled = true;
+            Physics2D.SyncTransforms();
+            yield return Until(() => enemy.CurrentState == EnemyPatrol2D.EnemyState.Search, 0.5f,
+                "Ground geometry also breaks an established chase.");
+            session.BankOre();
+            Require(Mathf.Approximately(enemy.DetectionRange, calmRange),
+                "Banking restores the enemy's original perception range.");
+        }
+        finally
+        {
+            player.CancelAllPowerupsImmediately();
+            MovePlayer(playerBody, originalPosition);
+            playerBody.constraints = originalConstraints;
+            player.enabled = true;
+            Destroy(fixture);
+        }
+        yield return null;
+    }
+
+    static BoxCollider2D CreateTestGround(Transform parent, string name, Vector2 position, Vector2 size)
+    {
+        var ground = new GameObject(name);
+        ground.transform.SetParent(parent, false);
+        ground.transform.position = position;
+        ground.layer = LayerMask.NameToLayer("Ground");
+        BoxCollider2D collider = ground.AddComponent<BoxCollider2D>();
+        collider.size = size;
+        return collider;
+    }
+
     IEnumerator CheckPressureEncounter(GameSession session)
     {
         int availableOre = 0;
@@ -197,13 +290,25 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         body.constraints = RigidbodyConstraints2D.FreezeAll;
         session.HealStability(3);
         int banked = session.GetCoins();
+        TextMeshPro ventLabel = vent.GetComponentInChildren<TextMeshPro>();
+        MovePlayer(body, vent.transform.position + Vector3.up * 0.5f);
+        int dormantHits = session.GetHitsTaken();
+        yield return Capture("pressure-vent-off", 800, 600);
+        Require(ventLabel.text == "OFF" && !vent.IsActive && session.GetHitsTaken() == dormantHits,
+            "Disarmed vent explicitly says OFF and touching it is harmless.");
         session.AddCoins(500);
+        yield return null;
+        yield return null;
+        Require(ventLabel.text == "OFF" && !vent.IsActive, "Tier 1 still leaves the vent OFF.");
         session.AddCoins(1000);
         Require(session.Pressure.Tier == 2 && session.Pressure.PendingCoins == 1750,
             "Real session uses pre-pickup rewards at the tier-2 threshold.");
         MovePlayer(body, vent.transform.position + Vector3.up * 0.5f);
         float safeStart = Time.time;
         int initialHits = session.GetHitsTaken();
+        yield return Capture("pressure-vent-safe", 800, 600);
+        Require(ventLabel.text == "SAFE" && !vent.IsActive,
+            "An armed vent distinguishes its safe interval from the disarmed OFF state.");
         while (Time.time - safeStart < 3.2f) yield return new WaitForFixedUpdate();
         Require(session.GetHitsTaken() == initialHits && !vent.IsActive, "Vent grace period causes no contact damage.");
         SpriteRenderer indicator = vent.GetComponent<SpriteRenderer>();
@@ -231,6 +336,9 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(session.GetCoins() == banked + 1750 && session.Pressure.CarriedOre == 0 &&
             session.Pressure.PendingCoins == 0, "Checkpoint contact banks the exact reward once across player colliders.");
         Require(!vent.IsActive, "Banking immediately disarms the vent.");
+        yield return null;
+        yield return null;
+        Require(ventLabel.text == "OFF", "Banking returns the vent label to OFF.");
         Require(PlayerPrefs.GetInt(StartMenu.UnlockedLevelKey) == 6, "Checkpoint banking preserves level unlocks.");
         yield return Capture("pressure-checkpoint-banked", 1280, 720);
         MovePlayer(body, bank.transform.position + Vector3.up * 4f);
@@ -263,6 +371,21 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return new WaitForFixedUpdate();
         Require(session.GetCoins() == armoredBalance + secondDeposit && session.GetArmorTier() == armorTier,
             "Checkpoint banking preserves purchased armor and the exact carried reward.");
+        MovePlayer(body, vent.transform.position + Vector3.up * 0.5f);
+        session.HealStability(3);
+        session.AddCoins(1500);
+        int armoredHits = session.GetHitsTaken();
+        float stabilityBeforeHit = session.GetStability();
+        float expectedDamage = StoreEconomy.ApplyArmorReductionUnits(
+            vent.Damage * QuantumStability.UnitsPerPoint, armorTier) / (float)QuantumStability.UnitsPerPoint;
+        yield return Until(() => session.GetHitsTaken() > armoredHits, 7f,
+            "A real vent contact still damages an armored player.");
+        Require(session.GetHitsTaken() == armoredHits + 1 &&
+            Mathf.Approximately(session.GetStability(), stabilityBeforeHit - expectedDamage),
+            "Vent contact uses the exact armor rounding rule rather than granting immunity.");
+        Require(player.GetComponent<PlayerStability>().IsInvulnerable,
+            "A vent hit starts the player's invulnerability window.");
+        session.BankOre();
         MovePlayer(body, originalPosition);
         body.constraints = originalConstraints;
         player.enabled = true;

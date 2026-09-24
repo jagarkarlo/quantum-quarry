@@ -59,6 +59,8 @@ static class Program
         Equal(int.MaxValue, capped.CarriedOre, "ore cannot overflow");
         Equal(0, capped.Collect(100, false), "full pending wallet");
         Equal(QuarryPressure.PulsePhase.Dormant, pressure.GetPulsePhase(5.5f), "low pressure dormant");
+        Equal(QuarryPressure.PulsePhase.Dormant, new QuarryPressure(7319, 1499).GetPulsePhase(5.5f),
+            "last ore before arming remains harmless");
         var pulses = new QuarryPressure(7319, 1500);
         Equal(QuarryPressure.PulsePhase.Idle, pulses.GetPulsePhase(0f), "activation grace");
         Equal(QuarryPressure.PulsePhase.Idle, pulses.GetPulsePhase(3.49f), "before warning");

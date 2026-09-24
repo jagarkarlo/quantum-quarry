@@ -42,13 +42,15 @@ After the project compiles and passes **Tools > QuantumQuarry > Validate Project
 
 Status verified on 2026-09-24 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
 
-- All 889 rule/artwork assertions, 34 session/scene-classification assertions, and 35 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
+- All 948 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions, and 38 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
 - Unity package restoration and API compilation pass, including Cinemachine 2.9.7.
 - Custom checkpoint/vent sprites and prefabs have been generated through Unity; strict custom-prefab validation and project validation pass.
 - A Windows x64 build of all 11 enabled scenes succeeds.
 - Level 4 now has an optional upper-left bank, an exit-approach vent, and 1550 total base ore across 15 pickups.
-- The isolated Windows-player suite passes 188 checks and captures 20 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
+- The isolated Windows-player suite passes 243 checks and captures 21 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
 - A controlled fixture clones a real Level 4 enemy and uses Ground-layer colliders to verify blocked sight, Alert/Chase/Search transitions, pressure-scaled detection and chase speed at all three tiers, invisibility loss/reacquisition, and banking restoring calm perception.
+- Level 6's 25 lava cells have dedicated animated artwork. Unity checks confirm four-frame animation, untinted colors, lethal contact, invisibility protection, and death/save behavior; Level 5 still supports swimming. Sprite physics outlines and scene cell geometry match the originals, and repeated authoring leaves the scene bytes unchanged.
+- One lava-validation run completed its assertions but hung during player shutdown and was correctly rejected by the wrapper timeout. A fresh run of the unchanged validation player completed all 243 checks and exited with code 0. Do not accept a passing JSON report without a successful process exit.
 - Manual end-to-end route completion without upgrades, encounter tuning, knockback feel, and the remaining interactive checklist are still required. Controlled tests reposition the player and seed carried ore; they do not prove that the complete route is naturally playable.
 
 Back up your PlayerPrefs before testing run resets.
@@ -59,7 +61,7 @@ From the project root:
 dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
-Expected: 889 rule/artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 35 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
+Expected: 948 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 38 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
 
 ### Windows validation
 
@@ -109,6 +111,15 @@ Automated trigger and AI fixtures do not move through the complete platform rout
 3. Attempt the banking detour: collect ore and touch the upper-left bank. Check that the secured reward and cleared Pressure are understandable without reading code. The bank is not a respawn checkpoint.
 4. Compare the choices honestly: the level only has 1550 base ore, so banking even one 100-ore pickup prevents reaching tier 2 with the remaining ore. Also, the pause-menu Store banks without walking to the physical bank. Record whether the bank detour offers any useful reason to take it; do not assume it does.
 5. Record deaths, unclear jumps, waiting time, earned rewards, and whether warnings can be read while moving. Tune the layout/economy only after that evidence, then rerun the automated checks.
+
+### Level 6 lava artwork
+
+- The 25 original liquid cells are replaced with dedicated `LavaSurface` and `LavaBody` tiles, using original 32x32 pixel artwork and four looping frames. Exposed cells use the bright surface; cells with lava above them use the opaque body.
+- **Tools > QuantumQuarry > Lava > Create Level 6 Artwork** generates missing sprites/tiles and saves only Level 6. Existing files are preserved, and a dirty Level 6 scene is rejected. A second run must report zero replacements and leave the scene bytes unchanged.
+- Sprite imports use point filtering, no mipmaps, and no texture compression. The 2D Sprite package's data-provider API copies the original liquid physics outlines into every new frame. Authoring and project validation compare those outlines, pivots, pixels-per-unit, tile transforms, and collider types with the original tiles.
+- The old water assets and other levels are not rewritten. Explicit lava tile names classify as lava; the legacy `_28`/`_29` water tiles retain their level-dependent classification. Runtime tinting skips `LavaTile` so it cannot darken the new artwork.
+- This is visual polish, not a new hazard rule: lava remains immediately lethal, including with armor; invisibility still protects the player. Normal play uses campaign saves. Use the isolated runtime suite for destructive contact tests.
+- The runtime suite checks all authored cells and animation advancement, captures a close-up, tests invisibility and lava death/reload, and checks that Level 5 water still allows swimming. It does not establish full Level 6 route balance.
 
 ### Create and place custom elements
 

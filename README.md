@@ -65,6 +65,14 @@ The HUD's `Pressure 1/2/3` notices occur at **500/1500/3000 base ore**. Subseque
 
 The single bank/vent pair is a pilot, not a finished campaign-wide layout. In particular, Store entry is currently another way to bank, and the route barely exceeds the vent threshold. Those choices still need human playtesting before expanding the mechanic or claiming the bank creates a compelling detour.
 
+### Level 6 lava
+
+Level 6 now uses original animated lava tiles rather than a dark tint over the water artwork. Bright yellow-orange surfaces and moving red crust distinguish lethal lava from the blue, swimmable water in earlier levels.
+
+Open `Assets/Levels/Level 6.unity` and press **Play**, or reach Level 6 through the campaign. The new artwork is visible in the Editor as well as in the player. The existing 25 liquid cells, level layout, collider outlines, and death rules are preserved: lava kills on contact, while invisibility protects you. Armor does not make lava survivable.
+
+**Tools > QuantumQuarry > Lava > Create Level 6 Artwork** creates the two four-frame tile assets and updates Level 6 through Unity's authoring APIs. It preserves existing artwork and refuses to operate on a dirty Level 6 scene. See the [lava authoring checks](docs/DEVELOPMENT_WORKFLOW.md#level-6-lava-artwork).
+
 ## Getting Started
 
 ### Requirements

@@ -22,6 +22,13 @@ public class Bullets : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
+        BreakableOreCrate crate = other.GetComponentInParent<BreakableOreCrate>();
+        if (crate)
+        {
+            crate.Shatter();
+            Destroy(gameObject);
+            return;
+        }
         if (other.tag == "Enemy")
         {
             Destroy(other.gameObject);
@@ -31,6 +38,8 @@ public class Bullets : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D other)
     {
+        BreakableOreCrate crate = other.collider.GetComponentInParent<BreakableOreCrate>();
+        if (crate) crate.Shatter();
         Destroy(gameObject);
     }
 

@@ -97,8 +97,9 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(!PauseMenu.GameIsPaused && Time.timeScale == 1f, "Entering the Store clears the pause state.");
         Require(session.GetCoins() == expectedBalance && session.Pressure.CarriedOre == 0 &&
             session.Pressure.PendingCoins == 0, "Store entry banks carried ore exactly once.");
-        Require(FindObjectsOfType<Collecting>().Length == 0 && FindObjectsOfType<EnemyPatrol2D>().Length == 0,
-            "Persisted coins and enemies are suspended, not visible or simulated in the Store.");
+        Require(FindObjectsOfType<Collecting>().Length == 0 && FindObjectsOfType<BreakableOreCrate>().Length == 0 &&
+            FindObjectsOfType<EnemyPatrol2D>().Length == 0,
+            "Persisted coins, crates, and enemies are suspended, not visible or simulated in the Store.");
         yield return Capture("store", 800, 600);
         yield return Capture("store", 1280, 720);
         StoreManager store = FindObjectOfType<StoreManager>();
@@ -108,8 +109,8 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.3f);
         Require(SceneManager.GetActiveScene().name == "Level 4", "Store returns to the originating level.");
         Require(session.GetCoins() == expectedBalance, "Store return does not duplicate the deposit.");
-        Require(FindObjectsOfType<Collecting>().Length == remainingCoins,
-            "Store return restores remaining coins without respawning collected ore.");
+        Require(FindObjectsOfType<Collecting>().Length == remainingCoins && FindObjectsOfType<BreakableOreCrate>().Length == 1,
+            "Store return restores remaining coins and crates without respawning collected ore or broken crates.");
         pause = FindObjectOfType<PauseMenu>();
         Require(pause, "Store return restores the gameplay pause menu.");
         pause.TogglePause();
@@ -504,7 +505,10 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(session.GetCoins() == balanceBeforeDeath && session.Pressure.PendingCoins == 0 &&
             session.GetLives() == livesBeforeDeath - 1, "Manual reset loses only unbanked ore without consuming a life.");
         Collecting[] resetCoins = FindObjectsOfType<Collecting>();
-        Require(resetCoins.Length == 15, "Manual reset restores all 15 authored Level 4 coins.");
+        BreakableOreCrate[] resetCrates = FindObjectsOfType<BreakableOreCrate>();
+        PressureGate gate = FindObjectOfType<PressureGate>();
+        Require(resetCoins.Length == 15 && resetCrates.Length == 2 && gate,
+            "Manual reset restores all 15 authored Level 4 coins, 2 breakable crates, and the pressure gate.");
         Collecting pickup = Array.Find(resetCoins, coin => coin.name == "Pressure Route Ore 01");
         Require(pickup, "The first route pickup exists for a real collection test.");
         player = FindObjectOfType<PlayerMovement>();
@@ -521,6 +525,40 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "A real coin trigger awards its previewed value once across player colliders.");
         yield return new WaitForSecondsRealtime(0.6f);
         Require(FindObjectsOfType<Collecting>().Length == resetCoins.Length - 1, "Collected ore is removed from the persistent level objects.");
+        Collider2D gateCollider = gate.GetComponent<Collider2D>();
+        TextMeshPro gateLabel = gate.GetComponentInChildren<TextMeshPro>();
+        Require(!gate.IsOpen && gateCollider.enabled && gateLabel.text == "LOCK T1",
+            "Pressure gate is solid and locked below its required tier.");
+        MovePlayer(body, gate.transform.position + Vector3.left * 1.4f);
+        yield return Capture("pressure-vault-locked", 1280, 720);
+        session.AddCoins(400);
+        yield return null;
+        yield return null;
+        Require(session.Pressure.Tier == 1 && gate.IsOpen && !gateCollider.enabled && gateLabel.text == "OPEN",
+            "Reaching tier 1 opens the Pressure gate and disables its solid barrier.");
+        yield return Capture("pressure-vault-open", 1280, 720);
+        BreakableOreCrate firstCrate = Array.Find(resetCrates, c => c.name == "Pressure Vault Crate 01");
+        Require(firstCrate && !firstCrate.IsBroken, "First vault crate is ready for a real bullet test.");
+        int pendingBeforeCrate = session.Pressure.PendingCoins;
+        int expectedCrateReward = session.Pressure.PreviewReward(firstCrate.BaseOreValue, session.IsCriticalStability());
+        MovePlayer(body, firstCrate.transform.position + Vector3.left * 1.6f);
+        player.transform.localScale = new Vector3(1f, 1f, 1f);
+        Bullets bulletPrefab = FindObjectOfType<Bullets>(true);
+        var serializedPlayer = player.GetType().GetField("bullet",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var gunField = player.GetType().GetField("gun",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        GameObject configuredBullet = serializedPlayer != null ? (GameObject)serializedPlayer.GetValue(player) : null;
+        Transform gunTransform = gunField != null ? (Transform)gunField.GetValue(player) : player.transform;
+        Require(configuredBullet && gunTransform, "Player has a configured bullet prefab and gun transform.");
+        Instantiate(configuredBullet, new Vector3(firstCrate.transform.position.x - 0.8f, firstCrate.transform.position.y, 0f), Quaternion.identity);
+        yield return Until(() => firstCrate.IsBroken, 1.5f, "A real player bullet shatters the breakable ore crate.");
+        Require(session.Pressure.PendingCoins == pendingBeforeCrate + expectedCrateReward &&
+            session.Pressure.CarriedOre == 750,
+            "Shattering a crate awards the exact pressure-scaled ore reward once.");
+        yield return new WaitForSecondsRealtime(0.6f);
+        Require(FindObjectsOfType<BreakableOreCrate>().Length == 1,
+            "Shattered crate is destroyed and removed from persistent level objects.");
         MovePlayer(body, originalPosition);
         body.constraints = originalConstraints;
         player.enabled = true;

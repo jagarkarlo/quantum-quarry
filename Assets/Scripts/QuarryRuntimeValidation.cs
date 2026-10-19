@@ -113,12 +113,23 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "Store return restores remaining coins and crates without respawning collected ore or broken crates.");
         pause = FindObjectOfType<PauseMenu>();
         Require(pause, "Store return restores the gameplay pause menu.");
+        LevelResult level4Result = session.CompleteCurrentLevel("Level 4");
+        Require(level4Result.LevelId == "level-4" && level4Result.BankedOre >= 1500 &&
+            level4Result.OreMedal == MedalTier.Gold,
+            "Completing Level 4 evaluates medals and personal bests by stable level ID.");
+        LevelExit.ShowResultsBannerForTest(level4Result);
+        yield return Capture("level-4-results-banner", 1280, 720);
+        GameObject bannerObj = GameObject.Find("LevelResultsBanner");
+        if (bannerObj) Destroy(bannerObj);
         pause.TogglePause();
         Require(PauseMenu.GameIsPaused && Time.timeScale == 0f, "Pause works on the first click after Store return.");
         pause.LoadMenu();
         yield return null;
         yield return new WaitForSecondsRealtime(0.2f);
         Require(!PauseMenu.GameIsPaused && Time.timeScale == 1f, "Returning to level selection clears the pause state.");
+        LevelSelector level4Button = Array.Find(FindObjectsOfType<LevelSelector>(), s => s.level == 4);
+        Require(level4Button && level4Button.transform.Find("MedalBadge"),
+            "Level selector displays the earned medal badge on the Level 4 button.");
         yield return Capture("level-selector-after-gameplay", 1280, 720);
         Require(!FindObjectOfType<QuarryPressureHUD>(), "Level selector does not display the gameplay Pressure HUD.");
         Require(FindObjectsOfType<Collecting>().Length == 0 && FindObjectsOfType<EnemyPatrol2D>().Length == 0,

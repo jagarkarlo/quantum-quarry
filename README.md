@@ -23,7 +23,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - Safe ghost movement that prevents rematerializing inside solid platforms
 - Pause, victory, and game-over flows
 - Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
-- Custom banking checkpoint and pulse-vent prefabs with a Level 4 pilot and ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
+- Custom banking checkpoint, pulse-vent, pressure-gate, and breakable ore-crate prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
 
 ## Enemy AI
 
@@ -48,7 +48,7 @@ The HUD spells out `Lives`, `Stability`, and `Banked`. `Coins x2` indicates the 
 
 Play **Level 4** from level selection, or open `Assets/Levels/Level 4.unity` in the Editor and press **Play**. Normal Editor play uses your campaign save; back it up before testing death or resets. The bank is in the upper-left alcove near `(-12, 8.516)` and the vent is before the right-hand exit near `(27, 5.516)`.
 
-The vent is a timed contact hazard, not a button, jump pad, or collectible. It arms automatically at **1500 carried base ore**. Banked coins and reward bonuses do not count toward that threshold. Level 4 has 1550 base ore in total, and every pickup is worth at least 100 base ore, so you currently need all 15 pickups without banking or dying to arm it naturally.
+The vent is a timed contact hazard, not a button, jump pad, or collectible. It arms automatically at **1500 carried base ore**. Banked coins and reward bonuses do not count toward that threshold. Level 4 now includes an upper-alcove **Pressure Gate** (`LOCK T1` -> `OPEN` at 500+ carried ore) guarding two **Breakable Ore Crates** worth 250 base ore each when shot with a bullet, bringing total Level 4 base ore to **2050** across 15 coins and 2 crates. This lets you bank early or miss a few pickups and still reach the 1500-ore threshold if you carry enough ore to unlock the vault.
 
 | World label | Meaning | Contact damage |
 | --- | --- | --- |

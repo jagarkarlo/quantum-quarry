@@ -40,14 +40,14 @@ After the project compiles and passes **Tools > QuantumQuarry > Validate Project
 
 ## Quarry Pressure validation
 
-Status verified on 2026-09-24 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
+Status verified on 2026-10-19 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
 
-- All 948 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions, and 38 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
+- All 1504 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions, and 40 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
 - Unity package restoration and API compilation pass, including Cinemachine 2.9.7.
-- Custom checkpoint/vent sprites and prefabs have been generated through Unity; strict custom-prefab validation and project validation pass.
+- Custom checkpoint, vent, pressure-gate, and breakable ore-crate sprites and prefabs have been generated through Unity; strict custom-prefab validation and project validation pass.
 - A Windows x64 build of all 11 enabled scenes succeeds.
-- Level 4 now has an optional upper-left bank, an exit-approach vent, and 1550 total base ore across 15 pickups.
-- The isolated Windows-player suite passes 243 checks and captures 21 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
+- Level 4 now has an optional upper-left bank, an exit-approach vent, an upper-alcove tier-1 pressure gate guarding two 250-ore breakable crates, and 2050 total base ore across 15 coin pickups and 2 crates.
+- The isolated Windows-player suite passes 267 checks and captures 23 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, pressure-gate unlocking, bullet-shattered ore crates, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
 - A controlled fixture clones a real Level 4 enemy and uses Ground-layer colliders to verify blocked sight, Alert/Chase/Search transitions, pressure-scaled detection and chase speed at all three tiers, invisibility loss/reacquisition, and banking restoring calm perception.
 - Level 6's 25 lava cells have dedicated animated artwork. Unity checks confirm four-frame animation, untinted colors, lethal contact, invisibility protection, and death/save behavior; Level 5 still supports swimming. Sprite physics outlines and scene cell geometry match the originals, and repeated authoring leaves the scene bytes unchanged.
 - One lava-validation run completed its assertions but hung during player shutdown and was correctly rejected by the wrapper timeout. A fresh run of the unchanged validation player completed all 243 checks and exited with code 0. Do not accept a passing JSON report without a successful process exit.
@@ -61,7 +61,7 @@ From the project root:
 dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
-Expected: 948 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 38 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
+Expected: 1504 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 40 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
 
 ### Windows validation
 
@@ -97,8 +97,8 @@ The player opens a window, changes resolution for captures, writes `report.json`
 
 - The bank is in the optional upper-left alcove near `(-12, 8.516)`. It banks ore only and is not a respawn checkpoint.
 - The vent is near `(27, 5.516)` before the exit. Its raised label distinguishes `OFF` (disarmed) from `SAFE` (armed idle), then `WARNING` and `DANGER`, supplementing its color/pulse cues. See the [player-facing vent guide](../README.md#trying-the-pressure-vent).
-- Thirteen 100-ore pickups follow existing solid platforms; a further 100-ore pickup sits on the exit-ladder approach. Together with the existing 150-ore coin, the scene contains 1550 base ore, enough to reach tier 2 if the player carries it rather than banking. The previous scene had only one actual 150-ore pickup; repeated prefab GUID references were not additional coins.
-- Coins belong to `ScenePersist`, so Store visits and death do not respawn collected ore. Its children are suspended outside their owning gameplay scene, then restored on return. Switching to another level replaces the old persistent group; manual reset restores that level's pickups.
+- Thirteen 100-ore pickups follow existing solid platforms; a further 100-ore pickup sits on the exit-ladder approach. An upper-alcove `PressureGate` near `(11.5, 14.016)` blocks two `BreakableOreCrate` objects (250 base ore each) until the player carries at least 500 base ore (Tier 1). Together with the existing 150-ore coin, the scene contains 2050 base ore, giving a 550-ore buffer above the tier-2 vent threshold and making carrying ore to unlock the bonus vault a meaningful tradeoff against banking early.
+- Coins and breakable crates belong to `ScenePersist`, so Store visits and death do not respawn collected ore or shattered crates. Its children are suspended outside their owning gameplay scene, then restored on return. Switching to another level replaces the old persistent group; manual reset restores that level's pickups and crates.
 - **Tools > QuantumQuarry > Pressure > Create Level 4 Pilot** recreates missing pilot objects using Unity prefab APIs and checks floor/clearance before saving. It refuses to operate on an unsaved Level 4 scene and preserves existing placements. Repeated authoring must not duplicate objects.
 - **Update Prefab Label Sorting** explicitly matches the generated bank/vent labels to their artwork's sorting layer and raises them above a standing player. Unlike **Create Custom Prefabs**, this command intentionally saves those two existing prefabs.
 

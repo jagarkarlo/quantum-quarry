@@ -79,6 +79,37 @@ static class SessionTests
         Equal(int.MaxValue, session.GetCoins(), "balance cannot overflow");
         GameSession.ClearPersistentRunState();
         Equal(false, PlayerPrefs.HasKey(GameSession.CarriedOreKey), "hard clear removes ore");
+        PlayerPrefs.DeleteAll();
+        UnityEngine.SceneManagement.SceneManager.ActiveSceneName = "Level 4";
+        session = Restore(session);
+        typeof(GameSession).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(session, null);
+        Equal("level-4", session.ActiveLevelId, "level tracking binds stable id");
+        session.AdvanceLevelTimerForTest(30f);
+        Time.timeScale = 0f;
+        session.AdvanceLevelTimerForTest(15f);
+        Time.timeScale = 1f;
+        Equal(30000, session.GetLevelElapsedMs(), "pause time excluded from level timer");
+        session.AddCoins(500);
+        session.BankOre();
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Store");
+        session.AdvanceLevelTimerForTest(25f);
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Level 4");
+        Equal(30000, session.GetLevelElapsedMs(), "store round trip preserves level timer and excludes store time");
+        Equal(500, session.GetLevelBankedOre(), "store round trip preserves level banked ore");
+        session.AddCoins(200);
+        session.ProcessPlayerDeath();
+        Equal(200, session.GetLevelLostOre(), "death records lost ore for the current level");
+        session.AddCoins(1100);
+        LevelResult completed = session.CompleteCurrentLevel("Level 4");
+        Equal(MedalTier.Gold, completed.TimeMedal, "level 4 completion awards gold time");
+        Equal(MedalTier.Gold, completed.OreMedal, "level 4 completion banks carried ore and awards gold ore");
+        Equal(MedalTier.Gold, completed.SurvivalMedal, "zero hits awards gold survival");
+        LevelPersonalBest savedRecord = GameSession.GetPersonalBest("Level 4");
+        Equal(true, savedRecord.Completed, "personal best persisted by stable level id");
+        Equal(1600, savedRecord.BestBankedOre, "personal best stores banked ore");
+        Equal("T:G O:G S:G", LevelMedals.FormatShortBadge(savedRecord), "saved personal best badge");
+        session.ResetSession();
+        Equal(true, GameSession.GetPersonalBest("Level 4").Completed, "resetting run preserves level personal bests");
         Console.WriteLine($"GameSession integration (Unity test doubles): {assertions} assertions passed.");
     }
 }

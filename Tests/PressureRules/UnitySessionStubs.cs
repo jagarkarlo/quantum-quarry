@@ -28,7 +28,13 @@ namespace UnityEngine
         public static int Clamp(int value, int minimum, int maximum) => Math.Clamp(value, minimum, maximum);
         public static float Clamp(float value, float minimum, float maximum) => Math.Clamp(value, minimum, maximum);
         public static float Ceil(float value) => (float)Math.Ceiling(value);
+        public static int RoundToInt(float value) => (int)Math.Round(value);
         public static bool Approximately(float first, float second) => Math.Abs(first - second) < 0.00001f;
+    }
+    public static class Time
+    {
+        public static float deltaTime = 0.02f;
+        public static float timeScale = 1f;
     }
     public static class PlayerPrefs
     {
@@ -43,14 +49,19 @@ namespace UnityEngine
 }
 namespace UnityEngine.SceneManagement
 {
-    public struct Scene { public int buildIndex; }
+    public struct Scene { public int buildIndex; public string name; }
     public enum LoadSceneMode { Single, Additive }
     public static class SceneManager
     {
+        public static string ActiveSceneName = "Level 1";
         public static event Action<Scene, LoadSceneMode> sceneLoaded;
-        public static Scene GetActiveScene() => new Scene { buildIndex = 1 };
-        public static void LoadScene(int index) => sceneLoaded?.Invoke(new Scene { buildIndex = index }, LoadSceneMode.Single);
-        public static void LoadScene(string name) => LoadScene(0);
+        public static Scene GetActiveScene() => new Scene { buildIndex = 1, name = ActiveSceneName };
+        public static void LoadScene(int index) => sceneLoaded?.Invoke(new Scene { buildIndex = index, name = ActiveSceneName }, LoadSceneMode.Single);
+        public static void LoadScene(string name)
+        {
+            ActiveSceneName = name;
+            sceneLoaded?.Invoke(new Scene { buildIndex = 0, name = name }, LoadSceneMode.Single);
+        }
     }
 }
 namespace TMPro

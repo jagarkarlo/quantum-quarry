@@ -46,6 +46,17 @@ public class GameSession : MonoBehaviour
     int armorTier;
     float breathRemaining = -1f;
     float breathMaximum;
+    string activeLevelId;
+    float levelElapsedSeconds;
+    int levelBankedOre;
+    int levelLostOre;
+    int levelHitsStart;
+    public LevelResult LastCompletedLevelResult { get; private set; }
+    public string ActiveLevelId => activeLevelId;
+    public int GetLevelElapsedMs() => Mathf.Max(0, Mathf.RoundToInt(levelElapsedSeconds * 1000f));
+    public int GetLevelBankedOre() => levelBankedOre;
+    public int GetLevelLostOre() => levelLostOre;
+    public int GetLevelHitsTaken() => Mathf.Max(0, damageLog.HitsTaken - levelHitsStart);
 
     public static bool IsGameplayScene(string sceneName)
     {
@@ -80,8 +91,21 @@ public class GameSession : MonoBehaviour
 
     void Start()
     {
+        TrackSceneTransition(SceneManager.GetActiveScene().name);
         RebindUI();
         RefreshUI();
+    }
+
+    void Update()
+    {
+        if (IsGameplayScene(SceneManager.GetActiveScene().name) && Time.timeScale > 0f)
+            levelElapsedSeconds += Time.deltaTime;
+    }
+
+    public void AdvanceLevelTimerForTest(float seconds)
+    {
+        if (seconds > 0f && IsGameplayScene(SceneManager.GetActiveScene().name) && Time.timeScale > 0f)
+            levelElapsedSeconds += seconds;
     }
 
     void OnDestroy()
@@ -91,8 +115,25 @@ public class GameSession : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        TrackSceneTransition(scene.name);
         RebindUI();
         RefreshUI();
+    }
+
+    void TrackSceneTransition(string sceneName)
+    {
+        string normalized = LevelMedals.NormalizeLevelId(sceneName);
+        if (normalized == null) return;
+        if (normalized != activeLevelId) BeginLevelTracking(normalized);
+    }
+
+    void BeginLevelTracking(string normalizedLevelId)
+    {
+        activeLevelId = normalizedLevelId;
+        levelElapsedSeconds = 0f;
+        levelBankedOre = 0;
+        levelLostOre = 0;
+        levelHitsStart = damageLog != null ? damageLog.HitsTaken : 0;
     }
 
     void RebindUI()
@@ -150,6 +191,7 @@ public class GameSession : MonoBehaviour
     {
         int deposited = (int)System.Math.Min(int.MaxValue - (long)coins, pressure.Bank());
         coins += deposited;
+        levelBankedOre = (int)System.Math.Min(int.MaxValue, (long)levelBankedOre + deposited);
         PlayerPrefs.SetInt(CoinsKey, coins);
         SavePressure();
         RefreshCoinsUI();
@@ -167,6 +209,7 @@ public class GameSession : MonoBehaviour
 
     void DiscardOre()
     {
+        levelLostOre = (int)System.Math.Min(int.MaxValue, (long)levelLostOre + pressure.PendingCoins);
         pressure.Discard();
         SavePressure();
         RefreshCoinsUI();
@@ -355,6 +398,8 @@ public class GameSession : MonoBehaviour
     public void ResetCurrentLevelToStart()
     {
         DiscardOre();
+        string currentId = LevelMedals.NormalizeLevelId(SceneManager.GetActiveScene().name) ?? activeLevelId;
+        if (currentId != null) BeginLevelTracking(currentId);
         // Reset any persistent scene objects
         var sp = FindObjectOfType<ScenePersist>();
         if (sp) sp.ResetScenePersist();
@@ -398,7 +443,53 @@ public class GameSession : MonoBehaviour
         PlayerPrefs.DeleteKey(DoubleJumpQueuedSecs);
 
         PlayerPrefs.Save();
+        string currentId = LevelMedals.NormalizeLevelId(SceneManager.GetActiveScene().name);
+        if (currentId != null) BeginLevelTracking(currentId);
         RefreshUI();
+    }
+
+    public LevelResult CompleteCurrentLevel(string sceneOrLevelId = null)
+    {
+        BankOre();
+        string id = LevelMedals.NormalizeLevelId(sceneOrLevelId ?? SceneManager.GetActiveScene().name)
+            ?? activeLevelId ?? "level-1";
+        LevelResult result = LevelMedals.Evaluate(
+            id,
+            GetLevelElapsedMs(),
+            levelBankedOre,
+            levelLostOre,
+            GetLevelHitsTaken());
+        LastCompletedLevelResult = result;
+        LevelPersonalBest updated = LevelMedals.MergePersonalBest(GetPersonalBest(id), result);
+        SavePersonalBest(id, updated);
+        return result;
+    }
+
+    public static LevelPersonalBest GetPersonalBest(string sceneOrLevelId)
+    {
+        string id = LevelMedals.NormalizeLevelId(sceneOrLevelId);
+        if (id == null || PlayerPrefs.GetInt($"LevelPB_{id}_Completed", 0) == 0)
+            return default;
+        return new LevelPersonalBest(
+            true,
+            PlayerPrefs.GetInt($"LevelPB_{id}_TimeMs", int.MaxValue),
+            PlayerPrefs.GetInt($"LevelPB_{id}_Ore", 0),
+            PlayerPrefs.GetInt($"LevelPB_{id}_Hits", int.MaxValue),
+            (MedalTier)Mathf.Clamp(PlayerPrefs.GetInt($"LevelPB_{id}_TimeMedal", 0), 0, 3),
+            (MedalTier)Mathf.Clamp(PlayerPrefs.GetInt($"LevelPB_{id}_OreMedal", 0), 0, 3),
+            (MedalTier)Mathf.Clamp(PlayerPrefs.GetInt($"LevelPB_{id}_SurvivalMedal", 0), 0, 3));
+    }
+
+    static void SavePersonalBest(string id, LevelPersonalBest record)
+    {
+        PlayerPrefs.SetInt($"LevelPB_{id}_Completed", record.Completed ? 1 : 0);
+        PlayerPrefs.SetInt($"LevelPB_{id}_TimeMs", record.BestTimeMs);
+        PlayerPrefs.SetInt($"LevelPB_{id}_Ore", record.BestBankedOre);
+        PlayerPrefs.SetInt($"LevelPB_{id}_Hits", record.FewestHits);
+        PlayerPrefs.SetInt($"LevelPB_{id}_TimeMedal", (int)record.BestTimeMedal);
+        PlayerPrefs.SetInt($"LevelPB_{id}_OreMedal", (int)record.BestOreMedal);
+        PlayerPrefs.SetInt($"LevelPB_{id}_SurvivalMedal", (int)record.BestSurvivalMedal);
+        PlayerPrefs.Save();
     }
 
     public static void ClearPersistentRunState()

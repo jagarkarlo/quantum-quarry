@@ -75,6 +75,18 @@ static class Program
         Equal(QuarryPressure.PulsePhase.Dormant, pulses.GetPulsePhase(float.PositiveInfinity), "infinite clock safe");
         pulses.Bank();
         Equal(QuarryPressure.PulsePhase.Dormant, pulses.GetPulsePhase(5f), "bank disables pulses");
+        Equal(false, pulses.MeetsGateRequirement(1), "tier 0 fails tier 1 gate");
+        Equal("LOCK T1", pulses.GetGateLabel(1), "tier 0 gate label");
+        Equal("LOCK T1", pulses.GetGateLabel(0), "gate clamps minimum tier");
+        Equal("LOCK T3", pulses.GetGateLabel(9), "gate clamps maximum tier");
+        var gateTier1 = new QuarryPressure(7319, 500);
+        Equal(true, gateTier1.MeetsGateRequirement(1), "tier 1 opens tier 1 gate");
+        Equal(false, gateTier1.MeetsGateRequirement(2), "tier 1 fails tier 2 gate");
+        Equal("OPEN", gateTier1.GetGateLabel(1), "open gate label");
+        Equal("LOCK T2", gateTier1.GetGateLabel(2), "locked tier 2 gate label");
+        var gateTier2 = new QuarryPressure(7319, 1500);
+        Equal(true, gateTier2.MeetsGateRequirement(2), "tier 2 opens tier 2 gate");
+        Equal("OPEN", gateTier2.GetGateLabel(2), "tier 2 gate open label");
         for (int seed = -10; seed <= 10; seed++)
         {
             for (int tierOre = 0; tierOre <= 3000; tierOre += 500)
@@ -85,7 +97,7 @@ static class Program
                 Equal(first.ChaseMultiplier, second.ChaseMultiplier, "reproducible speed");
             }
         }
-        foreach (string[] artwork in new[] { QuarryPressureArt.Checkpoint, QuarryPressureArt.Vent })
+        foreach (string[] artwork in new[] { QuarryPressureArt.Checkpoint, QuarryPressureArt.Vent, QuarryPressureArt.Crate, QuarryPressureArt.Gate })
         {
             Equal(16, artwork.Length, "artwork height");
             foreach (string row in artwork)

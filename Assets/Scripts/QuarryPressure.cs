@@ -68,6 +68,13 @@ public sealed class QuarryPressure
         PendingCoins = 0;
     }
 
+    public bool MeetsGateRequirement(int requiredTier) => Tier >= Math.Max(1, Math.Min(3, requiredTier));
+    public string GetGateLabel(int requiredTier)
+    {
+        int clamped = Math.Max(1, Math.Min(3, requiredTier));
+        return MeetsGateRequirement(clamped) ? "OPEN" : $"LOCK T{clamped}";
+    }
+
     public PulsePhase GetPulsePhase(float elapsedSeconds)
     {
         if (!HasHazardPulses || float.IsNaN(elapsedSeconds) || float.IsInfinity(elapsedSeconds))

@@ -40,4 +40,42 @@ public static class QuarryPressureArt
         ".#ssssssssssss#.",
         "################"
     };
+    public static readonly string[] Crate =
+    {
+        ".##############.",
+        "#ssssssssssssss#",
+        "#s############s#",
+        "#s#yyyycwwcyy#s#",
+        "#s#yyycwwwwcy#s#",
+        "#s#yycwwccwwc#s#",
+        "#s#yycwwccwwc#s#",
+        "#s#yyycwwwwcy#s#",
+        "#s#yyyycwwcyy#s#",
+        "#s#####cc#####s#",
+        "#ssssssccssssss#",
+        "#s#####cc#####s#",
+        "#s#yyyyyyyyyy#s#",
+        "#s############s#",
+        "#ssssssssssssss#",
+        ".##############."
+    };
+    public static readonly string[] Gate =
+    {
+        "..############..",
+        "..#ssssssssss#..",
+        "..#s########s#..",
+        "..#s#cccccc#s#..",
+        "..#s#cwwwwc#s#..",
+        "..#s#cccccc#s#..",
+        "..#s########s#..",
+        "..#ssyyyyyyss#..",
+        "..#ssyyyyyyss#..",
+        "..#s########s#..",
+        "..#s#cccccc#s#..",
+        "..#s#cwwwwc#s#..",
+        "..#s#cccccc#s#..",
+        "..#s########s#..",
+        "..#ssssssssss#..",
+        "..############.."
+    };
 }

@@ -204,13 +204,22 @@ public static class QuantumQuarryProjectValidator
     {
         ValidatePrefabComponent<OreBankCheckpoint>(QuarryPressureAuthoring.CheckpointPath, errors);
         ValidatePrefabComponent<PressurePulseHazard>(QuarryPressureAuthoring.VentPath, errors);
-        foreach (string path in new[] { QuarryPressureAuthoring.CheckpointPath, QuarryPressureAuthoring.VentPath })
+        ValidatePrefabComponent<BreakableOreCrate>(QuarryPressureAuthoring.CratePath, errors);
+        ValidatePrefabComponent<PressureGate>(QuarryPressureAuthoring.GatePath, errors);
+        foreach (string path in new[]
+        {
+            QuarryPressureAuthoring.CheckpointPath,
+            QuarryPressureAuthoring.VentPath,
+            QuarryPressureAuthoring.CratePath,
+            QuarryPressureAuthoring.GatePath
+        })
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (!prefab) continue;
-            Collider2D trigger = prefab.GetComponent<Collider2D>();
-            if (!trigger || !trigger.enabled || !trigger.isTrigger)
-                errors.Add($"{path} requires an enabled trigger collider.");
+            Collider2D col = prefab.GetComponent<Collider2D>();
+            bool expectTrigger = path == QuarryPressureAuthoring.CheckpointPath || path == QuarryPressureAuthoring.VentPath;
+            if (!col || !col.enabled || col.isTrigger != expectTrigger)
+                errors.Add($"{path} requires an enabled {(expectTrigger ? "trigger" : "solid")} collider.");
             SpriteRenderer renderer = prefab.GetComponent<SpriteRenderer>();
             if (!renderer || !renderer.sprite)
                 errors.Add($"{path} requires custom sprite artwork.");
@@ -220,7 +229,7 @@ public static class QuantumQuarryProjectValidator
                 errors.Add($"{path} requires a readable label above its artwork on the same sorting layer.");
             int playerLayer = LayerMask.NameToLayer("Player");
             if (playerLayer >= 0 && Physics2D.GetIgnoreLayerCollision(playerLayer, prefab.layer))
-                errors.Add($"{path} cannot trigger against the Player layer.");
+                errors.Add($"{path} cannot collide or trigger against the Player layer.");
         }
     }
 
@@ -333,13 +342,25 @@ public static class QuantumQuarryProjectValidator
             if (opened) scene = EditorSceneManager.OpenScene(Level4ScenePath, OpenSceneMode.Additive);
             OreBankCheckpoint bank = FindInScene<OreBankCheckpoint>(scene);
             PressurePulseHazard vent = FindInScene<PressurePulseHazard>(scene);
+            PressureGate gate = FindInScene<PressureGate>(scene);
             if (!bank || !bank.isActiveAndEnabled) errors.Add("Level 4 requires an active banking checkpoint.");
             if (!vent || !vent.isActiveAndEnabled) errors.Add("Level 4 requires an active pressure vent.");
+            if (!gate || !gate.isActiveAndEnabled) errors.Add("Level 4 requires an active pressure gate.");
             int ore = 0;
+            int crates = 0;
             foreach (GameObject root in scene.GetRootGameObjects())
+            {
                 foreach (Collecting coin in root.GetComponentsInChildren<Collecting>())
                     if (coin.isActiveAndEnabled) ore += coin.BaseOreValue;
-            if (ore < 1500) errors.Add($"Level 4 has only {ore} active base ore; its pressure vent needs at least 1500.");
+                foreach (BreakableOreCrate crate in root.GetComponentsInChildren<BreakableOreCrate>())
+                    if (crate.isActiveAndEnabled)
+                    {
+                        crates++;
+                        ore += crate.BaseOreValue;
+                    }
+            }
+            if (crates < 2) errors.Add($"Level 4 requires at least 2 active breakable ore crates, found {crates}.");
+            if (ore < 2000) errors.Add($"Level 4 has only {ore} active base ore (coins + crates); the vault pilot needs at least 2000.");
         }
         finally
         {

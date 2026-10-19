@@ -10,6 +10,8 @@ public static class QuarryPressureAuthoring
 {
     public const string CheckpointPath = "Assets/Prefabs/OreBankCheckpoint.prefab";
     public const string VentPath = "Assets/Prefabs/PressurePulseVent.prefab";
+    public const string CratePath = "Assets/Prefabs/BreakableOreCrate.prefab";
+    public const string GatePath = "Assets/Prefabs/PressureGate.prefab";
     const string ArtFolder = "Assets/Sprites/QuarryPressure";
 
     [MenuItem("Tools/QuantumQuarry/Pressure/Create Custom Prefabs")]
@@ -19,6 +21,10 @@ public static class QuarryPressureAuthoring
             CreateSprite("OreBankCheckpoint", QuarryPressureArt.Checkpoint), new Vector2(1.4f, 1.2f));
         CreatePrefab<PressurePulseHazard>(VentPath, "PressurePulseVent", "VENT",
             CreateSprite("PressurePulseVent", QuarryPressureArt.Vent), new Vector2(0.9f, 0.45f));
+        CreatePrefab<BreakableOreCrate>(CratePath, "BreakableOreCrate", "CRATE +250",
+            CreateSprite("BreakableOreCrate", QuarryPressureArt.Crate), new Vector2(0.95f, 0.95f), false, "Ground");
+        CreatePrefab<PressureGate>(GatePath, "PressureGate", "LOCK T1",
+            CreateSprite("PressureGate", QuarryPressureArt.Gate), new Vector2(0.8f, 1.8f), false, "Ground", new Vector3(1f, 2f, 1f));
         AssetDatabase.SaveAssets();
         Debug.Log("Pressure prefabs ready. Place them in a level using Tools > QuantumQuarry > Pressure.");
     }
@@ -71,7 +77,8 @@ public static class QuarryPressureAuthoring
         }
     }
 
-    static void CreatePrefab<T>(string path, string objectName, string labelText, Sprite sprite, Vector2 triggerSize)
+    static void CreatePrefab<T>(string path, string objectName, string labelText, Sprite sprite, Vector2 triggerSize,
+        bool isTrigger = true, string layerName = null, Vector3? rootScale = null)
         where T : Component
     {
         if (File.Exists(path)) return;
@@ -80,27 +87,31 @@ public static class QuarryPressureAuthoring
         {
             GameObject reference = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/StabilizationPickup.prefab");
             if (!reference) throw new InvalidOperationException("StabilizationPickup prefab is required for the collision layer.");
-            root.layer = reference.layer;
+            int resolvedLayer = !string.IsNullOrEmpty(layerName) ? LayerMask.NameToLayer(layerName) : -1;
+            root.layer = resolvedLayer >= 0 ? resolvedLayer : reference.layer;
+            Vector3 scale = rootScale ?? Vector3.one;
+            root.transform.localScale = scale;
             SpriteRenderer renderer = root.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
             SpriteRenderer referenceRenderer = reference.GetComponent<SpriteRenderer>();
             renderer.sortingLayerID = referenceRenderer.sortingLayerID;
             renderer.sortingOrder = referenceRenderer.sortingOrder + 1;
             BoxCollider2D trigger = root.AddComponent<BoxCollider2D>();
-            trigger.isTrigger = true;
-            trigger.size = triggerSize;
+            trigger.isTrigger = isTrigger;
+            trigger.size = new Vector2(triggerSize.x / scale.x, triggerSize.y / scale.y);
             trigger.offset = typeof(T) == typeof(PressurePulseHazard) ? new Vector2(0f, -0.15f) : Vector2.zero;
             root.AddComponent<T>();
             var labelObject = new GameObject("Label");
             labelObject.transform.SetParent(root.transform, false);
-            labelObject.transform.localPosition = Vector3.up * 1.3f;
+            labelObject.transform.localPosition = new Vector3(0f, 1.3f / scale.y, 0f);
+            labelObject.transform.localScale = new Vector3(1f / scale.x, 1f / scale.y, 1f);
             TextMeshPro label = labelObject.AddComponent<TextMeshPro>();
             label.text = labelText;
             label.fontSize = 2.5f;
             label.alignment = TextAlignmentOptions.Center;
             label.sortingLayerID = renderer.sortingLayerID;
             label.sortingOrder = 100;
-            label.rectTransform.sizeDelta = new Vector2(2f, 0.5f);
+            label.rectTransform.sizeDelta = new Vector2(2.6f, 0.5f);
             PrefabUtility.SaveAsPrefabAsset(root, path);
         }
         finally { UnityEngine.Object.DestroyImmediate(root); }
@@ -112,13 +123,20 @@ public static class QuarryPressureAuthoring
     [MenuItem("Tools/QuantumQuarry/Pressure/Place Pulse Vent")]
     static void PlaceVent() => Place(VentPath);
 
+    [MenuItem("Tools/QuantumQuarry/Pressure/Place Breakable Ore Crate")]
+    static void PlaceCrate() => Place(CratePath);
+
+    [MenuItem("Tools/QuantumQuarry/Pressure/Place Pressure Gate")]
+    static void PlaceGate() => Place(GatePath);
+
     [MenuItem("Tools/QuantumQuarry/Pressure/Update Prefab Label Sorting")]
     public static void UpdatePrefabLabelSorting()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             throw new InvalidOperationException("Update Pressure prefabs outside Play Mode.");
-        foreach (string path in new[] { CheckpointPath, VentPath })
+        foreach (string path in new[] { CheckpointPath, VentPath, CratePath, GatePath })
         {
+            if (!File.Exists(path)) continue;
             GameObject root = PrefabUtility.LoadPrefabContents(path);
             try
             {
@@ -127,7 +145,7 @@ public static class QuarryPressureAuthoring
                 if (!renderer || !label) throw new InvalidOperationException($"Missing artwork or label in {path}.");
                 label.sortingLayerID = renderer.sortingLayerID;
                 label.sortingOrder = Mathf.Max(label.sortingOrder, renderer.sortingOrder + 1);
-                label.transform.localPosition = Vector3.up * 1.3f;
+                label.transform.localPosition = new Vector3(0f, 1.3f / root.transform.localScale.y, 0f);
                 if (!PrefabUtility.SaveAsPrefabAsset(root, path))
                     throw new InvalidOperationException($"Failed to update {path}.");
             }
@@ -153,6 +171,7 @@ public static class QuarryPressureAuthoring
             Physics2D.SyncTransforms();
             PlacePilotObject(scene, CheckpointPath, "Pressure Pilot Bank", -12f, 8f);
             PlacePilotObject(scene, VentPath, "Pressure Pilot Vent", 27f, 5f);
+            PlacePilotObject(scene, GatePath, "Pressure Pilot Gate", 11.5f, 13f, 1f);
             ScenePersist persistence = null;
             foreach (GameObject root in scene.GetRootGameObjects())
             {
@@ -160,6 +179,8 @@ public static class QuarryPressureAuthoring
                 if (persistence) break;
             }
             if (!persistence) throw new InvalidOperationException("Level 4 needs ScenePersist to retain collected ore during Store visits.");
+            PlacePilotParentedPrefab(scene, persistence.transform, CratePath, "Pressure Vault Crate 01", 15f, 13f);
+            PlacePilotParentedPrefab(scene, persistence.transform, CratePath, "Pressure Vault Crate 02", 18f, 13f);
             PlacePilotCoin(scene, persistence.transform, "Pressure Approach Ore", new Vector2(25.5f, 5.8f));
             Vector2[] route = {
                 new Vector2(-10f, -4f), new Vector2(-6f, 1f), new Vector2(-4.5f, 1f), new Vector2(-3f, 1f),
@@ -194,7 +215,7 @@ public static class QuarryPressureAuthoring
         return null;
     }
 
-    static void PlacePilotObject(Scene scene, string prefabPath, string objectName, float x, float expectedFloor)
+    static void PlacePilotObject(Scene scene, string prefabPath, string objectName, float x, float expectedFloor, float heightOffset = 0.5f)
     {
         if (FindRoot(scene, objectName)) return;
         int ground = LayerMask.GetMask("Ground", "Jump");
@@ -205,9 +226,32 @@ public static class QuarryPressureAuthoring
         if (!prefab) throw new InvalidOperationException($"Missing Pressure prefab: {prefabPath}");
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
         instance.name = objectName;
-        instance.transform.position = new Vector3(x, hit.point.y + 0.5f, 0f);
+        instance.transform.position = new Vector3(x, hit.point.y + heightOffset, 0f);
         PrefabUtility.RecordPrefabInstancePropertyModifications(instance.transform);
         PrefabUtility.RecordPrefabInstancePropertyModifications(instance);
+    }
+
+    static void PlacePilotParentedPrefab(Scene scene, Transform parent, string prefabPath, string objectName, float x, float expectedFloor)
+    {
+        GameObject instance = null;
+        foreach (GameObject root in scene.GetRootGameObjects())
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+                if (child.name == objectName) instance = child.gameObject;
+        if (!instance)
+        {
+            int ground = LayerMask.GetMask("Ground", "Jump");
+            RaycastHit2D hit = FindPilotFloor(x, expectedFloor);
+            if (Physics2D.OverlapBox(new Vector2(x, hit.point.y + 1.1f), new Vector2(1.2f, 1.6f), 0f, ground))
+                throw new InvalidOperationException($"Insufficient clearance for {objectName}.");
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (!prefab) throw new InvalidOperationException($"Missing Pressure prefab: {prefabPath}");
+            instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            instance.name = objectName;
+            instance.transform.position = new Vector3(x, hit.point.y + 0.5f, 0f);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(instance);
+        }
+        instance.transform.SetParent(parent, true);
+        PrefabUtility.RecordPrefabInstancePropertyModifications(instance.transform);
     }
 
     static RaycastHit2D FindPilotFloor(float x, float expectedFloor)

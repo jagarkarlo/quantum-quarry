@@ -23,6 +23,16 @@ public class UIGameOver : MonoBehaviour
         PlayerPrefs.Save();
         if (bestText) bestText.text = best.ToString();
 
+        int totalMedals = 0;
+        for (int level = 1; level <= 6; level++)
+        {
+            LevelPersonalBest pb = GameSession.GetPersonalBest($"level-{level}");
+            if (!pb.Completed) continue;
+            if (pb.BestTimeMedal > MedalTier.None) totalMedals++;
+            if (pb.BestOreMedal > MedalTier.None) totalMedals++;
+            if (pb.BestSurvivalMedal > MedalTier.None) totalMedals++;
+        }
+
         if (statsText)
         {
             int hitsTaken = PlayerPrefs.GetInt(
@@ -30,7 +40,8 @@ public class UIGameOver : MonoBehaviour
             int stabilityUnitsLost = PlayerPrefs.GetInt(
                 isVictory ? GameSession.FinalStabilityLostUnitsKey : GameSession.LastStabilityLostUnitsKey, 0);
             float stabilityLost = stabilityUnitsLost / (float)QuantumStability.UnitsPerPoint;
-            statsText.text = $"Hits Taken {hitsTaken}   Stability Lost {stabilityLost:0.#}";
+            string medalsSummary = totalMedals > 0 ? $"   Medals {totalMedals}/18" : string.Empty;
+            statsText.text = $"Hits Taken {hitsTaken}   Stability Lost {stabilityLost:0.#}{medalsSummary}";
         }
     }
 }

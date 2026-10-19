@@ -23,7 +23,7 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Verified outside Unity: deterministic C# rules, session transitions with Unity test doubles, artwork dimensions/palette, and C# 9 syntax.
 - Verified in Unity 2022.3.12f1 on 2026-09-21: package restoration, API compilation, custom sprite/prefab generation, strict custom-prefab validation, project validation, and a Windows x64 build of all 11 enabled scenes.
 - Authored pilot: Level 4 has an optional bank, a warning-labelled exit vent, a tier-1 pressure gate guarding two 250-ore breakable crates, and a 2050-base-ore pickup route. Persistent collectibles and crates are hidden and suspended in menus/Store without respawning on return.
-- Verified in the isolated Windows player on 2026-10-19: 267 controlled runtime checks and 23 screenshots covering all 11 scenes, including banking, pressure-gate unlocking, bullet-shattered ore crates, vent phases/contact damage and armor rounding, pause, invisibility, death/reset, Store round trips, persistent-level transitions, Pressure HUD bounds at three resolutions, and lava/water compatibility. A real-enemy fixture also verifies terrain occlusion, stealth loss/reacquisition, and pressure-scaled perception/pursuit.
+- Verified in the isolated Windows player on 2026-10-19: 275 controlled runtime checks and 24 screenshots covering all 11 scenes, including banking, pressure-gate unlocking, bullet-shattered ore crates, level-completion medal banners and Level Selector badges, vent phases/contact damage and armor rounding, pause, invisibility, death/reset, Store round trips, persistent-level transitions, Pressure HUD bounds at three resolutions, and lava/water compatibility. A real-enemy fixture also verifies terrain occlusion, stealth loss/reacquisition, and pressure-scaled perception/pursuit.
 - Readability follow-up: the vent distinguishes `OFF` from armed `SAFE`, then `WARNING` and `DANGER`. The HUD explains carried-reward loss, the arming threshold, and banking to disarm; the [vent guide](../README.md#trying-the-pressure-vent) explains how to play it.
 - Unresolved encounter decisions: all 15 Level 4 pickups are currently required to reach tier 2, and the pause-menu Store already provides banking without the physical detour. Evaluate these in the [human route check](DEVELOPMENT_WORKFLOW.md#remaining-human-route-check) before changing placement or economy.
 - Pending milestone gate: manually complete the pilot route without upgrades, tune the risk/reward encounter, and finish the remaining [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation). Automated repositioning and seeded ore are not proof of full-route playability or enemy encounter balance. Do not start the next milestone before this gate passes.
@@ -38,8 +38,9 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 
 ## 4. Progression and replayability
 
+- Implemented: per-level completion results (elapsed time, banked ore, lost ore, hits taken), separate Gold/Silver/Bronze medals for Time, Banked Ore, and Survival across Levels 1-6, and persistent personal-best records stored by stable level ID (`level-1`..`level-6`).
+- Implemented: level-exit completion banner, medal badges (`T:G O:G S:G`) on Level Selector buttons, and total earned medal count on the Victory/GameOver summary. Pause and Store visits are excluded from the level timer, and resetting a run preserves personal bests.
 - Add permanent upgrades, unlock conditions, and a resettable profile.
-- Add level medals for completion time, coins, and damage taken.
 - Introduce daily or seeded challenge rules without requiring an online service.
 
 ## 5. Level format

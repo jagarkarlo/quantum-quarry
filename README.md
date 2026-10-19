@@ -22,6 +22,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - A responsive store with stackable speed, invisibility, and double-jump inventory
 - Safe ghost movement that prevents rematerializing inside solid platforms
 - Pause, victory, and game-over flows
+- Per-level completion results, Gold/Silver/Bronze medals (Time, Banked Ore, Survival), and persistent personal bests on the Level Selector
 - Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
 - Custom banking checkpoint, pulse-vent, pressure-gate, and breakable ore-crate prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
 

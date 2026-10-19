@@ -42,12 +42,13 @@ After the project compiles and passes **Tools > QuantumQuarry > Validate Project
 
 Status verified on 2026-10-19 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
 
-- All 1504 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions, and 40 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
+- All 1525 Pressure/liquid/medal-rule and artwork assertions, 46 session/scene-classification/medal assertions, and 41 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
 - Unity package restoration and API compilation pass, including Cinemachine 2.9.7.
 - Custom checkpoint, vent, pressure-gate, and breakable ore-crate sprites and prefabs have been generated through Unity; strict custom-prefab validation and project validation pass.
 - A Windows x64 build of all 11 enabled scenes succeeds.
 - Level 4 now has an optional upper-left bank, an exit-approach vent, an upper-alcove tier-1 pressure gate guarding two 250-ore breakable crates, and 2050 total base ore across 15 coin pickups and 2 crates.
-- The isolated Windows-player suite passes 267 checks and captures 23 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, pressure-gate unlocking, bullet-shattered ore crates, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
+- Level completion evaluates Time, Banked Ore, and Survival medals against fixed per-level targets, excludes Pause and Store time from the level timer, persists personal bests by stable level ID (`level-1`..`level-6`), shows a completion results banner, and renders medal badges (`T:G O:G S:G`) on Level Selector buttons.
+- The isolated Windows-player suite passes 275 checks and captures 24 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, pressure-gate unlocking, bullet-shattered ore crates, level-completion medal banners and Level Selector badges, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
 - A controlled fixture clones a real Level 4 enemy and uses Ground-layer colliders to verify blocked sight, Alert/Chase/Search transitions, pressure-scaled detection and chase speed at all three tiers, invisibility loss/reacquisition, and banking restoring calm perception.
 - Level 6's 25 lava cells have dedicated animated artwork. Unity checks confirm four-frame animation, untinted colors, lethal contact, invisibility protection, and death/save behavior; Level 5 still supports swimming. Sprite physics outlines and scene cell geometry match the originals, and repeated authoring leaves the scene bytes unchanged.
 - One lava-validation run completed its assertions but hung during player shutdown and was correctly rejected by the wrapper timeout. A fresh run of the unchanged validation player completed all 243 checks and exited with code 0. Do not accept a passing JSON report without a successful process exit.
@@ -61,7 +62,7 @@ From the project root:
 dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
-Expected: 1504 Pressure/liquid-rule and artwork assertions, 34 session/scene-classification assertions using Unity test doubles, and 40 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
+Expected: 1525 Pressure/liquid/medal-rule and artwork assertions, 46 session/scene-classification/medal assertions using Unity test doubles, and 41 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
 
 ### Windows validation
 

@@ -130,6 +130,8 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         LevelSelector level4Button = Array.Find(FindObjectsOfType<LevelSelector>(), s => s.level == 4);
         Require(level4Button && level4Button.transform.Find("MedalBadge"),
             "Level selector displays the earned medal badge on the Level 4 button.");
+        Require(GameObject.Find("Button_LevelCreator"),
+            "Level selector creates the LEVEL CREATOR entry button.");
         yield return Capture("level-selector-after-gameplay", 1280, 720);
         Require(!FindObjectOfType<QuarryPressureHUD>(), "Level selector does not display the gameplay Pressure HUD.");
         Require(FindObjectsOfType<Collecting>().Length == 0 && FindObjectsOfType<EnemyPatrol2D>().Length == 0,
@@ -140,6 +142,8 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "Selecting the same level restores its remaining pickups and keeps one persistent group.");
         FindObjectOfType<PauseMenu>().LoadMenu();
         yield return null;
+        yield return new WaitForSecondsRealtime(0.2f);
+        yield return CheckCustomLevelCreator(session);
         foreach (int level in new[] { 2, 3, 5, 6 })
         {
             persisted = FindObjectOfType<ScenePersist>();
@@ -290,6 +294,53 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(SceneManager.GetActiveScene().name == "Level 6" && FindObjectOfType<PlayerMovement>().IsAlive &&
             session.GetCoins() == banked && session.Pressure.PendingCoins == 0,
             "Lava death reloads Level 6, preserves banked coins, and loses only carried reward.");
+    }
+
+    IEnumerator CheckCustomLevelCreator(GameSession session)
+    {
+        int campaignCoinsBefore = session.GetCoins();
+        CustomLevelCreatorController.OpenCreatorFromMenu();
+        yield return null;
+        yield return new WaitForSecondsRealtime(0.35f);
+        CustomLevelCreatorController creator = FindObjectOfType<CustomLevelCreatorController>();
+        Require(creator && creator.IsEditing && creator.Document.Validate().Count == 0,
+            "Level Creator opens in Edit Mode with a valid starter document.");
+        Require(creator.ApplyToolAtCell(6, 2, "ground") && creator.Document.GetTile(6, 2) == "ground",
+            "Creator paints a ground tile onto the grid.");
+        Require(creator.Undo() && creator.Document.GetTile(6, 2) == null,
+            "Creator Undo removes the painted tile.");
+        Require(creator.Redo() && creator.Document.GetTile(6, 2) == "ground",
+            "Creator Redo restores the painted tile.");
+        Require(creator.ApplyToolAtCell(11, 2, "coin_100") && creator.Document.GetObject(11, 2) == "coin_100",
+            "Creator places a coin object onto the grid.");
+        string draftPath = Path.Combine(outputDirectory, "creator-draft.json");
+        Require(creator.SaveDraft(draftPath) && File.Exists(draftPath),
+            "Creator saves a validated JSON draft to disk.");
+        yield return Capture("level-creator-edit", 1280, 720);
+        creator.StartPlaytest();
+        yield return null;
+        yield return new WaitForSecondsRealtime(0.25f);
+        Require(!creator.IsEditing && session.IsPlaytestMode && session.GetCoins() == 0,
+            "Creator Playtest enters isolated playtest mode with zero disposable coins.");
+        PlayerMovement playtestPlayer = GameObject.Find("CustomPlaytestPlayer")?.GetComponent<PlayerMovement>();
+        Require(playtestPlayer, "Creator Playtest spawns the playable custom-level character.");
+        yield return Capture("level-creator-playtest", 1280, 720);
+        session.AddCoins(300);
+        session.BankOre();
+        Require(session.GetCoins() == 300 && PlayerPrefs.GetInt(GameSession.CoinsKey) == campaignCoinsBefore,
+            "Playtest banking never alters the campaign PlayerPrefs coin balance.");
+        creator.EnterEditMode();
+        yield return null;
+        Require(creator.IsEditing && !session.IsPlaytestMode && session.GetCoins() == campaignCoinsBefore &&
+            creator.Document.GetTile(6, 2) == "ground" && creator.Document.GetObject(11, 2) == "coin_100",
+            "Returning to Edit Mode restores campaign state while keeping all level edits.");
+        Require(creator.LoadDraft(draftPath) && creator.Document.GetObject(11, 2) == "coin_100",
+            "Creator loads the saved JSON draft cleanly.");
+        creator.ExitCreatorToLevelSelector();
+        yield return null;
+        yield return new WaitForSecondsRealtime(0.25f);
+        Require(SceneManager.GetActiveScene().name == "Level selector" && !session.IsPlaytestMode,
+            "Exiting the Level Creator returns cleanly to the Level selector.");
     }
 
     IEnumerator CheckEnemyAwareness(GameSession session)

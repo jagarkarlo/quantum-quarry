@@ -358,12 +358,20 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(SceneManager.GetActiveScene().name == "Level selector" && !session.IsPlaytestMode,
             "Exiting the Level Creator returns cleanly to the Level selector.");
         Require(GameObject.Find("Button_BackToStart") != null && GameObject.Find("Button_NextPage") != null,
-            "Level selector creates Back to Menu and pagination controls.");
+            "Level selector creates Back to Menu and side-arrow pagination controls.");
+        RectTransform backRect = GameObject.Find("Button_BackToStart").GetComponent<RectTransform>();
+        RectTransform prevRect = GameObject.Find("Button_PrevPage").GetComponent<RectTransform>();
+        RectTransform nextRect = GameObject.Find("Button_NextPage").GetComponent<RectTransform>();
+        RectTransform creatorRect = GameObject.Find("Button_LevelCreator").GetComponent<RectTransform>();
+        Require(!RectsOverlapScreen(backRect, prevRect) && !RectsOverlapScreen(nextRect, creatorRect) &&
+            !RectsOverlapScreen(backRect, creatorRect),
+            "Level selector side-arrow pagination boxes and bottom buttons never overlap.");
         PlayerPrefs.SetInt(StartMenu.UnlockedLevelKey, 3);
         LevelSelector.SetPage(0);
         LevelSelector slot5 = Array.Find(FindObjectsOfType<LevelSelector>(), s => s.level == 5);
         Require(slot5 && !slot5.GetComponent<UnityEngine.UI.Button>().interactable,
             "Unpassed campaign levels (e.g. Level 5 when unlocked=3) are locked and non-interactable.");
+        yield return Capture("level-selector-locked-campaign", 800, 600);
         yield return Capture("level-selector-locked-campaign", 1280, 720);
         PlayerPrefs.SetInt(StartMenu.UnlockedLevelKey, 6);
         LevelSelector.SetPage(1);
@@ -664,6 +672,18 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         body.velocity = Vector2.zero;
         body.position = position;
         Physics2D.SyncTransforms();
+    }
+
+    static bool RectsOverlapScreen(RectTransform a, RectTransform b)
+    {
+        if (!a || !b) return false;
+        Vector3[] ca = new Vector3[4];
+        Vector3[] cb = new Vector3[4];
+        a.GetWorldCorners(ca);
+        b.GetWorldCorners(cb);
+        Rect ra = new Rect(ca[0].x, ca[0].y, ca[2].x - ca[0].x, ca[2].y - ca[0].y);
+        Rect rb = new Rect(cb[0].x, cb[0].y, cb[2].x - cb[0].x, cb[2].y - cb[0].y);
+        return ra.Overlaps(rb);
     }
 
     IEnumerator Until(Func<bool> condition, float seconds, string message)

@@ -9,12 +9,21 @@ public struct CustomLevelCell
     public int x;
     public int y;
     public string id;
+    public float exactX;
+    public float exactY;
+    public float spanX;
+    public float spanY;
 
-    public CustomLevelCell(int x, int y, string id)
+    public CustomLevelCell(int x, int y, string id, float exactX = float.NaN, float exactY = float.NaN,
+        float spanX = 0f, float spanY = 0f)
     {
         this.x = x;
         this.y = y;
         this.id = id ?? string.Empty;
+        this.exactX = float.IsNaN(exactX) ? x : exactX;
+        this.exactY = float.IsNaN(exactY) ? y : exactY;
+        this.spanX = spanX;
+        this.spanY = spanY;
     }
 }
 
@@ -47,8 +56,12 @@ public sealed class CustomLevelDocument
     public int height = 36;
     public int spawnX = 2;
     public int spawnY = 2;
+    public float exactSpawnX = 2f;
+    public float exactSpawnY = 2f;
     public int exitX = 20;
     public int exitY = 2;
+    public float exactExitX = 20f;
+    public float exactExitY = 2f;
     public List<CustomLevelCell> tiles = new List<CustomLevelCell>();
     public List<CustomLevelCell> objects = new List<CustomLevelCell>();
 
@@ -64,8 +77,12 @@ public sealed class CustomLevelDocument
             height = 24,
             spawnX = 2,
             spawnY = 2,
+            exactSpawnX = 2f,
+            exactSpawnY = 2f,
             exitX = 24,
-            exitY = 2
+            exitY = 2,
+            exactExitX = 24f,
+            exactExitY = 2f
         };
 
         for (int x = 0; x <= 26; x++) doc.SetTile(x, 1, "ground");
@@ -105,6 +122,37 @@ public sealed class CustomLevelDocument
 
     public static bool IsBackgroundTileId(string id) => id == "bg";
 
+    public static bool RequiresGroundSupport(string objectId)
+    {
+        return objectId == "enemy" || objectId == "red_enemy" || objectId == "crate_250" ||
+               objectId == "bank" || objectId == "vent" || objectId == "gate_t1" || objectId == "gate_t2";
+    }
+
+    public bool IsSolidSupportTile(int x, int y)
+    {
+        string t = GetTile(x, y);
+        return t == "ground" || t == "rock" || t == "bounce";
+    }
+
+    public bool TryResolveGroundedCell(int x, int y, string objectId, out int resolvedY, out float supportTopY)
+    {
+        resolvedY = y;
+        supportTopY = y - 0.5f;
+        if (!RequiresGroundSupport(objectId)) return true;
+
+        if (IsSolidSupportTile(x, y)) return false;
+        for (int scanY = y; scanY >= y - 10 && scanY >= MinCoord; scanY--)
+        {
+            if (IsSolidSupportTile(x, scanY - 1) && !IsSolidSupportTile(x, scanY))
+            {
+                resolvedY = scanY;
+                supportTopY = scanY - 0.5f;
+                return true;
+            }
+        }
+        return false;
+    }
+
     public string GetTile(int x, int y)
     {
         for (int i = 0; i < tiles.Count; i++)
@@ -138,10 +186,59 @@ public sealed class CustomLevelDocument
             RemoveBackgroundTileAt(x, y);
         }
         tiles.Add(new CustomLevelCell(x, y, id));
+        ReconcileGroundedObjectsInColumn(x);
         return true;
     }
 
-    public bool SetObject(int x, int y, string id)
+    public void AddCapturedObject(int x, int y, string id, float exactX, float exactY,
+        float spanX = 0f, float spanY = 0f)
+    {
+        if (!InBounds(x, y) || !IsAllowedObjectId(id) || objects.Count >= MaxObjects) return;
+        objects.Add(new CustomLevelCell(x, y, id, exactX, exactY, spanX, spanY));
+    }
+
+    public int ReconcileGroundedObjectsInColumn(int x)
+    {
+        int adjusted = 0;
+        for (int i = objects.Count - 1; i >= 0; i--)
+        {
+            CustomLevelCell obj = objects[i];
+            if (obj.x != x) continue;
+            if (IsSolidSupportTile(obj.x, obj.y))
+            {
+                if (RequiresGroundSupport(obj.id) &&
+                    TryResolveGroundedCell(obj.x, obj.y + 1, obj.id, out int upY, out float upTop))
+                {
+                    float ey = (obj.id == "gate_t1" || obj.id == "gate_t2") ? upTop + 1f : upTop + 0.5f;
+                    objects[i] = new CustomLevelCell(obj.x, upY, obj.id, obj.exactX, ey, obj.spanX, obj.spanY);
+                }
+                else
+                {
+                    objects.RemoveAt(i);
+                }
+                adjusted++;
+                continue;
+            }
+            if (!RequiresGroundSupport(obj.id)) continue;
+            if (!IsSolidSupportTile(obj.x, obj.y - 1))
+            {
+                if (TryResolveGroundedCell(obj.x, obj.y, obj.id, out int groundedY, out float supportTopY))
+                {
+                    float ey = (obj.id == "gate_t1" || obj.id == "gate_t2") ? supportTopY + 1f : supportTopY + 0.5f;
+                    objects[i] = new CustomLevelCell(obj.x, groundedY, obj.id, obj.exactX, ey, obj.spanX, obj.spanY);
+                }
+                else
+                {
+                    objects.RemoveAt(i);
+                }
+                adjusted++;
+            }
+        }
+        return adjusted;
+    }
+
+    public bool SetObject(int x, int y, string id, float exactX = float.NaN, float exactY = float.NaN,
+        float spanX = 0f, float spanY = 0f)
     {
         if (!InBounds(x, y)) return false;
         if (string.IsNullOrEmpty(id))
@@ -151,27 +248,36 @@ public sealed class CustomLevelDocument
         if (!IsAllowedObjectId(id)) return false;
         if ((x == spawnX && y == spawnY) || (x == exitX && y == exitY)) return false;
         if (GetObject(x, y) == null && objects.Count >= MaxObjects) return false;
-        Upsert(objects, x, y, id);
+        float ex = float.IsNaN(exactX) ? x : exactX;
+        float ey = float.IsNaN(exactY) ? y : exactY;
+        float sx = spanX;
+        float sy = spanY;
+        if (id == "platform" && Math.Abs(sx) < 0.01f && Math.Abs(sy) < 0.01f) sx = 6f;
+        Upsert(objects, new CustomLevelCell(x, y, id, ex, ey, sx, sy));
         return true;
     }
 
-    public bool SetSpawn(int x, int y)
+    public bool SetSpawn(int x, int y, float exactX = float.NaN, float exactY = float.NaN)
     {
         if (!InBounds(x, y) || (x == exitX && y == exitY)) return false;
         RemoveForegroundTilesAt(x, y);
         RemoveAt(objects, x, y);
         spawnX = x;
         spawnY = y;
+        exactSpawnX = float.IsNaN(exactX) ? x : exactX;
+        exactSpawnY = float.IsNaN(exactY) ? y : exactY;
         return true;
     }
 
-    public bool SetExit(int x, int y)
+    public bool SetExit(int x, int y, float exactX = float.NaN, float exactY = float.NaN)
     {
         if (!InBounds(x, y) || (x == spawnX && y == spawnY)) return false;
         RemoveForegroundTilesAt(x, y);
         RemoveAt(objects, x, y);
         exitX = x;
         exitY = y;
+        exactExitX = float.IsNaN(exactX) ? x : exactX;
+        exactExitY = float.IsNaN(exactY) ? y : exactY;
         return true;
     }
 
@@ -180,6 +286,7 @@ public sealed class CustomLevelDocument
         if (!InBounds(x, y)) return false;
         bool removedTile = RemoveAt(tiles, x, y);
         bool removedObj = RemoveAt(objects, x, y);
+        if (removedTile) ReconcileGroundedObjectsInColumn(x);
         return removedTile || removedObj;
     }
 
@@ -240,10 +347,12 @@ public sealed class CustomLevelDocument
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"sourceCampaignLevel\":{0},", sourceCampaignLevel);
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"width\":{0},\"height\":{1},", width, height);
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"spawnX\":{0},\"spawnY\":{1},", spawnX, spawnY);
+        sb.AppendFormat(CultureInfo.InvariantCulture, "\"exactSpawnX\":{0:R},\"exactSpawnY\":{1:R},", exactSpawnX, exactSpawnY);
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"exitX\":{0},\"exitY\":{1},", exitX, exitY);
-        AppendCells(sb, "tiles", tiles);
+        sb.AppendFormat(CultureInfo.InvariantCulture, "\"exactExitX\":{0:R},\"exactExitY\":{1:R},", exactExitX, exactExitY);
+        AppendCells(sb, "tiles", tiles, false);
         sb.Append(',');
-        AppendCells(sb, "objects", objects);
+        AppendCells(sb, "objects", objects, true);
         sb.Append('}');
         return sb.ToString();
     }
@@ -255,6 +364,10 @@ public sealed class CustomLevelDocument
         if (json.Length > 262144)
             throw new ArgumentException("Level JSON exceeds the 256 KB safety limit.");
 
+        int sx = ReadInt(json, "spawnX", 2);
+        int sy = ReadInt(json, "spawnY", 2);
+        int ex = ReadInt(json, "exitX", 20);
+        int ey = ReadInt(json, "exitY", 2);
         return new CustomLevelDocument
         {
             formatVersion = ReadInt(json, "formatVersion", CurrentFormatVersion),
@@ -263,10 +376,14 @@ public sealed class CustomLevelDocument
             sourceCampaignLevel = ReadInt(json, "sourceCampaignLevel", 4),
             width = ReadInt(json, "width", 64),
             height = ReadInt(json, "height", 36),
-            spawnX = ReadInt(json, "spawnX", 2),
-            spawnY = ReadInt(json, "spawnY", 2),
-            exitX = ReadInt(json, "exitX", 20),
-            exitY = ReadInt(json, "exitY", 2),
+            spawnX = sx,
+            spawnY = sy,
+            exactSpawnX = ReadFloat(json, "exactSpawnX", sx),
+            exactSpawnY = ReadFloat(json, "exactSpawnY", sy),
+            exitX = ex,
+            exitY = ey,
+            exactExitX = ReadFloat(json, "exactExitX", ex),
+            exactExitY = ReadFloat(json, "exactExitY", ey),
             tiles = ReadCells(json, "tiles"),
             objects = ReadCells(json, "objects")
         };
@@ -288,17 +405,17 @@ public sealed class CustomLevelDocument
                 tiles.RemoveAt(i);
     }
 
-    static void Upsert(List<CustomLevelCell> list, int x, int y, string id)
+    static void Upsert(List<CustomLevelCell> list, CustomLevelCell cell)
     {
         for (int i = 0; i < list.Count; i++)
         {
-            if (list[i].x == x && list[i].y == y)
+            if (list[i].x == cell.x && list[i].y == cell.y)
             {
-                list[i] = new CustomLevelCell(x, y, id);
+                list[i] = cell;
                 return;
             }
         }
-        list.Add(new CustomLevelCell(x, y, id));
+        list.Add(cell);
     }
 
     static bool RemoveAt(List<CustomLevelCell> list, int x, int y)
@@ -315,7 +432,7 @@ public sealed class CustomLevelDocument
         return removed;
     }
 
-    static void AppendCells(StringBuilder sb, string field, List<CustomLevelCell> list)
+    static void AppendCells(StringBuilder sb, string field, List<CustomLevelCell> list, bool includeExactAndSpan)
     {
         sb.Append('"').Append(field).Append("\":[");
         if (list != null)
@@ -323,9 +440,19 @@ public sealed class CustomLevelDocument
             for (int i = 0; i < list.Count; i++)
             {
                 if (i > 0) sb.Append(',');
-                sb.AppendFormat(CultureInfo.InvariantCulture,
-                    "{{\"x\":{0},\"y\":{1},\"id\":\"{2}\"}}",
-                    list[i].x, list[i].y, Escape(list[i].id));
+                CustomLevelCell c = list[i];
+                if (includeExactAndSpan)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "{{\"x\":{0},\"y\":{1},\"id\":\"{2}\",\"ex\":{3:R},\"ey\":{4:R},\"sx\":{5:R},\"sy\":{6:R}}}",
+                        c.x, c.y, Escape(c.id), c.exactX, c.exactY, c.spanX, c.spanY);
+                }
+                else
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "{{\"x\":{0},\"y\":{1},\"id\":\"{2}\"}}",
+                        c.x, c.y, Escape(c.id));
+                }
             }
         }
         sb.Append(']');
@@ -348,6 +475,20 @@ public sealed class CustomLevelDocument
         while (idx < json.Length && char.IsDigit(json[idx])) idx++;
         return int.TryParse(json.Substring(start, idx - start), NumberStyles.Integer,
             CultureInfo.InvariantCulture, out int parsed) ? parsed : fallback;
+    }
+
+    static float ReadFloat(string json, string key, float fallback)
+    {
+        string token = "\"" + key + "\":";
+        int idx = json.IndexOf(token, StringComparison.Ordinal);
+        if (idx < 0) return fallback;
+        idx += token.Length;
+        while (idx < json.Length && char.IsWhiteSpace(json[idx])) idx++;
+        int start = idx;
+        if (idx < json.Length && (json[idx] == '-' || json[idx] == '+')) idx++;
+        while (idx < json.Length && (char.IsDigit(json[idx]) || json[idx] == '.' || json[idx] == 'e' || json[idx] == 'E' || json[idx] == '-' || json[idx] == '+')) idx++;
+        return float.TryParse(json.Substring(start, idx - start), NumberStyles.Float,
+            CultureInfo.InvariantCulture, out float parsed) ? parsed : fallback;
     }
 
     static string ReadString(string json, string key, string fallback)
@@ -384,10 +525,16 @@ public sealed class CustomLevelDocument
             int close = arrayBody.IndexOf('}', open);
             if (close < 0) break;
             string item = arrayBody.Substring(open, close - open + 1);
+            int cx = ReadInt(item, "x", 0);
+            int cy = ReadInt(item, "y", 0);
             result.Add(new CustomLevelCell(
-                ReadInt(item, "x", 0),
-                ReadInt(item, "y", 0),
-                ReadString(item, "id", string.Empty)));
+                cx,
+                cy,
+                ReadString(item, "id", string.Empty),
+                ReadFloat(item, "ex", cx),
+                ReadFloat(item, "ey", cy),
+                ReadFloat(item, "sx", 0f),
+                ReadFloat(item, "sy", 0f)));
             pos = close + 1;
         }
         return result;

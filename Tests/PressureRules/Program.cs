@@ -187,6 +187,14 @@ static class Program
         Equal(starter.objects.Count, roundTrip.objects.Count, "round-trip preserves object count");
         Equal("lava", roundTrip.GetTile(-8, -3), "round-trip preserves negative-coord lava");
         Equal("platform", roundTrip.GetObject(9, 2), "round-trip preserves moving platform");
+        int groundedY;
+        float groundedTop;
+        Equal(true, starter.TryResolveGroundedCell(10, 8, "enemy", out groundedY, out groundedTop), "enemy snaps down onto platform at y=5");
+        Equal(6, groundedY, "enemy resolved cell y is 6 above platform y=5");
+        Equal(false, starter.TryResolveGroundedCell(25, 14, "enemy", out groundedY, out groundedTop), "enemy rejected in mid-air with no floor within 10 cells");
+        Equal(false, starter.TryResolveGroundedCell(10, 5, "enemy", out groundedY, out groundedTop), "enemy rejected inside solid tile");
+        starter.ClearCell(10, 5);
+        Equal("red_enemy", starter.GetObject(10, 2), "removing support tile under red_enemy at (10,6) drops it onto lower floor at (10,2)");
         var invalidDoc = new CustomLevelDocument { formatVersion = 99, width = 999, spawnX = 5, spawnY = 5, exitX = 5, exitY = 5 };
         Equal(true, invalidDoc.Validate().Count >= 3, "invalid document reports format, bounds, and overlap errors");
         Console.WriteLine($"Quarry Pressure/liquid rules and custom artwork: {assertions} assertions passed.");

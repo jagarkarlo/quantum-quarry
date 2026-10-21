@@ -587,6 +587,7 @@ public class GameSession : MonoBehaviour
 
     public static void ClearPersistentRunState()
     {
+        PlayerPrefs.DeleteKey("ActiveCustomStageNumber");
         PlayerPrefs.DeleteKey(CarriedOreKey);
         PlayerPrefs.DeleteKey(PendingCoinsKey);
         PlayerPrefs.DeleteKey(PressureSeedKey);

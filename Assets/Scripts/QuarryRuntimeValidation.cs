@@ -298,32 +298,44 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
 
     IEnumerator CheckCustomLevelCreator(GameSession session)
     {
+        foreach (string stale in Directory.GetFiles(CustomLevelSceneAdapter.GetCustomLevelsFolder(), "*.json"))
+            File.Delete(stale);
         int campaignCoinsBefore = session.GetCoins();
         CustomLevelCreatorController.OpenCreatorFromMenu();
         yield return null;
         yield return new WaitForSecondsRealtime(0.35f);
         CustomLevelCreatorController creator = FindObjectOfType<CustomLevelCreatorController>();
         Require(creator && creator.IsEditing && creator.Document.Validate().Count == 0,
-            "Level Creator opens in Edit Mode with a valid starter document.");
-        Require(creator.ApplyToolAtCell(6, 2, "ground") && creator.Document.GetTile(6, 2) == "ground",
-            "Creator paints a ground tile onto the grid.");
-        Require(creator.Undo() && creator.Document.GetTile(6, 2) == null,
+            "Level Creator opens in Edit Mode with a valid captured campaign document.");
+        Require(creator.Document.tiles.Count > 100 && creator.Document.objects.Count >= 15,
+            "Creator captures the real Level 4 Tilemaps and all authored objects.");
+        Require(creator.ApplyToolAtCell(-5, 3, "bounce") && creator.Document.GetTile(-5, 3) == "bounce",
+            "Creator paints a real bounce mushroom tile onto the Tilemap.");
+        Require(creator.Undo() && creator.Document.GetTile(-5, 3) != "bounce",
             "Creator Undo removes the painted tile.");
-        Require(creator.Redo() && creator.Document.GetTile(6, 2) == "ground",
+        Require(creator.Redo() && creator.Document.GetTile(-5, 3) == "bounce",
             "Creator Redo restores the painted tile.");
-        Require(creator.ApplyToolAtCell(11, 2, "coin_100") && creator.Document.GetObject(11, 2) == "coin_100",
-            "Creator places a coin object onto the grid.");
+        Require(creator.ApplyToolAtCell(-4, 2, "red_enemy") && creator.Document.GetObject(-4, 2) == "red_enemy",
+            "Creator places a real Red Enemy prefab onto the level.");
+        Require(creator.ApplyToolAtCell(-2, 2, "coin_200") && creator.Document.GetObject(-2, 2) == "coin_200",
+            "Creator places a 200-ore coin prefab onto the level.");
         string draftPath = Path.Combine(outputDirectory, "creator-draft.json");
         Require(creator.SaveDraft(draftPath) && File.Exists(draftPath),
             "Creator saves a validated JSON draft to disk.");
+        Require(creator.SaveCurrentLevelCampaignOverride() && CustomLevelSceneAdapter.HasCampaignOverride(4),
+            "Creator saves a live Campaign Override for Level 4.");
+        int savedStageNum = creator.SaveAsPlayableCustomStage(7);
+        Require(savedStageNum == 7 && CustomLevelSceneAdapter.GetSavedCustomStageNumbers().Contains(7),
+            "Creator saves a playable Custom Stage 7 for the Level Selector.");
         yield return Capture("level-creator-edit", 1280, 720);
         creator.StartPlaytest();
         yield return null;
         yield return new WaitForSecondsRealtime(0.25f);
         Require(!creator.IsEditing && session.IsPlaytestMode && session.GetCoins() == 0,
             "Creator Playtest enters isolated playtest mode with zero disposable coins.");
-        PlayerMovement playtestPlayer = GameObject.Find("CustomPlaytestPlayer")?.GetComponent<PlayerMovement>();
-        Require(playtestPlayer, "Creator Playtest spawns the playable custom-level character.");
+        PlayerMovement playtestPlayer = FindObjectOfType<PlayerMovement>();
+        Require(playtestPlayer && playtestPlayer.gameObject.activeInHierarchy,
+            "Creator Playtest activates the playable character at the spawn point.");
         yield return Capture("level-creator-playtest", 1280, 720);
         session.AddCoins(300);
         session.BankOre();
@@ -332,15 +344,20 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         creator.EnterEditMode();
         yield return null;
         Require(creator.IsEditing && !session.IsPlaytestMode && session.GetCoins() == campaignCoinsBefore &&
-            creator.Document.GetTile(6, 2) == "ground" && creator.Document.GetObject(11, 2) == "coin_100",
+            creator.Document.GetTile(-5, 3) == "bounce" && creator.Document.GetObject(-4, 2) == "red_enemy",
             "Returning to Edit Mode restores campaign state while keeping all level edits.");
-        Require(creator.LoadDraft(draftPath) && creator.Document.GetObject(11, 2) == "coin_100",
+        Require(creator.LoadDraft(draftPath) && creator.Document.GetObject(-2, 2) == "coin_200",
             "Creator loads the saved JSON draft cleanly.");
         creator.ExitCreatorToLevelSelector();
         yield return null;
         yield return new WaitForSecondsRealtime(0.25f);
         Require(SceneManager.GetActiveScene().name == "Level selector" && !session.IsPlaytestMode,
             "Exiting the Level Creator returns cleanly to the Level selector.");
+        GameObject stage7Btn = GameObject.Find("Button_CustomStage_7");
+        Require(stage7Btn != null, "Level selector dynamically creates a playable STAGE 7 button.");
+        yield return Capture("level-selector-with-custom-stage", 1280, 720);
+        CustomLevelSceneAdapter.DeleteCampaignOverride(4);
+        File.Delete(CustomLevelSceneAdapter.GetCustomStageFilePath(7));
     }
 
     IEnumerator CheckEnemyAwareness(GameSession session)

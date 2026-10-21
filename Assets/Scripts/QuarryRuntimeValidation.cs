@@ -60,6 +60,8 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             Finish();
             yield break;
         }
+        Require(GameObject.Find("Button_FrontLevelCreator") != null,
+            "Start menu displays the front-page LEVEL CREATOR button.");
         yield return Capture("start-menu", 1280, 720);
         yield return SceneManager.LoadSceneAsync("Level 1");
         yield return new WaitForSecondsRealtime(0.5f);
@@ -301,12 +303,12 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         foreach (string stale in Directory.GetFiles(CustomLevelSceneAdapter.GetCustomLevelsFolder(), "*.json"))
             File.Delete(stale);
         int campaignCoinsBefore = session.GetCoins();
-        CustomLevelCreatorController.OpenCreatorFromMenu();
+        CustomLevelCreatorController.OpenCreatorForCampaignLevel(4);
         yield return null;
         yield return new WaitForSecondsRealtime(0.35f);
         CustomLevelCreatorController creator = FindObjectOfType<CustomLevelCreatorController>();
-        Require(creator && creator.IsEditing && creator.Document.Validate().Count == 0,
-            "Level Creator opens in Edit Mode with a valid captured campaign document.");
+        Require(creator && creator.IsEditing && creator.CurrentCampaignLevel == 4 && creator.Document.Validate().Count == 0,
+            "Level Creator opens in Edit Mode with a valid captured Level 4 document.");
         Require(creator.Document.tiles.Count > 100 && creator.Document.objects.Count >= 15,
             "Creator captures the real Level 4 Tilemaps and all authored objects.");
         Require(creator.ApplyToolAtCell(-5, 3, "bounce") && creator.Document.GetTile(-5, 3) == "bounce",
@@ -315,8 +317,10 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "Creator Undo removes the painted tile.");
         Require(creator.Redo() && creator.Document.GetTile(-5, 3) == "bounce",
             "Creator Redo restores the painted tile.");
-        Require(creator.ApplyToolAtCell(-4, 2, "red_enemy") && creator.Document.GetObject(-4, 2) == "red_enemy",
-            "Creator places a real Red Enemy prefab onto the level.");
+        Require(!creator.ApplyToolAtCell(0, 25, "enemy"),
+            "Creator rejects placing a grounded enemy high in mid-air with no floor support.");
+        Require(creator.ApplyToolAtCell(-5, 5, "red_enemy") && creator.Document.GetObject(-5, 4) == "red_enemy",
+            "Creator snaps a placed Red Enemy down onto the solid tile at (-5,3).");
         Require(creator.ApplyToolAtCell(-2, 2, "coin_200") && creator.Document.GetObject(-2, 2) == "coin_200",
             "Creator places a 200-ore coin prefab onto the level.");
         string draftPath = Path.Combine(outputDirectory, "creator-draft.json");
@@ -344,7 +348,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         creator.EnterEditMode();
         yield return null;
         Require(creator.IsEditing && !session.IsPlaytestMode && session.GetCoins() == campaignCoinsBefore &&
-            creator.Document.GetTile(-5, 3) == "bounce" && creator.Document.GetObject(-4, 2) == "red_enemy",
+            creator.Document.GetTile(-5, 3) == "bounce" && creator.Document.GetObject(-5, 4) == "red_enemy",
             "Returning to Edit Mode restores campaign state while keeping all level edits.");
         Require(creator.LoadDraft(draftPath) && creator.Document.GetObject(-2, 2) == "coin_200",
             "Creator loads the saved JSON draft cleanly.");
@@ -353,11 +357,23 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.25f);
         Require(SceneManager.GetActiveScene().name == "Level selector" && !session.IsPlaytestMode,
             "Exiting the Level Creator returns cleanly to the Level selector.");
-        GameObject stage7Btn = GameObject.Find("Button_CustomStage_7");
-        Require(stage7Btn != null, "Level selector dynamically creates a playable STAGE 7 button.");
+        Require(GameObject.Find("Button_BackToStart") != null && GameObject.Find("Button_NextPage") != null,
+            "Level selector creates Back to Menu and pagination controls.");
+        PlayerPrefs.SetInt(StartMenu.UnlockedLevelKey, 3);
+        LevelSelector.SetPage(0);
+        LevelSelector slot5 = Array.Find(FindObjectsOfType<LevelSelector>(), s => s.level == 5);
+        Require(slot5 && !slot5.GetComponent<UnityEngine.UI.Button>().interactable,
+            "Unpassed campaign levels (e.g. Level 5 when unlocked=3) are locked and non-interactable.");
+        yield return Capture("level-selector-locked-campaign", 1280, 720);
+        PlayerPrefs.SetInt(StartMenu.UnlockedLevelKey, 6);
+        LevelSelector.SetPage(1);
+        Require(LevelSelector.CurrentPage == 1 && Array.Find(FindObjectsOfType<LevelSelector>(), s => s.level == 7) != null,
+            "Switching to Page 2 displays playable Custom Stage S7 in the level grid.");
         yield return Capture("level-selector-with-custom-stage", 1280, 720);
+        LevelSelector.SetPage(0);
         CustomLevelSceneAdapter.DeleteCampaignOverride(4);
         File.Delete(CustomLevelSceneAdapter.GetCustomStageFilePath(7));
+        LevelSelector.SetPage(0);
     }
 
     IEnumerator CheckEnemyAwareness(GameSession session)

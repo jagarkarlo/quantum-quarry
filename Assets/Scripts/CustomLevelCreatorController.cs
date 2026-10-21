@@ -34,12 +34,14 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
     public static void OpenCreatorFromMenu()
     {
-        OpenCreatorForCampaignLevel(4);
+        int unlocked = Mathf.Clamp(PlayerPrefs.GetInt(StartMenu.UnlockedLevelKey, 1), 1, 6);
+        OpenCreatorForCampaignLevel(unlocked);
     }
 
     public static void OpenCreatorForCampaignLevel(int campaignLevelNumber)
     {
-        requestedCampaignLevel = Mathf.Clamp(campaignLevelNumber, 1, 6);
+        int unlocked = Mathf.Clamp(PlayerPrefs.GetInt(StartMenu.UnlockedLevelKey, 1), 1, 6);
+        requestedCampaignLevel = Mathf.Clamp(campaignLevelNumber, 1, unlocked);
         launchRequested = true;
         PlayerPrefs.SetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, 0);
         CustomLevelSceneAdapter.SetSuppressAutoOverride(true);
@@ -128,7 +130,25 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         else if (chosen == "spawn") changed = document.SetSpawn(x, y);
         else if (chosen == "exit") changed = document.SetExit(x, y);
         else if (CustomLevelDocument.IsAllowedTileId(chosen)) changed = document.SetTile(x, y, chosen);
-        else if (CustomLevelDocument.IsAllowedObjectId(chosen)) changed = document.SetObject(x, y, chosen);
+        else if (CustomLevelDocument.IsAllowedObjectId(chosen))
+        {
+            if (CustomLevelDocument.RequiresGroundSupport(chosen))
+            {
+                if (!document.TryResolveGroundedCell(x, y, chosen, out int groundedY, out float supportTopY))
+                {
+                    statusMessage = $"Cannot place {FormatToolLabel(chosen)}: needs solid ground support below ({x},{y})!";
+                    RefreshToolbarText();
+                    return false;
+                }
+                y = groundedY;
+                float exactY = (chosen == "gate_t1" || chosen == "gate_t2") ? supportTopY + 1f : supportTopY + 0.5f;
+                changed = document.SetObject(x, y, chosen, x, exactY);
+            }
+            else
+            {
+                changed = document.SetObject(x, y, chosen, x, y, chosen == "platform" ? 6f : 0f, 0f);
+            }
+        }
 
         if (!changed) return false;
         undoStack.Push(snapshot);
@@ -384,11 +404,24 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         toolText.color = new Color(0.65f, 0.92f, 1f);
 
         float lx = 700f;
+        int unlocked = Mathf.Clamp(PlayerPrefs.GetInt(StartMenu.UnlockedLevelKey, 1), 1, 6);
         for (int lvl = 1; lvl <= 6; lvl++)
         {
             int capturedLvl = lvl;
-            CreateToolbarButton(topBar.transform, $"Btn_LoadL{lvl}", $"REMIX L{lvl}", new Vector2(lx, -6f), new Vector2(74f, 24f),
-                new Color(0.18f, 0.28f, 0.42f), () => LoadCampaignLevelForRemix(capturedLvl));
+            bool isUnlocked = lvl <= unlocked;
+            string btnLabel = isUnlocked ? $"REMIX L{lvl}" : $"L{lvl} LOCK";
+            Color btnColor = isUnlocked ? new Color(0.18f, 0.28f, 0.42f) : new Color(0.16f, 0.18f, 0.22f, 0.6f);
+            CreateToolbarButton(topBar.transform, $"Btn_LoadL{lvl}", btnLabel, new Vector2(lx, -6f), new Vector2(74f, 24f),
+                btnColor, () =>
+                {
+                    if (!isUnlocked)
+                    {
+                        statusMessage = $"Level {capturedLvl} is locked! Beat earlier campaign levels first.";
+                        RefreshToolbarText();
+                        return;
+                    }
+                    LoadCampaignLevelForRemix(capturedLvl);
+                });
             lx += 78f;
         }
         CreateToolbarButton(topBar.transform, "Btn_Blank", "NEW BLANK", new Vector2(lx, -6f), new Vector2(88f, 24f),

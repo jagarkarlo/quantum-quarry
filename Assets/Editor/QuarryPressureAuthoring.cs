@@ -25,8 +25,48 @@ public static class QuarryPressureAuthoring
             CreateSprite("BreakableOreCrate", QuarryPressureArt.Crate), new Vector2(0.95f, 0.95f), false, "Ground");
         CreatePrefab<PressureGate>(GatePath, "PressureGate", "LOCK T1",
             CreateSprite("PressureGate", QuarryPressureArt.Gate), new Vector2(0.8f, 1.8f), false, "Ground", new Vector3(1f, 2f, 1f));
+        EnsureAssetPalette();
         AssetDatabase.SaveAssets();
         Debug.Log("Pressure prefabs ready. Place them in a level using Tools > QuantumQuarry > Pressure.");
+    }
+
+    [MenuItem("Tools/QuantumQuarry/Creator/Create Or Update Asset Palette")]
+    public static void EnsureAssetPalette()
+    {
+        if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        const string palettePath = "Assets/Resources/QuarryAssetPalette.asset";
+        QuarryAssetPalette palette = AssetDatabase.LoadAssetAtPath<QuarryAssetPalette>(palettePath);
+        if (!palette)
+        {
+            palette = ScriptableObject.CreateInstance<QuarryAssetPalette>();
+            AssetDatabase.CreateAsset(palette, palettePath);
+        }
+        palette.ruleGroundTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Sprites/Rule plocica.asset");
+        palette.rockSlopeTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/SPA_Rock_Grass_Water_11.asset");
+        palette.ladderTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/Ljestve.asset");
+        palette.bounceMushroomTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/Gljiva.asset");
+        palette.spikesTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/Spikes.asset");
+        palette.waterSurfaceTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/SPA_Rock_Grass_Water_29.asset");
+        palette.waterBodyTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/SPA_Rock_Grass_Water_28.asset");
+        palette.lavaSurfaceTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/LavaSurface.asset");
+        palette.lavaBodyTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/LavaBody.asset");
+        palette.backgroundTile = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>("Assets/Tiles/Pozadina_5.asset");
+
+        palette.playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+        palette.exitPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Exit.prefab");
+        palette.enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy.prefab");
+        palette.redEnemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Red Enemy.prefab");
+        palette.movingPlatformPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Platform.prefab");
+        palette.coinPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Coin.prefab");
+        palette.breakableCratePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CratePath);
+        palette.bankCheckpointPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CheckpointPath);
+        palette.pulseVentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(VentPath);
+        palette.pressureGatePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(GatePath);
+        palette.stabilizationPickupPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/StabilizationPickup.prefab");
+        EditorUtility.SetDirty(palette);
+        AssetDatabase.SaveAssets();
+        Debug.Log("QuarryAssetPalette updated with real project tiles and prefabs.");
     }
 
     static Sprite CreateSprite(string assetName, string[] pixels)

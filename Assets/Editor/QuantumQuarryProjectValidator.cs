@@ -51,6 +51,7 @@ public static class QuantumQuarryProjectValidator
         ValidatePressure(errors);
         ValidateBuildScenes(errors);
         ValidatePrefabs(errors);
+        ValidateAssetPalette(errors);
         ValidateStoreScene(errors);
         ValidateCoinTier(Level4ScenePath, 150, errors);
         ValidateCoinTier(Level5ScenePath, 200, errors);
@@ -243,6 +244,24 @@ public static class QuantumQuarryProjectValidator
         ValidatePrefabComponent<StabilizationPickup>(StabilizationPickupPrefabPath, errors);
         ValidatePrefabComponent<FollowingPoint>("Assets/Prefabs/Platform.prefab", errors);
         ValidatePrefabComponent<StickyPlatform>("Assets/Prefabs/Platform.prefab", errors);
+    }
+
+    static void ValidateAssetPalette(List<string> errors)
+    {
+        var palette = AssetDatabase.LoadAssetAtPath<QuarryAssetPalette>("Assets/Resources/QuarryAssetPalette.asset");
+        if (!palette)
+        {
+            errors.Add("Missing Assets/Resources/QuarryAssetPalette.asset (run Tools > QuantumQuarry > Creator > Create Or Update Asset Palette).");
+            return;
+        }
+        if (!palette.ruleGroundTile || !palette.ladderTile || !palette.bounceMushroomTile ||
+            !palette.spikesTile || !palette.waterSurfaceTile || !palette.lavaSurfaceTile || !palette.backgroundTile)
+            errors.Add("QuarryAssetPalette is missing one or more required tile references.");
+        if (!palette.playerPrefab || !palette.exitPrefab || !palette.enemyPrefab || !palette.redEnemyPrefab ||
+            !palette.movingPlatformPrefab || !palette.coinPrefab || !palette.breakableCratePrefab ||
+            !palette.bankCheckpointPrefab || !palette.pulseVentPrefab || !palette.pressureGatePrefab ||
+            !palette.stabilizationPickupPrefab)
+            errors.Add("QuarryAssetPalette is missing one or more required prefab references.");
     }
 
     static void ValidatePrefabComponent<T>(string path, List<string> errors) where T : Component

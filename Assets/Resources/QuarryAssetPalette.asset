@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e996a4738fbdca4fbc8c43a57fa27f0, type: 3}
+  m_Name: QuarryAssetPalette
+  m_EditorClassIdentifier: 
+  ruleGroundTile: {fileID: 11400000, guid: 6a8293391dd56d546858191797d3cb43, type: 2}
+  rockSlopeTile: {fileID: 11400000, guid: 7fec2dd320e3d0145bb1b988b3e4f2ee, type: 2}
+  ladderTile: {fileID: 11400000, guid: 26bdb60da5e23c24fa26c4a19ca48e3b, type: 2}
+  bounceMushroomTile: {fileID: 11400000, guid: 56081e08e7a111642aa469f455753c44, type: 2}
+  spikesTile: {fileID: 11400000, guid: 5c7fdb128de442c4f9d6559b84c0f466, type: 2}
+  waterSurfaceTile: {fileID: 11400000, guid: 52570668fbe2e9a49bc94fb0e0b71c85, type: 2}
+  waterBodyTile: {fileID: 11400000, guid: bc6f412b44dcbaa4e84e13bc96d57e04, type: 2}
+  lavaSurfaceTile: {fileID: 11400000, guid: b1542c4d0f0b30a42b774c41f43fadf0, type: 2}
+  lavaBodyTile: {fileID: 11400000, guid: e18b1d17e302594438a13b6ff34a3d9c, type: 2}
+  backgroundTile: {fileID: 11400000, guid: afcdd7b2839cddb47a28bb069e49a70f, type: 2}
+  playerPrefab: {fileID: 4278753895149010735, guid: be711a29cdc007b4d9e8cdc82e8c0f3c, type: 3}
+  exitPrefab: {fileID: 7115471137692525744, guid: fde3a267a0de2554c95ed91a09812ba4, type: 3}
+  enemyPrefab: {fileID: 5848489075299465785, guid: 4c0f02f80327d72458eddd3b36a97fd0, type: 3}
+  redEnemyPrefab: {fileID: 2109895192849626947, guid: 260b026c228d706498cc5d12408af4fc, type: 3}
+  movingPlatformPrefab: {fileID: 8975095731647467939, guid: cb8442065fa992c46a6f17664ff1e1fc, type: 3}
+  coinPrefab: {fileID: 8308028460401889722, guid: 4c3ce8d78596e2d4798965cd1623ce5e, type: 3}
+  breakableCratePrefab: {fileID: 2161975785809826109, guid: 4915e86c8ce08134da7b1817e7849d7d, type: 3}
+  bankCheckpointPrefab: {fileID: 2410176572471084625, guid: 49602955ed2d49c469c20f6e432c1c42, type: 3}
+  pulseVentPrefab: {fileID: 5283109375189660047, guid: 59ebd613bb71daa42857e2a70943d882, type: 3}
+  pressureGatePrefab: {fileID: 3317563931924463426, guid: 3ee8c12ece2cd784e9678034b163131d, type: 3}
+  stabilizationPickupPrefab: {fileID: 7792364549821346701, guid: 5e847b0b1bf143d7951cb5e5e2ad9d77, type: 3}

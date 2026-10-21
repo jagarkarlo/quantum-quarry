@@ -41,6 +41,47 @@ public class LevelSelector : MonoBehaviour
         int unlocked = PlayerPrefs.GetInt(UnlockedLevelKey, 1);
         if (btn) btn.interactable = (level <= unlocked);
         RefreshMedalBadge();
+        EnsureCreatorButton();
+    }
+
+    void EnsureCreatorButton()
+    {
+        if (level != 1) return;
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (!canvas || canvas.transform.Find("Button_LevelCreator")) return;
+
+        var creatorObj = new GameObject("Button_LevelCreator", typeof(RectTransform), typeof(Image), typeof(Button));
+        creatorObj.transform.SetParent(canvas.transform, false);
+        RectTransform rect = creatorObj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1f, 0f);
+        rect.anchorMax = new Vector2(1f, 0f);
+        rect.pivot = new Vector2(1f, 0f);
+        rect.anchoredPosition = new Vector2(-24f, 24f);
+        rect.sizeDelta = new Vector2(210f, 48f);
+
+        Image img = creatorObj.GetComponent<Image>();
+        img.color = new Color(0.12f, 0.36f, 0.48f, 0.94f);
+        Button creatorBtn = creatorObj.GetComponent<Button>();
+        creatorBtn.targetGraphic = img;
+        creatorBtn.onClick.AddListener(CustomLevelCreatorController.OpenCreatorFromMenu);
+
+        var labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+        labelObj.transform.SetParent(creatorObj.transform, false);
+        RectTransform labelRect = labelObj.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.sizeDelta = Vector2.zero;
+
+        TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI parentLabel = GetComponentInChildren<TextMeshProUGUI>();
+        if (parentLabel && parentLabel.font) label.font = parentLabel.font;
+        label.text = "LEVEL CREATOR";
+        label.alignment = TextAlignmentOptions.Center;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 12f;
+        label.fontSizeMax = 20f;
+        label.color = new Color(0.92f, 0.98f, 1f);
+        label.raycastTarget = false;
     }
 
     public void RefreshMedalBadge()

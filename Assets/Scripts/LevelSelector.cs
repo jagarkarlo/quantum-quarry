@@ -141,29 +141,29 @@ public class LevelSelector : MonoBehaviour
         if (!canvas.transform.Find("Button_BackToStart"))
         {
             CreateNavButton(canvas.transform, "Button_BackToStart", "BACK TO MENU",
-                new Vector2(0f, 0f), new Vector2(24f, 24f), new Vector2(210f, 48f),
+                new Vector2(0f, 0f), new Vector2(24f, 20f), new Vector2(180f, 42f),
                 new Color(0.46f, 0.18f, 0.18f, 0.95f), () => SceneManager.LoadScene("Start"));
         }
 
         if (!canvas.transform.Find("Button_LevelCreator"))
         {
             CreateNavButton(canvas.transform, "Button_LevelCreator", "LEVEL CREATOR",
-                new Vector2(1f, 0f), new Vector2(-24f, 24f), new Vector2(210f, 48f),
+                new Vector2(1f, 0f), new Vector2(-24f, 20f), new Vector2(180f, 42f),
                 new Color(0.12f, 0.36f, 0.48f, 0.95f), CustomLevelCreatorController.OpenCreatorFromMenu);
         }
 
         if (!canvas.transform.Find("Button_PrevPage"))
         {
-            prevPageBtn = CreateNavButton(canvas.transform, "Button_PrevPage", "< PREV",
-                new Vector2(0.5f, 0f), new Vector2(-130f, 24f), new Vector2(105f, 44f),
-                new Color(0.18f, 0.28f, 0.42f, 0.95f), PrevPage);
+            prevPageBtn = CreateNavButton(canvas.transform, "Button_PrevPage", "<",
+                new Vector2(0.5f, 0.5f), new Vector2(-270f, -20f), new Vector2(64f, 64f),
+                new Color(0.14f, 0.28f, 0.44f, 0.96f), PrevPage, 32f);
         }
 
         if (!canvas.transform.Find("Button_NextPage"))
         {
-            nextPageBtn = CreateNavButton(canvas.transform, "Button_NextPage", "NEXT >",
-                new Vector2(0.5f, 0f), new Vector2(130f, 24f), new Vector2(105f, 44f),
-                new Color(0.18f, 0.28f, 0.42f, 0.95f), NextPage);
+            nextPageBtn = CreateNavButton(canvas.transform, "Button_NextPage", ">",
+                new Vector2(0.5f, 0.5f), new Vector2(270f, -20f), new Vector2(64f, 64f),
+                new Color(0.14f, 0.28f, 0.44f, 0.96f), NextPage, 32f);
         }
 
         Transform pageInfo = canvas.transform.Find("PageIndicator");
@@ -175,8 +175,8 @@ public class LevelSelector : MonoBehaviour
             rect.anchorMin = new Vector2(0.5f, 0f);
             rect.anchorMax = new Vector2(0.5f, 0f);
             rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = new Vector2(0f, 26f);
-            rect.sizeDelta = new Vector2(145f, 40f);
+            rect.anchoredPosition = new Vector2(0f, 22f);
+            rect.sizeDelta = new Vector2(160f, 36f);
             pageIndicatorLabel = infoObj.GetComponent<TextMeshProUGUI>();
             if (mainLabel && mainLabel.font) pageIndicatorLabel.font = mainLabel.font;
             pageIndicatorLabel.alignment = TextAlignmentOptions.Center;
@@ -202,7 +202,7 @@ public class LevelSelector : MonoBehaviour
     }
 
     Button CreateNavButton(Transform parent, string name, string text, Vector2 anchor, Vector2 pos, Vector2 size,
-        Color color, UnityEngine.Events.UnityAction onClick)
+        Color color, UnityEngine.Events.UnityAction onClick, float maxFontSize = 18f)
     {
         var obj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
         obj.transform.SetParent(parent, false);
@@ -232,7 +232,7 @@ public class LevelSelector : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
         label.enableAutoSizing = true;
         label.fontSizeMin = 10f;
-        label.fontSizeMax = 18f;
+        label.fontSizeMax = maxFontSize;
         label.color = Color.white;
         label.raycastTarget = false;
         return button;

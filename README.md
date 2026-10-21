@@ -23,6 +23,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - Safe ghost movement that prevents rematerializing inside solid platforms
 - Pause, victory, and game-over flows
 - Per-level completion results, Gold/Silver/Bronze medals (Time, Banked Ore, Survival), and persistent personal bests on the Level Selector
+- Offline Level Creator Prototype: versioned JSON level format, grid painting (`ground`, `lava`, `hazard_spike`), object placement (`coin_100`, `crate_250`, `bank`, `vent`, `gate_t1`, `enemy`), Undo/Redo, JSON save/load, and save-isolated Playtest mode accessible from the Level Selector
 - Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
 - Custom banking checkpoint, pulse-vent, pressure-gate, and breakable ore-crate prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
 

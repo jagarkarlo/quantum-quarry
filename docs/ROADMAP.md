@@ -23,7 +23,7 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Verified outside Unity: deterministic C# rules, session transitions with Unity test doubles, artwork dimensions/palette, and C# 9 syntax.
 - Verified in Unity 2022.3.12f1 on 2026-09-21: package restoration, API compilation, custom sprite/prefab generation, strict custom-prefab validation, project validation, and a Windows x64 build of all 11 enabled scenes.
 - Authored pilot: Level 4 has an optional bank, a warning-labelled exit vent, a tier-1 pressure gate guarding two 250-ore breakable crates, and a 2050-base-ore pickup route. Persistent collectibles and crates are hidden and suspended in menus/Store without respawning on return.
-- Verified in the isolated Windows player on 2026-10-19: 275 controlled runtime checks and 24 screenshots covering all 11 scenes, including banking, pressure-gate unlocking, bullet-shattered ore crates, level-completion medal banners and Level Selector badges, vent phases/contact damage and armor rounding, pause, invisibility, death/reset, Store round trips, persistent-level transitions, Pressure HUD bounds at three resolutions, and lava/water compatibility. A real-enemy fixture also verifies terrain occlusion, stealth loss/reacquisition, and pressure-scaled perception/pursuit.
+- Verified in the isolated Windows player on 2026-10-21: 295 controlled runtime checks and 26 screenshots covering all 11 scenes, including banking, pressure-gate unlocking, bullet-shattered ore crates, level-completion medal banners, Level Selector badges, the Offline Level Creator Prototype (edit, undo/redo, JSON save/load, and save-isolated playtesting), vent phases/contact damage and armor rounding, pause, invisibility, death/reset, Store round trips, persistent-level transitions, Pressure HUD bounds at three resolutions, and lava/water compatibility. A real-enemy fixture also verifies terrain occlusion, stealth loss/reacquisition, and pressure-scaled perception/pursuit.
 - Readability follow-up: the vent distinguishes `OFF` from armed `SAFE`, then `WARNING` and `DANGER`. The HUD explains carried-reward loss, the arming threshold, and banking to disarm; the [vent guide](../README.md#trying-the-pressure-vent) explains how to play it.
 - Unresolved encounter decisions: all 15 Level 4 pickups are currently required to reach tier 2, and the pause-menu Store already provides banking without the physical detour. Evaluate these in the [human route check](DEVELOPMENT_WORKFLOW.md#remaining-human-route-check) before changing placement or economy.
 - Pending milestone gate: manually complete the pilot route without upgrades, tune the risk/reward encounter, and finish the remaining [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation). Automated repositioning and seeded ore are not proof of full-route playability or enemy encounter balance. Do not start the next milestone before this gate passes.
@@ -45,16 +45,13 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 
 ## 5. Level format
 
-- Define a versioned, serializable level document independent of Unity scenes.
-- Support terrain, spawn, exit, coins, enemies, hazards, and moving platforms.
-- Validate reachability, required objects, bounds, and supported content versions.
+- Implemented prototype (`CustomLevelDocument`): a versioned (`formatVersion = 1`), serializable JSON level document independent of Unity scenes, with allowlisted tile IDs (`ground`, `hazard_spike`, `lava`), allowlisted object IDs (`coin_100`, `coin_150`, `crate_250`, `bank`, `vent`, `gate_t1`, `enemy`, `stabilization`), bounded grid dimensions, required spawn/exit validation, and round-trip JSON serialization.
+- Next: expand format support for moving-platform waypoints and local level library metadata.
 
 ## 6. In-game level creator
 
-- Add grid painting, erase, select, move, undo, and redo tools.
-- Provide palettes for terrain, hazards, collectibles, enemies, and gameplay objects.
-- Include playtest mode that starts from the editor and returns without losing edits.
-- Save named local drafts and generate a preview image.
+- Implemented Phase A prototype (`CustomLevelCreatorController`): accessible from the `LEVEL CREATOR` button on the Level Selector, with grid painting, object placement, erase, Undo/Redo stacks, JSON draft save/load, and an isolated Playtest mode (`GameSession.EnterPlaytestMode`) that runs the custom level and returns to Edit Mode on death or on demand without touching campaign `PlayerPrefs`.
+- Next: add multi-slot named draft browser, preview thumbnails, and object property inspection.
 
 ## 7. Sharing and discovery
 

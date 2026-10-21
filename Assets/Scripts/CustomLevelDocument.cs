@@ -22,21 +22,29 @@ public struct CustomLevelCell
 public sealed class CustomLevelDocument
 {
     public const int CurrentFormatVersion = 1;
-    public const int MaxWidth = 64;
-    public const int MaxHeight = 32;
-    public const int MaxObjects = 256;
+    public const int MaxWidth = 256;
+    public const int MaxHeight = 128;
+    public const int MinCoord = -128;
+    public const int MaxCoord = 256;
+    public const int MaxObjects = 512;
 
-    public static readonly string[] AllowedTileIds = { "ground", "hazard_spike", "lava" };
+    public static readonly string[] AllowedTileIds =
+    {
+        "ground", "rock", "ladder", "bounce", "hazard_spike", "water_surface", "water", "lava_surface", "lava", "bg"
+    };
+
     public static readonly string[] AllowedObjectIds =
     {
-        "coin_100", "coin_150", "crate_250", "bank", "vent", "gate_t1", "enemy", "stabilization"
+        "coin_100", "coin_150", "coin_200", "crate_250", "bank", "vent",
+        "gate_t1", "gate_t2", "enemy", "red_enemy", "platform", "stabilization"
     };
 
     public int formatVersion = CurrentFormatVersion;
     public string levelId = "custom-draft-1";
     public string title = "Custom Quarry Draft";
-    public int width = 32;
-    public int height = 18;
+    public int sourceCampaignLevel = 4;
+    public int width = 64;
+    public int height = 36;
     public int spawnX = 2;
     public int spawnY = 2;
     public int exitX = 20;
@@ -51,29 +59,33 @@ public sealed class CustomLevelDocument
             formatVersion = CurrentFormatVersion,
             levelId = "custom-draft-1",
             title = "Quarry Creator Draft",
-            width = 32,
-            height = 18,
+            sourceCampaignLevel = 4,
+            width = 48,
+            height = 24,
             spawnX = 2,
             spawnY = 2,
-            exitX = 22,
+            exitX = 24,
             exitY = 2
         };
 
-        for (int x = 0; x <= 25; x++) doc.SetTile(x, 1, "ground");
-        for (int x = 7; x <= 11; x++) doc.SetTile(x, 4, "ground");
-        for (int x = 14; x <= 18; x++) doc.SetTile(x, 6, "ground");
+        for (int x = 0; x <= 26; x++) doc.SetTile(x, 1, "ground");
+        for (int y = 2; y <= 5; y++) doc.SetTile(6, y, "ladder");
+        for (int x = 7; x <= 12; x++) doc.SetTile(x, 5, "ground");
+        doc.SetTile(13, 2, "bounce");
+        for (int x = 15; x <= 20; x++) doc.SetTile(x, 6, "ground");
 
-        doc.SetObject(5, 2, "coin_100");
-        doc.SetObject(8, 5, "coin_100");
-        doc.SetObject(10, 5, "coin_150");
+        doc.SetObject(4, 2, "coin_100");
+        doc.SetObject(8, 6, "coin_150");
+        doc.SetObject(10, 6, "red_enemy");
         doc.SetObject(12, 2, "bank");
-        doc.SetObject(15, 7, "gate_t1");
-        doc.SetObject(17, 7, "crate_250");
-        doc.SetObject(19, 2, "vent");
+        doc.SetObject(16, 7, "gate_t1");
+        doc.SetObject(18, 7, "crate_250");
+        doc.SetObject(20, 6, "stabilization");
+        doc.SetObject(21, 2, "vent");
         return doc;
     }
 
-    public bool InBounds(int x, int y) => x >= 0 && x < width && y >= 0 && y < height;
+    public bool InBounds(int x, int y) => x >= MinCoord && x <= MaxCoord && y >= MinCoord && y <= MaxCoord;
 
     public static bool IsAllowedTileId(string id)
     {
@@ -91,8 +103,12 @@ public sealed class CustomLevelDocument
         return false;
     }
 
+    public static bool IsBackgroundTileId(string id) => id == "bg";
+
     public string GetTile(int x, int y)
     {
+        for (int i = 0; i < tiles.Count; i++)
+            if (tiles[i].x == x && tiles[i].y == y && !IsBackgroundTileId(tiles[i].id)) return tiles[i].id;
         for (int i = 0; i < tiles.Count; i++)
             if (tiles[i].x == x && tiles[i].y == y) return tiles[i].id;
         return null;
@@ -113,8 +129,15 @@ public sealed class CustomLevelDocument
             return RemoveAt(tiles, x, y);
         }
         if (!IsAllowedTileId(id)) return false;
-        RemoveAt(objects, x, y);
-        Upsert(tiles, x, y, id);
+        if (!IsBackgroundTileId(id))
+        {
+            RemoveForegroundTilesAt(x, y);
+        }
+        else
+        {
+            RemoveBackgroundTileAt(x, y);
+        }
+        tiles.Add(new CustomLevelCell(x, y, id));
         return true;
     }
 
@@ -127,7 +150,6 @@ public sealed class CustomLevelDocument
         }
         if (!IsAllowedObjectId(id)) return false;
         if ((x == spawnX && y == spawnY) || (x == exitX && y == exitY)) return false;
-        RemoveAt(tiles, x, y);
         if (GetObject(x, y) == null && objects.Count >= MaxObjects) return false;
         Upsert(objects, x, y, id);
         return true;
@@ -136,7 +158,7 @@ public sealed class CustomLevelDocument
     public bool SetSpawn(int x, int y)
     {
         if (!InBounds(x, y) || (x == exitX && y == exitY)) return false;
-        RemoveAt(tiles, x, y);
+        RemoveForegroundTilesAt(x, y);
         RemoveAt(objects, x, y);
         spawnX = x;
         spawnY = y;
@@ -146,7 +168,7 @@ public sealed class CustomLevelDocument
     public bool SetExit(int x, int y)
     {
         if (!InBounds(x, y) || (x == spawnX && y == spawnY)) return false;
-        RemoveAt(tiles, x, y);
+        RemoveForegroundTilesAt(x, y);
         RemoveAt(objects, x, y);
         exitX = x;
         exitY = y;
@@ -181,7 +203,6 @@ public sealed class CustomLevelDocument
         if (objects != null && objects.Count > MaxObjects)
             errors.Add($"Object count {objects.Count} exceeds maximum {MaxObjects}.");
 
-        var occupied = new HashSet<long>();
         if (tiles != null)
         {
             for (int i = 0; i < tiles.Count; i++)
@@ -191,9 +212,6 @@ public sealed class CustomLevelDocument
                     errors.Add($"Tile at ({cell.x},{cell.y}) is out of bounds.");
                 if (!IsAllowedTileId(cell.id))
                     errors.Add($"Tile ID '{cell.id}' is not allowlisted.");
-                long key = ((long)cell.x << 32) | (uint)cell.y;
-                if (!occupied.Add(key))
-                    errors.Add($"Duplicate cell entry at ({cell.x},{cell.y}).");
             }
         }
 
@@ -206,9 +224,6 @@ public sealed class CustomLevelDocument
                     errors.Add($"Object at ({cell.x},{cell.y}) is out of bounds.");
                 if (!IsAllowedObjectId(cell.id))
                     errors.Add($"Object ID '{cell.id}' is not allowlisted.");
-                long key = ((long)cell.x << 32) | (uint)cell.y;
-                if (!occupied.Add(key))
-                    errors.Add($"Cell ({cell.x},{cell.y}) has overlapping tile or object entries.");
             }
         }
 
@@ -222,6 +237,7 @@ public sealed class CustomLevelDocument
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"formatVersion\":{0},", formatVersion);
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"levelId\":\"{0}\",", Escape(levelId));
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"title\":\"{0}\",", Escape(title));
+        sb.AppendFormat(CultureInfo.InvariantCulture, "\"sourceCampaignLevel\":{0},", sourceCampaignLevel);
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"width\":{0},\"height\":{1},", width, height);
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"spawnX\":{0},\"spawnY\":{1},", spawnX, spawnY);
         sb.AppendFormat(CultureInfo.InvariantCulture, "\"exitX\":{0},\"exitY\":{1},", exitX, exitY);
@@ -236,16 +252,17 @@ public sealed class CustomLevelDocument
     {
         if (string.IsNullOrWhiteSpace(json))
             throw new ArgumentException("Level JSON cannot be empty.");
-        if (json.Length > 131072)
-            throw new ArgumentException("Level JSON exceeds the 128 KB safety limit.");
+        if (json.Length > 262144)
+            throw new ArgumentException("Level JSON exceeds the 256 KB safety limit.");
 
-        var doc = new CustomLevelDocument
+        return new CustomLevelDocument
         {
             formatVersion = ReadInt(json, "formatVersion", CurrentFormatVersion),
             levelId = ReadString(json, "levelId", "custom-draft-1"),
             title = ReadString(json, "title", "Custom Quarry Draft"),
-            width = ReadInt(json, "width", 32),
-            height = ReadInt(json, "height", 18),
+            sourceCampaignLevel = ReadInt(json, "sourceCampaignLevel", 4),
+            width = ReadInt(json, "width", 64),
+            height = ReadInt(json, "height", 36),
             spawnX = ReadInt(json, "spawnX", 2),
             spawnY = ReadInt(json, "spawnY", 2),
             exitX = ReadInt(json, "exitX", 20),
@@ -253,10 +270,23 @@ public sealed class CustomLevelDocument
             tiles = ReadCells(json, "tiles"),
             objects = ReadCells(json, "objects")
         };
-        return doc;
     }
 
     public CustomLevelDocument Clone() => FromJson(ToJson());
+
+    void RemoveForegroundTilesAt(int x, int y)
+    {
+        for (int i = tiles.Count - 1; i >= 0; i--)
+            if (tiles[i].x == x && tiles[i].y == y && !IsBackgroundTileId(tiles[i].id))
+                tiles.RemoveAt(i);
+    }
+
+    void RemoveBackgroundTileAt(int x, int y)
+    {
+        for (int i = tiles.Count - 1; i >= 0; i--)
+            if (tiles[i].x == x && tiles[i].y == y && IsBackgroundTileId(tiles[i].id))
+                tiles.RemoveAt(i);
+    }
 
     static void Upsert(List<CustomLevelCell> list, int x, int y, string id)
     {
@@ -273,15 +303,16 @@ public sealed class CustomLevelDocument
 
     static bool RemoveAt(List<CustomLevelCell> list, int x, int y)
     {
+        bool removed = false;
         for (int i = list.Count - 1; i >= 0; i--)
         {
             if (list[i].x == x && list[i].y == y)
             {
                 list.RemoveAt(i);
-                return true;
+                removed = true;
             }
         }
-        return false;
+        return removed;
     }
 
     static void AppendCells(StringBuilder sb, string field, List<CustomLevelCell> list)

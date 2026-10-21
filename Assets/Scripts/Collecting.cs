@@ -16,6 +16,14 @@ public class Collecting : MonoBehaviour
 
     public int BaseOreValue => pointsForCoinPickup;
 
+    public void SetBaseOreValue(int value)
+    {
+        pointsForCoinPickup = Mathf.Max(1, value);
+        ConfigureDenomination();
+        lastPreview = -1;
+        RefreshRewardPreview();
+    }
+
     void Awake()
     {
         coinRenderer = GetComponent<SpriteRenderer>();

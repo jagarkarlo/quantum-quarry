@@ -15,6 +15,13 @@ public sealed class PressureGate : MonoBehaviour
     public int RequiredTier => Mathf.Clamp(requiredTier, 1, 3);
     public bool IsOpen => session && session.Pressure.MeetsGateRequirement(RequiredTier);
 
+    public void SetRequiredTier(int tier)
+    {
+        requiredTier = Mathf.Clamp(tier, 1, 3);
+        lastTier = -1;
+        RefreshState();
+    }
+
     void Awake()
     {
         barrier = GetComponent<Collider2D>();

@@ -23,5 +23,6 @@
     <Compile Include="../../Assets/Scripts/StoreEconomy.cs" Link="StoreEconomy.cs" />
     <Compile Include="../../Assets/Scripts/DamageLog.cs" Link="DamageLog.cs" />
     <Compile Include="../../Assets/Scripts/LevelMedals.cs" Link="LevelMedals.cs" />
+    <Compile Include="../../Assets/Scripts/CustomLevelDocument.cs" Link="CustomLevelDocument.cs" />
   </ItemGroup>
 </Project>

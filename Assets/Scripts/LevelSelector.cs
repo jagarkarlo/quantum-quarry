@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -10,83 +11,241 @@ public class LevelSelector : MonoBehaviour
     public int level = 1;
 
     const string UnlockedLevelKey = "UnlockedLevelNumber";
+    static int currentPage = 0;
+
+    int slotIndex = 1;
     Button btn;
+    TextMeshProUGUI mainLabel;
     TextMeshProUGUI medalBadge;
+    static TextMeshProUGUI pageIndicatorLabel;
+    static Button prevPageBtn;
+    static Button nextPageBtn;
+
+    public static int CurrentPage => currentPage;
 
     void Awake()
     {
         btn = GetComponent<Button>();
 
-        // Safety: if you forgot to set 'level', try to parse it from the GameObject name "Level 3" etc.
         if (level <= 0)
         {
-            // Try to read number from name
             var parts = gameObject.name.Split(' ');
             if (parts.Length >= 2 && int.TryParse(parts[parts.Length - 1], out int parsed) && parsed > 0)
                 level = parsed;
             else
-                level = 1; // fallback
+                level = 1;
         }
+        slotIndex = Mathf.Clamp(level, 1, 6);
+        Transform levelChild = transform.Find("Level");
+        if (levelChild) mainLabel = levelChild.GetComponent<TextMeshProUGUI>();
     }
 
     void OnEnable()
     {
-        // Ensure the key exists (in case someone opened Level selector scene directly)
         if (!PlayerPrefs.HasKey(UnlockedLevelKey))
         {
             PlayerPrefs.SetInt(UnlockedLevelKey, 1);
             PlayerPrefs.Save();
         }
 
-        int unlocked = PlayerPrefs.GetInt(UnlockedLevelKey, 1);
-        if (btn) btn.interactable = (level <= unlocked || level >= 7);
-        RefreshMedalBadge();
-        EnsureCreatorButton();
-        EnsureCustomStageButtons();
+        if (slotIndex == 1)
+        {
+            int maxPage = GetTotalPages() - 1;
+            if (currentPage > maxPage) currentPage = Mathf.Max(0, maxPage);
+            EnsureNavigationControls();
+        }
+
+        ApplyPageToSlot();
     }
 
-    void EnsureCreatorButton()
+    public static int GetTotalPages()
     {
-        if (level != 1) return;
+        List<int> customStages = CustomLevelSceneAdapter.GetSavedCustomStageNumbers();
+        int customPages = (customStages.Count + 5) / 6;
+        return 1 + customPages;
+    }
+
+    public static void SetPage(int page)
+    {
+        int total = GetTotalPages();
+        currentPage = Mathf.Clamp(page, 0, Mathf.Max(0, total - 1));
+        foreach (LevelSelector selector in FindObjectsOfType<LevelSelector>(true))
+        {
+            selector.ApplyPageToSlot();
+        }
+        RefreshPaginationControls();
+    }
+
+    public static void NextPage() => SetPage(currentPage + 1);
+    public static void PrevPage() => SetPage(currentPage - 1);
+
+    void ApplyPageToSlot()
+    {
+        int unlocked = PlayerPrefs.GetInt(UnlockedLevelKey, 1);
+        Image bg = GetComponent<Image>();
+
+        if (currentPage == 0)
+        {
+            level = slotIndex;
+            bool isUnlocked = level <= unlocked;
+            if (btn) btn.interactable = isUnlocked;
+            if (bg)
+            {
+                bg.color = isUnlocked
+                    ? new Color(0f, 0.682f, 1f, 1f)
+                    : new Color(0.18f, 0.22f, 0.28f, 0.88f);
+            }
+            if (mainLabel)
+            {
+                mainLabel.text = isUnlocked ? level.ToString() : $"{level}\n<size=40%>LOCKED</size>";
+                mainLabel.color = isUnlocked ? new Color(0.12f, 0.14f, 0.18f, 1f) : new Color(0.62f, 0.66f, 0.72f, 0.9f);
+            }
+            RefreshMedalBadge(isUnlocked);
+        }
+        else
+        {
+            List<int> customStages = CustomLevelSceneAdapter.GetSavedCustomStageNumbers();
+            int listIdx = (currentPage - 1) * 6 + (slotIndex - 1);
+            if (listIdx >= 0 && listIdx < customStages.Count)
+            {
+                level = customStages[listIdx];
+                if (btn) btn.interactable = true;
+                if (bg) bg.color = new Color(0.38f, 0.22f, 0.68f, 1f);
+                if (mainLabel)
+                {
+                    mainLabel.text = $"S{level}";
+                    mainLabel.color = Color.white;
+                }
+                RefreshMedalBadge(true);
+            }
+            else
+            {
+                level = -1;
+                if (btn) btn.interactable = false;
+                if (bg) bg.color = new Color(0.12f, 0.14f, 0.18f, 0.45f);
+                if (mainLabel)
+                {
+                    mainLabel.text = "-";
+                    mainLabel.color = new Color(0.5f, 0.55f, 0.6f, 0.5f);
+                }
+                if (medalBadge) medalBadge.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    void EnsureNavigationControls()
+    {
         Canvas canvas = GetComponentInParent<Canvas>();
-        if (!canvas || canvas.transform.Find("Button_LevelCreator")) return;
+        if (!canvas) return;
 
-        var creatorObj = new GameObject("Button_LevelCreator", typeof(RectTransform), typeof(Image), typeof(Button));
-        creatorObj.transform.SetParent(canvas.transform, false);
-        RectTransform rect = creatorObj.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1f, 0f);
-        rect.anchorMax = new Vector2(1f, 0f);
-        rect.pivot = new Vector2(1f, 0f);
-        rect.anchoredPosition = new Vector2(-24f, 24f);
-        rect.sizeDelta = new Vector2(210f, 48f);
+        if (!canvas.transform.Find("Button_BackToStart"))
+        {
+            CreateNavButton(canvas.transform, "Button_BackToStart", "BACK TO MENU",
+                new Vector2(0f, 0f), new Vector2(24f, 24f), new Vector2(210f, 48f),
+                new Color(0.46f, 0.18f, 0.18f, 0.95f), () => SceneManager.LoadScene("Start"));
+        }
 
-        Image img = creatorObj.GetComponent<Image>();
-        img.color = new Color(0.12f, 0.36f, 0.48f, 0.94f);
-        Button creatorBtn = creatorObj.GetComponent<Button>();
-        creatorBtn.targetGraphic = img;
-        creatorBtn.onClick.AddListener(CustomLevelCreatorController.OpenCreatorFromMenu);
+        if (!canvas.transform.Find("Button_LevelCreator"))
+        {
+            CreateNavButton(canvas.transform, "Button_LevelCreator", "LEVEL CREATOR",
+                new Vector2(1f, 0f), new Vector2(-24f, 24f), new Vector2(210f, 48f),
+                new Color(0.12f, 0.36f, 0.48f, 0.95f), CustomLevelCreatorController.OpenCreatorFromMenu);
+        }
+
+        if (!canvas.transform.Find("Button_PrevPage"))
+        {
+            prevPageBtn = CreateNavButton(canvas.transform, "Button_PrevPage", "< PREV",
+                new Vector2(0.5f, 0f), new Vector2(-130f, 24f), new Vector2(105f, 44f),
+                new Color(0.18f, 0.28f, 0.42f, 0.95f), PrevPage);
+        }
+
+        if (!canvas.transform.Find("Button_NextPage"))
+        {
+            nextPageBtn = CreateNavButton(canvas.transform, "Button_NextPage", "NEXT >",
+                new Vector2(0.5f, 0f), new Vector2(130f, 24f), new Vector2(105f, 44f),
+                new Color(0.18f, 0.28f, 0.42f, 0.95f), NextPage);
+        }
+
+        Transform pageInfo = canvas.transform.Find("PageIndicator");
+        if (!pageInfo)
+        {
+            var infoObj = new GameObject("PageIndicator", typeof(RectTransform), typeof(TextMeshProUGUI));
+            infoObj.transform.SetParent(canvas.transform, false);
+            RectTransform rect = infoObj.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, 26f);
+            rect.sizeDelta = new Vector2(145f, 40f);
+            pageIndicatorLabel = infoObj.GetComponent<TextMeshProUGUI>();
+            if (mainLabel && mainLabel.font) pageIndicatorLabel.font = mainLabel.font;
+            pageIndicatorLabel.alignment = TextAlignmentOptions.Center;
+            pageIndicatorLabel.enableAutoSizing = true;
+            pageIndicatorLabel.fontSizeMin = 10f;
+            pageIndicatorLabel.fontSizeMax = 18f;
+            pageIndicatorLabel.color = Color.white;
+            pageIndicatorLabel.raycastTarget = false;
+        }
+
+        RefreshPaginationControls();
+    }
+
+    static void RefreshPaginationControls()
+    {
+        int total = GetTotalPages();
+        if (pageIndicatorLabel)
+            pageIndicatorLabel.text = $"PAGE {currentPage + 1}/{total}";
+        if (prevPageBtn)
+            prevPageBtn.interactable = currentPage > 0;
+        if (nextPageBtn)
+            nextPageBtn.interactable = currentPage + 1 < total;
+    }
+
+    Button CreateNavButton(Transform parent, string name, string text, Vector2 anchor, Vector2 pos, Vector2 size,
+        Color color, UnityEngine.Events.UnityAction onClick)
+    {
+        var obj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        obj.transform.SetParent(parent, false);
+        RectTransform rect = obj.GetComponent<RectTransform>();
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = anchor;
+        rect.anchoredPosition = pos;
+        rect.sizeDelta = size;
+
+        Image img = obj.GetComponent<Image>();
+        img.color = color;
+        Button button = obj.GetComponent<Button>();
+        button.targetGraphic = img;
+        button.onClick.AddListener(onClick);
 
         var labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        labelObj.transform.SetParent(creatorObj.transform, false);
+        labelObj.transform.SetParent(obj.transform, false);
         RectTransform labelRect = labelObj.GetComponent<RectTransform>();
         labelRect.anchorMin = Vector2.zero;
         labelRect.anchorMax = Vector2.one;
         labelRect.sizeDelta = Vector2.zero;
 
         TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
-        TextMeshProUGUI parentLabel = GetComponentInChildren<TextMeshProUGUI>();
-        if (parentLabel && parentLabel.font) label.font = parentLabel.font;
-        label.text = "LEVEL CREATOR";
+        if (mainLabel && mainLabel.font) label.font = mainLabel.font;
+        label.text = text;
         label.alignment = TextAlignmentOptions.Center;
         label.enableAutoSizing = true;
-        label.fontSizeMin = 12f;
-        label.fontSizeMax = 20f;
-        label.color = new Color(0.92f, 0.98f, 1f);
+        label.fontSizeMin = 10f;
+        label.fontSizeMax = 18f;
+        label.color = Color.white;
         label.raycastTarget = false;
+        return button;
     }
 
-    public void RefreshMedalBadge()
+    public void RefreshMedalBadge(bool isUnlocked = true)
     {
+        if (!isUnlocked || level <= 0)
+        {
+            if (medalBadge) medalBadge.gameObject.SetActive(false);
+            return;
+        }
+
         LevelPersonalBest record = GameSession.GetPersonalBest($"level-{level}");
         string badgeText = LevelMedals.FormatShortBadge(record);
         if (level >= 1 && level <= 6 && CustomLevelSceneAdapter.HasCampaignOverride(level))
@@ -114,9 +273,7 @@ public class LevelSelector : MonoBehaviour
             rect.offsetMin = new Vector2(4f, 2f);
             rect.offsetMax = new Vector2(-4f, 0f);
             medalBadge = badgeObj.GetComponent<TextMeshProUGUI>();
-            TextMeshProUGUI parentLabel = GetComponentInChildren<TextMeshProUGUI>();
-            if (parentLabel && parentLabel != medalBadge && parentLabel.font)
-                medalBadge.font = parentLabel.font;
+            if (mainLabel && mainLabel.font) medalBadge.font = mainLabel.font;
             medalBadge.alignment = TextAlignmentOptions.Center;
             medalBadge.enableAutoSizing = true;
             medalBadge.fontSizeMin = 8f;
@@ -129,60 +286,9 @@ public class LevelSelector : MonoBehaviour
         medalBadge.text = badgeText;
     }
 
-    void EnsureCustomStageButtons()
-    {
-        if (level != 1) return;
-        Canvas canvas = GetComponentInParent<Canvas>();
-        if (!canvas) return;
-
-        var stages = CustomLevelSceneAdapter.GetSavedCustomStageNumbers();
-        for (int i = 0; i < stages.Count; i++)
-        {
-            int stageNum = stages[i];
-            string btnName = $"Button_CustomStage_{stageNum}";
-            if (canvas.transform.Find(btnName)) continue;
-
-            var stageObj = new GameObject(btnName, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LevelSelector));
-            stageObj.transform.SetParent(canvas.transform, false);
-            RectTransform rect = stageObj.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0f, 0f);
-            rect.anchorMax = new Vector2(0f, 0f);
-            rect.pivot = new Vector2(0f, 0f);
-            rect.anchoredPosition = new Vector2(24f + i * 150f, 24f);
-            rect.sizeDelta = new Vector2(140f, 48f);
-
-            Image img = stageObj.GetComponent<Image>();
-            img.color = new Color(0.24f, 0.16f, 0.42f, 0.94f);
-            Button stageBtn = stageObj.GetComponent<Button>();
-            stageBtn.targetGraphic = img;
-
-            var labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            labelObj.transform.SetParent(stageObj.transform, false);
-            RectTransform labelRect = labelObj.GetComponent<RectTransform>();
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.sizeDelta = Vector2.zero;
-
-            TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
-            TextMeshProUGUI parentLabel = GetComponentInChildren<TextMeshProUGUI>();
-            if (parentLabel && parentLabel.font) label.font = parentLabel.font;
-            label.text = $"STAGE {stageNum}";
-            label.alignment = TextAlignmentOptions.Center;
-            label.enableAutoSizing = true;
-            label.fontSizeMin = 11f;
-            label.fontSizeMax = 18f;
-            label.color = new Color(0.98f, 0.92f, 1f);
-            label.raycastTarget = false;
-
-            LevelSelector selector = stageObj.GetComponent<LevelSelector>();
-            selector.level = stageNum;
-            stageBtn.onClick.AddListener(selector.OpenScene);
-            selector.RefreshMedalBadge();
-        }
-    }
-
     public void OpenScene()
     {
+        if (level < 1) return;
         if (level >= 7)
         {
             string stagePath = CustomLevelSceneAdapter.GetCustomStageFilePath(level);
@@ -210,7 +316,6 @@ public class LevelSelector : MonoBehaviour
         else
         {
             Debug.Log("Level locked!");
-            // Optional: show a lock popup here
         }
     }
 }

@@ -24,6 +24,16 @@ public class LevelExit : MonoBehaviour
     {
         string currentName = SceneManager.GetActiveScene().name; // "Level N"
         var session = FindObjectOfType<GameSession>();
+        if (session && session.IsPlaytestMode)
+        {
+            session.NotifyPlaytestCompleted();
+            ShowResultsBanner(session.LastCompletedLevelResult);
+            yield return new WaitForSecondsRealtime(levelLoadDelay);
+            GameObject banner = GameObject.Find("LevelResultsBanner");
+            if (banner) Destroy(banner);
+            isExiting = false;
+            yield break;
+        }
         if (session)
         {
             LevelResult result = session.CompleteCurrentLevel(currentName);

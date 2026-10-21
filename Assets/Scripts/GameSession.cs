@@ -51,6 +51,19 @@ public class GameSession : MonoBehaviour
     int levelBankedOre;
     int levelLostOre;
     int levelHitsStart;
+    bool isPlaytestMode;
+    int savedCampaignCoins;
+    int savedCampaignLives;
+    int savedCampaignStabilityUnits;
+    int savedCampaignArmorTier;
+    int savedCampaignHits;
+    int savedCampaignStabilityLostUnits;
+    int savedCampaignCarriedOre;
+    int savedCampaignPendingCoins;
+    int savedCampaignSeed;
+    public bool IsPlaytestMode => isPlaytestMode;
+    public event System.Action PlaytestDeathOccurred;
+    public event System.Action PlaytestCompleted;
     public LevelResult LastCompletedLevelResult { get; private set; }
     public string ActiveLevelId => activeLevelId;
     public int GetLevelElapsedMs() => Mathf.Max(0, Mathf.RoundToInt(levelElapsedSeconds * 1000f));
@@ -192,7 +205,7 @@ public class GameSession : MonoBehaviour
         int deposited = (int)System.Math.Min(int.MaxValue - (long)coins, pressure.Bank());
         coins += deposited;
         levelBankedOre = (int)System.Math.Min(int.MaxValue, (long)levelBankedOre + deposited);
-        PlayerPrefs.SetInt(CoinsKey, coins);
+        if (!isPlaytestMode) PlayerPrefs.SetInt(CoinsKey, coins);
         SavePressure();
         RefreshCoinsUI();
         PressureChanged?.Invoke();
@@ -201,6 +214,7 @@ public class GameSession : MonoBehaviour
 
     void SavePressure()
     {
+        if (isPlaytestMode) return;
         PlayerPrefs.SetInt(CarriedOreKey, pressure.CarriedOre);
         PlayerPrefs.SetInt(PendingCoinsKey, pressure.PendingCoins);
         PlayerPrefs.SetInt(PressureSeedKey, pressure.Seed);
@@ -240,6 +254,7 @@ public class GameSession : MonoBehaviour
 
     void SaveDamageLog()
     {
+        if (isPlaytestMode) return;
         PlayerPrefs.SetInt(HitsTakenKey, damageLog.HitsTaken);
         PlayerPrefs.SetInt(StabilityLostUnitsKey, damageLog.StabilityUnitsLost);
         PlayerPrefs.Save();
@@ -252,8 +267,11 @@ public class GameSession : MonoBehaviour
         if (!SpendCoins(StoreEconomy.GetArmorUpgradeCost(nextTier))) return false;
 
         armorTier = nextTier;
-        PlayerPrefs.SetInt(ArmorTierKey, armorTier);
-        PlayerPrefs.Save();
+        if (!isPlaytestMode)
+        {
+            PlayerPrefs.SetInt(ArmorTierKey, armorTier);
+            PlayerPrefs.Save();
+        }
         return true;
     }
 
@@ -295,6 +313,7 @@ public class GameSession : MonoBehaviour
 
     void SaveStability()
     {
+        if (isPlaytestMode) return;
         PlayerPrefs.SetInt(StabilityUnitsKey, stability.CurrentUnits);
         PlayerPrefs.DeleteKey(StabilityKey);
         PlayerPrefs.Save();
@@ -304,8 +323,11 @@ public class GameSession : MonoBehaviour
     {
         if (!StoreEconomy.CanAfford(coins, cost)) return false;
         coins -= cost;
-        PlayerPrefs.SetInt(CoinsKey, coins);
-        PlayerPrefs.Save();
+        if (!isPlaytestMode)
+        {
+            PlayerPrefs.SetInt(CoinsKey, coins);
+            PlayerPrefs.Save();
+        }
         RefreshCoinsUI();
         return true;
     }
@@ -331,6 +353,7 @@ public class GameSession : MonoBehaviour
 
     public static int ConsumeQueuedPowerupSeconds(string key, int legacySeconds)
     {
+        if (instance && instance.isPlaytestMode) return 0;
         int queuedSeconds = GetQueuedPowerupSeconds(key, legacySeconds);
         PlayerPrefs.DeleteKey(key);
         PlayerPrefs.Save();
@@ -340,15 +363,80 @@ public class GameSession : MonoBehaviour
     public void SetLives(int newLives)
     {
         playerLives = Mathf.Max(0, newLives);
-        PlayerPrefs.SetInt(LivesKey, playerLives);
-        PlayerPrefs.Save();
+        if (!isPlaytestMode)
+        {
+            PlayerPrefs.SetInt(LivesKey, playerLives);
+            PlayerPrefs.Save();
+        }
         RefreshPlayerStateUI();
+    }
+
+    public void EnterPlaytestMode(string customLevelId = "custom-draft-1")
+    {
+        if (!isPlaytestMode)
+        {
+            savedCampaignCoins = coins;
+            savedCampaignLives = playerLives;
+            savedCampaignStabilityUnits = stability.CurrentUnits;
+            savedCampaignArmorTier = armorTier;
+            savedCampaignHits = damageLog.HitsTaken;
+            savedCampaignStabilityLostUnits = damageLog.StabilityUnitsLost;
+            savedCampaignCarriedOre = pressure.CarriedOre;
+            savedCampaignPendingCoins = pressure.PendingCoins;
+            savedCampaignSeed = pressure.Seed;
+            isPlaytestMode = true;
+        }
+        coins = 0;
+        playerLives = 3;
+        stability = new QuantumStability(maxStability, maxStability);
+        armorTier = 0;
+        damageLog = new DamageLog(0, 0);
+        pressure = new QuarryPressure(QuarryPressure.DefaultSeed, 0, 0);
+        BeginLevelTracking(customLevelId ?? "custom-draft-1");
+        RefreshUI();
+        PressureChanged?.Invoke();
+    }
+
+    public void ExitPlaytestMode()
+    {
+        if (!isPlaytestMode) return;
+        isPlaytestMode = false;
+        coins = savedCampaignCoins;
+        playerLives = savedCampaignLives;
+        stability = QuantumStability.FromUnits(maxStability * QuantumStability.UnitsPerPoint, savedCampaignStabilityUnits);
+        armorTier = savedCampaignArmorTier;
+        damageLog = new DamageLog(savedCampaignHits, savedCampaignStabilityLostUnits);
+        pressure = new QuarryPressure(savedCampaignSeed, savedCampaignCarriedOre, savedCampaignPendingCoins);
+        string currentId = LevelMedals.NormalizeLevelId(SceneManager.GetActiveScene().name);
+        if (currentId != null) BeginLevelTracking(currentId);
+        RefreshUI();
+        PressureChanged?.Invoke();
+    }
+
+    public void NotifyPlaytestCompleted()
+    {
+        if (!isPlaytestMode) return;
+        BankOre();
+        LastCompletedLevelResult = LevelMedals.Evaluate(
+            activeLevelId ?? "custom-draft-1",
+            GetLevelElapsedMs(),
+            levelBankedOre,
+            levelLostOre,
+            GetLevelHitsTaken());
+        PlaytestCompleted?.Invoke();
     }
 
     // ---------- Death / Reload ----------
     public void ProcessPlayerDeath()
     {
         DiscardOre();
+        if (isPlaytestMode)
+        {
+            stability.Restore();
+            RefreshPlayerStateUI();
+            PlaytestDeathOccurred?.Invoke();
+            return;
+        }
         if (playerLives > 1)
         {
             TakeLifeAndReload();
@@ -460,6 +548,7 @@ public class GameSession : MonoBehaviour
             levelLostOre,
             GetLevelHitsTaken());
         LastCompletedLevelResult = result;
+        if (isPlaytestMode) return result;
         LevelPersonalBest updated = LevelMedals.MergePersonalBest(GetPersonalBest(id), result);
         SavePersonalBest(id, updated);
         return result;

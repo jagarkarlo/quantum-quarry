@@ -110,6 +110,34 @@ static class SessionTests
         Equal("T:G O:G S:G", LevelMedals.FormatShortBadge(savedRecord), "saved personal best badge");
         session.ResetSession();
         Equal(true, GameSession.GetPersonalBest("Level 4").Completed, "resetting run preserves level personal bests");
+        PlayerPrefs.SetInt(GameSession.CoinsKey, 950);
+        PlayerPrefs.SetInt(GameSession.SpeedBoostQueuedKey, 20);
+        session = Restore(session);
+        session.AddCoins(300);
+        session.EnterPlaytestMode("custom-draft-1");
+        Equal(true, session.IsPlaytestMode, "session enters playtest mode");
+        Equal(0, session.GetCoins(), "playtest starts with zero coins");
+        Equal(0, session.Pressure.CarriedOre, "playtest starts with zero carried ore");
+        Equal(0, GameSession.ConsumeQueuedPowerupSeconds(GameSession.SpeedBoostQueuedKey, 10), "playtest does not consume campaign queued powerup");
+        Equal(20, PlayerPrefs.GetInt(GameSession.SpeedBoostQueuedKey), "campaign powerup remains in PlayerPrefs");
+        session.AddCoins(600);
+        session.BankOre();
+        Equal(600, session.GetCoins(), "playtest banks into disposable balance");
+        Equal(950, PlayerPrefs.GetInt(GameSession.CoinsKey), "campaign PlayerPrefs coins untouched during playtest");
+        int playtestDeaths = 0;
+        session.PlaytestDeathOccurred += () => playtestDeaths++;
+        session.ProcessPlayerDeath();
+        Equal(1, playtestDeaths, "playtest death notifies creator instead of reloading campaign scene");
+        Equal(3, session.GetLives(), "playtest death does not consume campaign lives");
+        int playtestCompletions = 0;
+        session.PlaytestCompleted += () => playtestCompletions++;
+        session.NotifyPlaytestCompleted();
+        Equal(1, playtestCompletions, "playtest completion notifies creator");
+        Equal(false, GameSession.GetPersonalBest("Level 1").Completed, "playtest completion does not write campaign personal bests");
+        session.ExitPlaytestMode();
+        Equal(false, session.IsPlaytestMode, "session exits playtest mode");
+        Equal(950, session.GetCoins(), "exiting playtest restores campaign coins");
+        Equal(300, session.Pressure.CarriedOre, "exiting playtest restores campaign carried ore");
         Console.WriteLine($"GameSession integration (Unity test doubles): {assertions} assertions passed.");
     }
 }

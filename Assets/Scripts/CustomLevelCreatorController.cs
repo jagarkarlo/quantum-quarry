@@ -3,55 +3,51 @@ using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
 public sealed class CustomLevelCreatorController : MonoBehaviour
 {
-    public const string HostSceneName = "Level 4";
+    public const string DefaultHostSceneName = "Level 4";
     static bool launchRequested;
+    static int requestedCampaignLevel = 4;
 
     CustomLevelDocument document;
     readonly Stack<string> undoStack = new Stack<string>();
     readonly Stack<string> redoStack = new Stack<string>();
 
     bool isEditing = true;
+    int currentCampaignLevel = 4;
     string activeTool = "ground";
     string statusMessage = "Ready";
 
-    GameObject customRoot;
     GameObject editorCanvasObj;
+    GameObject spawnMarkerObj;
     TextMeshProUGUI headerText;
     TextMeshProUGUI toolText;
-
-    readonly List<GameObject> hiddenCampaignRoots = new List<GameObject>();
-    PlayerMovement templatePlayer;
-    LevelExit templateExit;
-    Collecting templateCoin100;
-    Collecting templateCoin150;
-    BreakableOreCrate templateCrate;
-    OreBankCheckpoint templateBank;
-    PressurePulseHazard templateVent;
-    PressureGate templateGate;
-    EnemyPatrol2D templateEnemy;
-    Sprite groundSprite;
-    Sprite lavaSprite;
-    Sprite spikeSprite;
-
-    PlayerMovement activePlayer;
     GameSession session;
 
     public CustomLevelDocument Document => document;
     public bool IsEditing => isEditing;
+    public int CurrentCampaignLevel => currentCampaignLevel;
     public string ActiveTool => activeTool;
     public string StatusMessage => statusMessage;
 
     public static void OpenCreatorFromMenu()
     {
+        OpenCreatorForCampaignLevel(4);
+    }
+
+    public static void OpenCreatorForCampaignLevel(int campaignLevelNumber)
+    {
+        requestedCampaignLevel = Mathf.Clamp(campaignLevelNumber, 1, 6);
         launchRequested = true;
+        PlayerPrefs.SetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, 0);
+        CustomLevelSceneAdapter.SetSuppressAutoOverride(true);
         Time.timeScale = 1f;
         PauseMenu.GameIsPaused = false;
-        SceneManager.LoadScene(HostSceneName);
+        ScenePersist sp = FindObjectOfType<ScenePersist>();
+        if (sp) sp.ResetScenePersist();
+        SceneManager.LoadScene($"Level {requestedCampaignLevel}");
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -59,7 +55,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
     {
         SceneManager.sceneLoaded += (scene, mode) =>
         {
-            if (launchRequested && scene.name == HostSceneName)
+            if (launchRequested && GameSession.IsGameplayScene(scene.name))
             {
                 launchRequested = false;
                 var host = new GameObject("CustomLevelCreatorController");
@@ -70,6 +66,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
     void Start()
     {
+        currentCampaignLevel = requestedCampaignLevel;
         session = FindObjectOfType<GameSession>();
         if (session)
         {
@@ -77,14 +74,27 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             session.PlaytestCompleted += OnPlaytestCompleted;
         }
 
-        CaptureTemplatesAndHideCampaign();
-        document = LoadOrDefaultDraft();
+        ScenePersist sp = FindObjectOfType<ScenePersist>();
+        if (sp) sp.ResetScenePersist();
+
+        if (CustomLevelSceneAdapter.HasCampaignOverride(currentCampaignLevel))
+        {
+            document = CustomLevelSceneAdapter.LoadCampaignOverride(currentCampaignLevel);
+            statusMessage = $"Loaded saved remix override for Level {currentCampaignLevel}.";
+        }
+        else
+        {
+            document = CustomLevelSceneAdapter.CaptureCurrentScene(currentCampaignLevel);
+            statusMessage = $"Captured real Level {currentCampaignLevel} layout ({document.tiles.Count} tiles, {document.objects.Count} objects).";
+        }
+
         BuildToolbarUI();
-        EnterEditMode("Creator ready. Left-click to paint, Playtest to run.");
+        EnterEditMode(statusMessage);
     }
 
     void OnDestroy()
     {
+        CustomLevelSceneAdapter.SetSuppressAutoOverride(false);
         if (session)
         {
             session.PlaytestDeathOccurred -= OnPlaytestDeath;
@@ -93,65 +103,9 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         }
     }
 
-    void CaptureTemplatesAndHideCampaign()
+    public void LoadCampaignLevelForRemix(int levelNumber)
     {
-        ScenePersist sp = FindObjectOfType<ScenePersist>();
-        if (sp) sp.ResetScenePersist();
-
-        templatePlayer = FindObjectOfType<PlayerMovement>(true);
-        templateExit = FindObjectOfType<LevelExit>(true);
-        templateCrate = FindObjectOfType<BreakableOreCrate>(true);
-        templateBank = FindObjectOfType<OreBankCheckpoint>(true);
-        templateVent = FindObjectOfType<PressurePulseHazard>(true);
-        templateGate = FindObjectOfType<PressureGate>(true);
-        templateEnemy = FindObjectOfType<EnemyPatrol2D>(true);
-
-        foreach (Collecting coin in FindObjectsOfType<Collecting>(true))
-        {
-            if (coin.BaseOreValue >= 150 && !templateCoin150) templateCoin150 = coin;
-            else if (coin.BaseOreValue == 100 && !templateCoin100) templateCoin100 = coin;
-        }
-        if (!templateCoin150) templateCoin150 = templateCoin100;
-
-        foreach (Tilemap map in FindObjectsOfType<Tilemap>(true))
-        {
-            foreach (Vector3Int pos in map.cellBounds.allPositionsWithin)
-            {
-                Sprite s = map.GetSprite(pos);
-                if (!s) continue;
-                if (map.gameObject.layer == LayerMask.NameToLayer("Ground") && !groundSprite)
-                    groundSprite = s;
-                else if (map.gameObject.layer == LayerMask.NameToLayer("Hazard") && !spikeSprite)
-                    spikeSprite = s;
-            }
-        }
-        if (templateVent && templateVent.GetComponent<SpriteRenderer>())
-            lavaSprite = templateVent.GetComponent<SpriteRenderer>().sprite;
-        if (!groundSprite && templateCrate && templateCrate.GetComponent<SpriteRenderer>())
-            groundSprite = templateCrate.GetComponent<SpriteRenderer>().sprite;
-        if (!spikeSprite) spikeSprite = lavaSprite;
-
-        Scene activeScene = SceneManager.GetActiveScene();
-        foreach (GameObject root in activeScene.GetRootGameObjects())
-        {
-            if (root == gameObject) continue;
-            if (root.GetComponentInChildren<Camera>(true)) continue;
-            if (root.GetComponentInChildren<UnityEngine.EventSystems.EventSystem>(true)) continue;
-            if (root.activeSelf)
-            {
-                hiddenCampaignRoots.Add(root);
-                root.SetActive(false);
-            }
-        }
-
-        Camera cam = Camera.main;
-        if (cam)
-        {
-            var brain = cam.GetComponent<Cinemachine.CinemachineBrain>();
-            if (brain) brain.enabled = false;
-            cam.orthographicSize = 9.5f;
-            cam.transform.position = new Vector3(12f, 6.5f, -10f);
-        }
+        OpenCreatorForCampaignLevel(levelNumber);
     }
 
     public void SelectTool(string toolId)
@@ -209,9 +163,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
     public string GetDefaultDraftFilePath()
     {
-        string folder = Path.Combine(Application.persistentDataPath, "CustomLevels");
-        Directory.CreateDirectory(folder);
-        return Path.Combine(folder, $"{document.levelId}.json");
+        return Path.Combine(CustomLevelSceneAdapter.GetCustomLevelsFolder(), $"{document.levelId}.json");
     }
 
     public bool SaveDraft(string explicitPath = null)
@@ -246,9 +198,44 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         return true;
     }
 
-    CustomLevelDocument LoadOrDefaultDraft()
+    public bool SaveCurrentLevelCampaignOverride()
     {
-        return CustomLevelDocument.CreateStarterDraft();
+        bool ok = CustomLevelSceneAdapter.SaveCampaignOverride(currentCampaignLevel, document);
+        statusMessage = ok
+            ? $"Saved live Campaign Override for Level {currentCampaignLevel}!"
+            : $"Cannot save override: {document.Validate()[0]}";
+        RefreshToolbarText();
+        return ok;
+    }
+
+    public bool ResetCurrentLevelCampaignOverride()
+    {
+        CustomLevelSceneAdapter.DeleteCampaignOverride(currentCampaignLevel);
+        OpenCreatorForCampaignLevel(currentCampaignLevel);
+        return true;
+    }
+
+    public int SaveAsPlayableCustomStage(int explicitStageNumber = 0)
+    {
+        int stageNumber = CustomLevelSceneAdapter.SaveAsNewCustomStage(document, explicitStageNumber);
+        statusMessage = stageNumber >= 7
+            ? $"Added playable Stage {stageNumber} to Level Selector!"
+            : "Failed to save custom stage.";
+        RefreshToolbarText();
+        return stageNumber;
+    }
+
+    public void ClearToBlankTemplate()
+    {
+        if (!isEditing) return;
+        undoStack.Push(document.ToJson());
+        redoStack.Clear();
+        document = CustomLevelDocument.CreateStarterDraft();
+        document.sourceCampaignLevel = currentCampaignLevel;
+        RebuildWorld(false);
+        CenterCameraOnSpawn();
+        statusMessage = "Created clean starter template with real tiles and prefabs.";
+        RefreshToolbarText();
     }
 
     public void StartPlaytest()
@@ -265,6 +252,12 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         if (!session) session = FindObjectOfType<GameSession>();
         if (session) session.EnterPlaytestMode(document.levelId);
         RebuildWorld(true);
+        Camera cam = Camera.main;
+        if (cam)
+        {
+            var brain = cam.GetComponent<Cinemachine.CinemachineBrain>();
+            if (brain) brain.enabled = true;
+        }
         QuarryPressureHUD.EnsureForScene(session);
         statusMessage = "PLAYTESTING (isolated save) — click Edit Mode to return";
         RefreshToolbarText();
@@ -283,16 +276,28 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         Camera cam = Camera.main;
         if (cam)
         {
+            var brain = cam.GetComponent<Cinemachine.CinemachineBrain>();
+            if (brain) brain.enabled = false;
             cam.orthographicSize = 9.5f;
-            cam.transform.position = new Vector3(12f, 6.5f, -10f);
         }
+        CenterCameraOnSpawn();
         statusMessage = message;
         RefreshToolbarText();
     }
 
+    void CenterCameraOnSpawn()
+    {
+        Camera cam = Camera.main;
+        if (cam && document != null)
+            cam.transform.position = new Vector3(document.spawnX + 6f, document.spawnY + 3f, -10f);
+    }
+
     public void ExitCreatorToLevelSelector()
     {
+        CustomLevelSceneAdapter.SetSuppressAutoOverride(false);
         if (session && session.IsPlaytestMode) session.ExitPlaytestMode();
+        ScenePersist sp = FindObjectOfType<ScenePersist>();
+        if (sp) sp.ResetScenePersist();
         SceneManager.LoadScene("Level selector");
     }
 
@@ -328,133 +333,29 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             if (Mathf.Abs(panX) > 0.01f || Mathf.Abs(panY) > 0.01f)
             {
                 Vector3 pos = Camera.main.transform.position;
-                pos.x = Mathf.Clamp(pos.x + panX * 10f * Time.unscaledDeltaTime, 6f, document.width - 6f);
-                pos.y = Mathf.Clamp(pos.y + panY * 10f * Time.unscaledDeltaTime, 4f, document.height - 4f);
+                pos.x = Mathf.Clamp(pos.x + panX * 14f * Time.unscaledDeltaTime, CustomLevelDocument.MinCoord, CustomLevelDocument.MaxCoord);
+                pos.y = Mathf.Clamp(pos.y + panY * 14f * Time.unscaledDeltaTime, CustomLevelDocument.MinCoord, CustomLevelDocument.MaxCoord);
                 Camera.main.transform.position = pos;
             }
-        }
-        else if (!isEditing && activePlayer && Camera.main)
-        {
-            Vector3 p = activePlayer.transform.position;
-            Camera.main.transform.position = new Vector3(
-                Mathf.Clamp(p.x, 8f, Mathf.Max(8f, document.width - 8f)),
-                Mathf.Clamp(p.y + 1.5f, 5f, Mathf.Max(5f, document.height - 5f)),
-                -10f);
         }
     }
 
     void RebuildWorld(bool spawnLivePlaytest)
     {
-        if (customRoot) DestroyImmediate(customRoot);
-        customRoot = new GameObject("CustomLevelRuntimeRoot");
+        if (spawnMarkerObj) DestroyImmediate(spawnMarkerObj);
+        CustomLevelSceneAdapter.ApplyDocumentToCurrentScene(document, spawnLivePlaytest);
 
-        for (int i = 0; i < document.tiles.Count; i++)
+        if (!spawnLivePlaytest)
         {
-            CustomLevelCell cell = document.tiles[i];
-            BuildTileObject(cell.x, cell.y, cell.id);
+            spawnMarkerObj = new GameObject("CreatorSpawnMarker");
+            spawnMarkerObj.transform.position = new Vector3(document.spawnX, document.spawnY + 0.8f, 0f);
+            TextMeshPro tmp = spawnMarkerObj.AddComponent<TextMeshPro>();
+            tmp.text = "SPAWN";
+            tmp.fontSize = 3f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = new Color(0.35f, 1f, 0.55f);
+            tmp.sortingOrder = 120;
         }
-
-        for (int i = 0; i < document.objects.Count; i++)
-        {
-            CustomLevelCell obj = document.objects[i];
-            BuildPlacedObject(obj.x, obj.y, obj.id, spawnLivePlaytest);
-        }
-
-        BuildEndpointMarker("SpawnMarker", document.spawnX, document.spawnY, "SPAWN", new Color(0.35f, 0.95f, 0.55f));
-        if (spawnLivePlaytest && templateExit)
-        {
-            LevelExit exitInstance = Instantiate(templateExit, new Vector3(document.exitX, document.exitY, 0f),
-                Quaternion.identity, customRoot.transform);
-            exitInstance.gameObject.SetActive(true);
-            exitInstance.name = "CustomLevelExit";
-        }
-        else
-        {
-            BuildEndpointMarker("ExitMarker", document.exitX, document.exitY, "EXIT", new Color(0.45f, 0.85f, 1f));
-        }
-
-        if (spawnLivePlaytest && templatePlayer)
-        {
-            activePlayer = Instantiate(templatePlayer, new Vector3(document.spawnX, document.spawnY + 0.35f, 0f),
-                Quaternion.identity, customRoot.transform);
-            activePlayer.gameObject.SetActive(true);
-            activePlayer.name = "CustomPlaytestPlayer";
-        }
-    }
-
-    void BuildTileObject(int x, int y, string id)
-    {
-        var go = new GameObject($"Tile_{id}_{x}_{y}");
-        go.transform.SetParent(customRoot.transform, false);
-        go.transform.position = new Vector3(x, y, 0f);
-
-        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = id == "lava" ? lavaSprite : id == "hazard_spike" ? spikeSprite : groundSprite;
-        sr.sortingLayerName = "Platforme";
-        sr.sortingOrder = 2;
-
-        BoxCollider2D col = go.AddComponent<BoxCollider2D>();
-        col.size = Vector2.one;
-
-        if (id == "ground")
-        {
-            go.layer = LayerMask.NameToLayer("Ground");
-            sr.color = new Color(0.55f, 0.65f, 0.72f);
-        }
-        else
-        {
-            go.layer = LayerMask.NameToLayer("Hazard");
-            sr.color = id == "lava" ? new Color(1f, 0.38f, 0.1f) : new Color(0.95f, 0.3f, 0.35f);
-        }
-    }
-
-    void BuildPlacedObject(int x, int y, string id, bool live)
-    {
-        Vector3 pos = new Vector3(x, y, 0f);
-        GameObject spawned = null;
-        if (id == "coin_100" && templateCoin100) spawned = Instantiate(templateCoin100.gameObject, pos, Quaternion.identity, customRoot.transform);
-        else if (id == "coin_150" && templateCoin150) spawned = Instantiate(templateCoin150.gameObject, pos, Quaternion.identity, customRoot.transform);
-        else if (id == "crate_250" && templateCrate) spawned = Instantiate(templateCrate.gameObject, pos, Quaternion.identity, customRoot.transform);
-        else if (id == "bank" && templateBank) spawned = Instantiate(templateBank.gameObject, pos, Quaternion.identity, customRoot.transform);
-        else if (id == "vent" && templateVent) spawned = Instantiate(templateVent.gameObject, pos, Quaternion.identity, customRoot.transform);
-        else if (id == "gate_t1" && templateGate) spawned = Instantiate(templateGate.gameObject, pos + Vector3.up * 0.5f, Quaternion.identity, customRoot.transform);
-        else if (id == "enemy" && templateEnemy) spawned = Instantiate(templateEnemy.gameObject, pos, Quaternion.identity, customRoot.transform);
-
-        if (spawned)
-        {
-            spawned.name = $"CustomObj_{id}_{x}_{y}";
-            spawned.SetActive(true);
-            if (!live)
-            {
-                EnemyPatrol2D patrol = spawned.GetComponent<EnemyPatrol2D>();
-                if (patrol) patrol.enabled = false;
-                Rigidbody2D rb = spawned.GetComponent<Rigidbody2D>();
-                if (rb) rb.simulated = false;
-            }
-        }
-    }
-
-    void BuildEndpointMarker(string markerName, int x, int y, string textLabel, Color color)
-    {
-        var go = new GameObject(markerName);
-        go.transform.SetParent(customRoot.transform, false);
-        go.transform.position = new Vector3(x, y, 0f);
-        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = groundSprite;
-        sr.color = color;
-        sr.sortingLayerName = "Exit";
-        sr.sortingOrder = 20;
-
-        var labelObj = new GameObject("Label");
-        labelObj.transform.SetParent(go.transform, false);
-        labelObj.transform.localPosition = Vector3.up * 0.9f;
-        TextMeshPro tmp = labelObj.AddComponent<TextMeshPro>();
-        tmp.text = textLabel;
-        tmp.fontSize = 2.6f;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = color;
-        tmp.sortingLayerID = sr.sortingLayerID;
-        tmp.sortingOrder = 100;
     }
 
     void BuildToolbarUI()
@@ -462,7 +363,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         editorCanvasObj = new GameObject("CustomCreatorCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         Canvas canvas = editorCanvasObj.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 80;
+        canvas.sortingOrder = 85;
         CanvasScaler scaler = editorCanvasObj.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1280f, 720f);
@@ -474,36 +375,90 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         barRect.anchorMin = new Vector2(0f, 1f);
         barRect.anchorMax = new Vector2(1f, 1f);
         barRect.pivot = new Vector2(0.5f, 1f);
-        barRect.offsetMin = new Vector2(0f, -92f);
+        barRect.offsetMin = new Vector2(0f, -124f);
         barRect.offsetMax = Vector2.zero;
-        topBar.GetComponent<Image>().color = new Color(0.05f, 0.08f, 0.12f, 0.92f);
+        topBar.GetComponent<Image>().color = new Color(0.04f, 0.07f, 0.11f, 0.94f);
 
-        headerText = CreateText(topBar.transform, "HeaderText", new Vector2(16f, -6f), new Vector2(720f, 28f), 16f, TextAlignmentOptions.Left);
-        toolText = CreateText(topBar.transform, "ToolText", new Vector2(16f, -34f), new Vector2(720f, 22f), 13f, TextAlignmentOptions.Left);
-        toolText.color = new Color(0.65f, 0.9f, 1f);
+        headerText = CreateText(topBar.transform, "HeaderText", new Vector2(12f, -4f), new Vector2(680f, 24f), 15f, TextAlignmentOptions.Left);
+        toolText = CreateText(topBar.transform, "ToolText", new Vector2(12f, -26f), new Vector2(680f, 20f), 12f, TextAlignmentOptions.Left);
+        toolText.color = new Color(0.65f, 0.92f, 1f);
 
-        string[] palette = { "ground", "lava", "coin_100", "crate_250", "bank", "vent", "gate_t1", "erase" };
-        float x = 16f;
-        for (int i = 0; i < palette.Length; i++)
+        float lx = 700f;
+        for (int lvl = 1; lvl <= 6; lvl++)
         {
-            string tool = palette[i];
-            CreateToolbarButton(topBar.transform, $"Btn_{tool}", tool.ToUpperInvariant(), new Vector2(x, -60f), new Vector2(88f, 26f),
-                new Color(0.14f, 0.24f, 0.34f), () => SelectTool(tool));
-            x += 94f;
+            int capturedLvl = lvl;
+            CreateToolbarButton(topBar.transform, $"Btn_LoadL{lvl}", $"REMIX L{lvl}", new Vector2(lx, -6f), new Vector2(74f, 24f),
+                new Color(0.18f, 0.28f, 0.42f), () => LoadCampaignLevelForRemix(capturedLvl));
+            lx += 78f;
+        }
+        CreateToolbarButton(topBar.transform, "Btn_Blank", "NEW BLANK", new Vector2(lx, -6f), new Vector2(88f, 24f),
+            new Color(0.24f, 0.34f, 0.24f), ClearToBlankTemplate);
+
+        string[] row1 =
+        {
+            "ground", "rock", "ladder", "bounce", "hazard_spike", "water_surface", "lava_surface", "bg", "spawn", "exit", "erase"
+        };
+        float x1 = 12f;
+        for (int i = 0; i < row1.Length; i++)
+        {
+            string tool = row1[i];
+            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x1, -54f), new Vector2(96f, 26f),
+                new Color(0.12f, 0.24f, 0.34f), () => SelectTool(tool));
+            x1 += 100f;
         }
 
-        CreateToolbarButton(topBar.transform, "Btn_Undo", "UNDO", new Vector2(780f, -60f), new Vector2(68f, 26f),
-            new Color(0.25f, 0.25f, 0.32f), () => Undo());
-        CreateToolbarButton(topBar.transform, "Btn_Save", "SAVE", new Vector2(854f, -60f), new Vector2(68f, 26f),
-            new Color(0.16f, 0.42f, 0.28f), () => SaveDraft());
-        CreateToolbarButton(topBar.transform, "Btn_Playtest", "PLAYTEST", new Vector2(928f, -60f), new Vector2(104f, 26f),
+        string[] row2 =
+        {
+            "coin_100", "coin_150", "coin_200", "crate_250", "enemy", "red_enemy", "platform", "bank", "vent", "gate_t1", "gate_t2", "stabilization"
+        };
+        float x2 = 12f;
+        for (int i = 0; i < row2.Length; i++)
+        {
+            string tool = row2[i];
+            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x2, -86f), new Vector2(72f, 26f),
+                new Color(0.18f, 0.22f, 0.36f), () => SelectTool(tool));
+            x2 += 75f;
+        }
+
+        CreateToolbarButton(topBar.transform, "Btn_Undo", "UNDO", new Vector2(918f, -86f), new Vector2(54f, 26f),
+            new Color(0.26f, 0.26f, 0.32f), () => Undo());
+        CreateToolbarButton(topBar.transform, "Btn_SaveOverride", $"SAVE L{currentCampaignLevel}", new Vector2(976f, -86f), new Vector2(72f, 26f),
+            new Color(0.14f, 0.44f, 0.26f), () => SaveCurrentLevelCampaignOverride());
+        CreateToolbarButton(topBar.transform, "Btn_ResetOverride", "RESET L", new Vector2(1052f, -86f), new Vector2(64f, 26f),
+            new Color(0.42f, 0.26f, 0.14f), () => ResetCurrentLevelCampaignOverride());
+        CreateToolbarButton(topBar.transform, "Btn_SaveStage", "+STAGE", new Vector2(1120f, -86f), new Vector2(66f, 26f),
+            new Color(0.22f, 0.42f, 0.52f), () => SaveAsPlayableCustomStage());
+        CreateToolbarButton(topBar.transform, "Btn_Playtest", "PLAY", new Vector2(1190f, -86f), new Vector2(44f, 26f),
             new Color(0.85f, 0.48f, 0.12f), () =>
             {
                 if (isEditing) StartPlaytest();
                 else EnterEditMode();
             });
-        CreateToolbarButton(topBar.transform, "Btn_ExitCreator", "BACK", new Vector2(1038f, -60f), new Vector2(76f, 26f),
-            new Color(0.45f, 0.18f, 0.18f), ExitCreatorToLevelSelector);
+        CreateToolbarButton(topBar.transform, "Btn_ExitCreator", "EXIT", new Vector2(1236f, -86f), new Vector2(38f, 26f),
+            new Color(0.48f, 0.16f, 0.16f), ExitCreatorToLevelSelector);
+    }
+
+    static string FormatToolLabel(string id)
+    {
+        switch (id)
+        {
+            case "ground": return "RULE GROUND";
+            case "rock": return "ROCK TILE";
+            case "ladder": return "LADDER";
+            case "bounce": return "MUSHROOM";
+            case "hazard_spike": return "SPIKES";
+            case "water_surface": return "WATER";
+            case "lava_surface": return "LAVA";
+            case "bg": return "BG TILE";
+            case "coin_100": return "COIN 100";
+            case "coin_150": return "COIN 150";
+            case "coin_200": return "COIN 200";
+            case "crate_250": return "CRATE";
+            case "red_enemy": return "RED ENEMY";
+            case "platform": return "PLATFORM";
+            case "stabilization": return "STABILIZE";
+            default: return id.ToUpperInvariant();
+        }
     }
 
     static TextMeshProUGUI CreateText(Transform parent, string name, Vector2 anchoredPos, Vector2 size, float fontSize, TextAlignmentOptions align)
@@ -548,7 +503,10 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
         TextMeshProUGUI tmp = textObj.GetComponent<TextMeshProUGUI>();
         tmp.text = label;
-        tmp.fontSize = 11f;
+        tmp.fontSize = 10f;
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 7f;
+        tmp.fontSizeMax = 11f;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.white;
         tmp.raycastTarget = false;
@@ -558,18 +516,19 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
     {
         if (headerText)
         {
-            string modeLabel = isEditing ? "EDIT MODE" : "ISOLATED PLAYTEST";
-            headerText.text = $"LEVEL CREATOR ({modeLabel})  |  {document.title} ({document.tiles.Count} tiles, {document.objects.Count} objects)";
+            string modeLabel = isEditing ? $"REMIXING LEVEL {currentCampaignLevel}" : "ISOLATED PLAYTEST";
+            string hasOverride = CustomLevelSceneAdapter.HasCampaignOverride(currentCampaignLevel) ? " [OVERRIDDEN]" : "";
+            headerText.text = $"LEVEL CREATOR ({modeLabel}{hasOverride})  |  {document.tiles.Count} tiles, {document.objects.Count} objects";
         }
         if (toolText)
         {
-            toolText.text = $"Active Tool: {activeTool.ToUpperInvariant()}  |  Undo: {undoStack.Count}  |  {statusMessage}";
+            toolText.text = $"Tool: {FormatToolLabel(activeTool)}  |  Undo: {undoStack.Count}  |  {statusMessage}";
         }
         Transform playBtn = editorCanvasObj ? editorCanvasObj.transform.Find("TopBar/Btn_Playtest/Label") : null;
         if (playBtn)
         {
             TextMeshProUGUI label = playBtn.GetComponent<TextMeshProUGUI>();
-            if (label) label.text = isEditing ? "PLAYTEST" : "EDIT MODE";
+            if (label) label.text = isEditing ? "PLAY" : "EDIT";
         }
     }
 }

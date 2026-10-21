@@ -66,6 +66,10 @@ public class GameSession : MonoBehaviour
     public event System.Action PlaytestCompleted;
     public LevelResult LastCompletedLevelResult { get; private set; }
     public string ActiveLevelId => activeLevelId;
+    public void OverrideActiveLevelId(string customLevelId)
+    {
+        if (!string.IsNullOrEmpty(customLevelId)) activeLevelId = customLevelId;
+    }
     public int GetLevelElapsedMs() => Mathf.Max(0, Mathf.RoundToInt(levelElapsedSeconds * 1000f));
     public int GetLevelBankedOre() => levelBankedOre;
     public int GetLevelLostOre() => levelLostOre;

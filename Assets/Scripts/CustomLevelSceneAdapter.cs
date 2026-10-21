@@ -23,6 +23,9 @@ public static class CustomLevelSceneAdapter
         if (suppressAutoOverride) return;
         if (!GameSession.IsGameplayScene(scene.name)) return;
 
+        ScenePersist persist = UnityEngine.Object.FindObjectOfType<ScenePersist>(true);
+        bool persistAlreadyPopulated = persist && persist.transform.Find("__CustomAppliedMarker") != null;
+
         int activeCustomStage = PlayerPrefs.GetInt(ActiveCustomStageKey, 0);
         if (activeCustomStage >= 7)
         {
@@ -32,7 +35,7 @@ public static class CustomLevelSceneAdapter
                 CustomLevelDocument stageDoc = CustomLevelDocument.FromJson(File.ReadAllText(stagePath));
                 if (stageDoc.Validate().Count == 0)
                 {
-                    ApplyDocumentToCurrentScene(stageDoc, true);
+                    ApplyDocumentToCurrentScene(stageDoc, true, persistAlreadyPopulated);
                     var session = UnityEngine.Object.FindObjectOfType<GameSession>();
                     if (session) session.OverrideActiveLevelId($"level-{activeCustomStage}");
                 }
@@ -46,7 +49,7 @@ public static class CustomLevelSceneAdapter
             CustomLevelDocument overrideDoc = LoadCampaignOverride(levelNum);
             if (overrideDoc != null && overrideDoc.Validate().Count == 0)
             {
-                ApplyDocumentToCurrentScene(overrideDoc, true);
+                ApplyDocumentToCurrentScene(overrideDoc, true, persistAlreadyPopulated);
             }
         }
     }
@@ -145,15 +148,15 @@ public static class CustomLevelSceneAdapter
         PlayerMovement player = UnityEngine.Object.FindObjectOfType<PlayerMovement>(true);
         if (player)
         {
-            doc.spawnX = Mathf.RoundToInt(player.transform.position.x);
-            doc.spawnY = Mathf.RoundToInt(player.transform.position.y);
+            Vector3 p = player.transform.position;
+            doc.SetSpawn(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), p.x, p.y);
         }
 
         LevelExit exit = UnityEngine.Object.FindObjectOfType<LevelExit>(true);
         if (exit)
         {
-            doc.exitX = Mathf.RoundToInt(exit.transform.position.x);
-            doc.exitY = Mathf.RoundToInt(exit.transform.position.y);
+            Vector3 ep = exit.transform.position;
+            doc.SetExit(Mathf.RoundToInt(ep.x), Mathf.RoundToInt(ep.y), ep.x, ep.y);
         }
 
         if (doc.spawnX == doc.exitX && doc.spawnY == doc.exitY) doc.exitX += 10;
@@ -174,45 +177,65 @@ public static class CustomLevelSceneAdapter
         foreach (Collecting coin in UnityEngine.Object.FindObjectsOfType<Collecting>(true))
         {
             string id = coin.BaseOreValue >= 200 ? "coin_200" : coin.BaseOreValue >= 150 ? "coin_150" : "coin_100";
-            doc.SetObject(Mathf.RoundToInt(coin.transform.position.x), Mathf.RoundToInt(coin.transform.position.y), id);
+            Vector3 p = coin.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), id, p.x, p.y);
         }
 
         foreach (BreakableOreCrate crate in UnityEngine.Object.FindObjectsOfType<BreakableOreCrate>(true))
-            doc.SetObject(Mathf.RoundToInt(crate.transform.position.x), Mathf.RoundToInt(crate.transform.position.y), "crate_250");
+        {
+            Vector3 p = crate.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "crate_250", p.x, p.y);
+        }
 
         foreach (OreBankCheckpoint bank in UnityEngine.Object.FindObjectsOfType<OreBankCheckpoint>(true))
-            doc.SetObject(Mathf.RoundToInt(bank.transform.position.x), Mathf.RoundToInt(bank.transform.position.y), "bank");
+        {
+            Vector3 p = bank.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "bank", p.x, p.y);
+        }
 
         foreach (PressurePulseHazard vent in UnityEngine.Object.FindObjectsOfType<PressurePulseHazard>(true))
-            doc.SetObject(Mathf.RoundToInt(vent.transform.position.x), Mathf.RoundToInt(vent.transform.position.y), "vent");
+        {
+            Vector3 p = vent.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "vent", p.x, p.y);
+        }
 
         foreach (PressureGate gate in UnityEngine.Object.FindObjectsOfType<PressureGate>(true))
         {
             string id = gate.RequiredTier >= 2 ? "gate_t2" : "gate_t1";
-            doc.SetObject(Mathf.RoundToInt(gate.transform.position.x), Mathf.RoundToInt(gate.transform.position.y - 0.5f), id);
+            Vector3 p = gate.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y - 0.5f), id, p.x, p.y);
         }
 
         foreach (EnemyPatrol2D enemy in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true))
         {
             SpriteRenderer sr = enemy.GetComponent<SpriteRenderer>();
             bool isRed = (sr && sr.color.r > 0.5f && sr.color.g < 0.4f) || enemy.name.Contains("Crveni") || enemy.name.Contains("Red");
-            doc.SetObject(Mathf.RoundToInt(enemy.transform.position.x), Mathf.RoundToInt(enemy.transform.position.y),
-                isRed ? "red_enemy" : "enemy");
+            Vector3 p = enemy.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), isRed ? "red_enemy" : "enemy", p.x, p.y);
         }
 
         foreach (FollowingPoint plat in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
         {
             Transform root = plat.transform.parent ? plat.transform.parent : plat.transform;
-            doc.SetObject(Mathf.RoundToInt(root.position.x), Mathf.RoundToInt(root.position.y), "platform");
+            Transform t1 = root.Find("Tocka 1");
+            Transform t2 = root.Find("Tocka2");
+            Vector3 p1 = t1 ? t1.position : plat.transform.position;
+            Vector3 p2 = t2 ? t2.position : p1 + Vector3.right * 6f;
+            float spanX = p2.x - p1.x;
+            float spanY = p2.y - p1.y;
+            doc.AddCapturedObject(Mathf.RoundToInt(p1.x), Mathf.RoundToInt(p1.y), "platform", p1.x, p1.y, spanX, spanY);
         }
 
         foreach (StabilizationPickup pickup in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true))
-            doc.SetObject(Mathf.RoundToInt(pickup.transform.position.x), Mathf.RoundToInt(pickup.transform.position.y), "stabilization");
+        {
+            Vector3 p = pickup.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "stabilization", p.x, p.y);
+        }
 
         return doc;
     }
 
-    public static void ApplyDocumentToCurrentScene(CustomLevelDocument doc, bool liveGameplay)
+    public static void ApplyDocumentToCurrentScene(CustomLevelDocument doc, bool liveGameplay, bool preservePersistedObjects = false)
     {
         if (doc == null) return;
         QuarryAssetPalette palette = QuarryAssetPalette.Load();
@@ -256,28 +279,52 @@ public static class CustomLevelSceneAdapter
             }
         }
 
-        foreach (Collecting c in UnityEngine.Object.FindObjectsOfType<Collecting>(true)) UnityEngine.Object.DestroyImmediate(c.gameObject);
-        foreach (BreakableOreCrate c in UnityEngine.Object.FindObjectsOfType<BreakableOreCrate>(true)) UnityEngine.Object.DestroyImmediate(c.gameObject);
+        ScenePersist persist = UnityEngine.Object.FindObjectOfType<ScenePersist>(true);
+        Transform persistParent = persist ? persist.transform : null;
+
+        if (preservePersistedObjects && persistParent)
+        {
+            foreach (Collecting c in UnityEngine.Object.FindObjectsOfType<Collecting>(true))
+                if (c.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(c.gameObject);
+            foreach (BreakableOreCrate c in UnityEngine.Object.FindObjectsOfType<BreakableOreCrate>(true))
+                if (c.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(c.gameObject);
+            foreach (EnemyPatrol2D e in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true))
+                if (e.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(e.gameObject);
+            foreach (StabilizationPickup s in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true))
+                if (s.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(s.gameObject);
+        }
+        else
+        {
+            foreach (Collecting c in UnityEngine.Object.FindObjectsOfType<Collecting>(true)) UnityEngine.Object.DestroyImmediate(c.gameObject);
+            foreach (BreakableOreCrate c in UnityEngine.Object.FindObjectsOfType<BreakableOreCrate>(true)) UnityEngine.Object.DestroyImmediate(c.gameObject);
+            foreach (EnemyPatrol2D e in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true)) UnityEngine.Object.DestroyImmediate(e.gameObject);
+            foreach (StabilizationPickup s in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true)) UnityEngine.Object.DestroyImmediate(s.gameObject);
+        }
+
         foreach (OreBankCheckpoint b in UnityEngine.Object.FindObjectsOfType<OreBankCheckpoint>(true)) UnityEngine.Object.DestroyImmediate(b.gameObject);
         foreach (PressurePulseHazard v in UnityEngine.Object.FindObjectsOfType<PressurePulseHazard>(true)) UnityEngine.Object.DestroyImmediate(v.gameObject);
         foreach (PressureGate g in UnityEngine.Object.FindObjectsOfType<PressureGate>(true)) UnityEngine.Object.DestroyImmediate(g.gameObject);
-        foreach (EnemyPatrol2D e in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true)) UnityEngine.Object.DestroyImmediate(e.gameObject);
-        foreach (StabilizationPickup s in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true)) UnityEngine.Object.DestroyImmediate(s.gameObject);
         foreach (FollowingPoint p in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
         {
             GameObject root = p.transform.parent ? p.transform.parent.gameObject : p.gameObject;
             UnityEngine.Object.DestroyImmediate(root);
         }
 
-        ScenePersist persist = UnityEngine.Object.FindObjectOfType<ScenePersist>(true);
-        Transform persistParent = persist ? persist.transform : null;
-
         if (palette)
         {
             for (int i = 0; i < doc.objects.Count; i++)
             {
                 CustomLevelCell obj = doc.objects[i];
-                SpawnObjectFromPalette(palette, obj.x, obj.y, obj.id, persistParent, liveGameplay);
+                bool isPersistedType = obj.id == "coin_100" || obj.id == "coin_150" || obj.id == "coin_200" ||
+                                       obj.id == "crate_250" || obj.id == "enemy" || obj.id == "red_enemy" ||
+                                       obj.id == "stabilization";
+                if (preservePersistedObjects && isPersistedType) continue;
+                SpawnObjectFromPalette(palette, obj, persistParent, liveGameplay);
+            }
+            if (persistParent && !persistParent.Find("__CustomAppliedMarker"))
+            {
+                var marker = new GameObject("__CustomAppliedMarker");
+                marker.transform.SetParent(persistParent, false);
             }
         }
 
@@ -285,12 +332,12 @@ public static class CustomLevelSceneAdapter
         if (player)
         {
             player.gameObject.SetActive(liveGameplay);
-            player.transform.position = new Vector3(doc.spawnX, doc.spawnY, 0f);
+            player.transform.position = new Vector3(doc.exactSpawnX, doc.exactSpawnY, 0f);
             Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
             if (rb)
             {
                 rb.velocity = Vector2.zero;
-                rb.position = new Vector2(doc.spawnX, doc.spawnY);
+                rb.position = new Vector2(doc.exactSpawnX, doc.exactSpawnY);
             }
         }
 
@@ -298,15 +345,21 @@ public static class CustomLevelSceneAdapter
         if (exit)
         {
             exit.gameObject.SetActive(true);
-            exit.transform.position = new Vector3(doc.exitX, doc.exitY, 0f);
+            exit.transform.position = new Vector3(doc.exactExitX, doc.exactExitY, 0f);
         }
+
+        foreach (TilemapCollider2D tc in UnityEngine.Object.FindObjectsOfType<TilemapCollider2D>(true))
+            tc.ProcessTilemapChanges();
+        foreach (CompositeCollider2D cc in UnityEngine.Object.FindObjectsOfType<CompositeCollider2D>(true))
+            cc.GenerateGeometry();
 
         Physics2D.SyncTransforms();
     }
 
-    static void SpawnObjectFromPalette(QuarryAssetPalette palette, int x, int y, string id, Transform persistParent, bool live)
+    static void SpawnObjectFromPalette(QuarryAssetPalette palette, CustomLevelCell cell, Transform persistParent, bool live)
     {
-        Vector3 pos = new Vector3(x, y, 0f);
+        string id = cell.id;
+        Vector3 pos = new Vector3(cell.exactX, cell.exactY, 0f);
         GameObject spawned = null;
         if ((id == "coin_100" || id == "coin_150" || id == "coin_200") && palette.coinPrefab)
         {
@@ -328,7 +381,7 @@ public static class CustomLevelSceneAdapter
         }
         else if ((id == "gate_t1" || id == "gate_t2") && palette.pressureGatePrefab)
         {
-            spawned = UnityEngine.Object.Instantiate(palette.pressureGatePrefab, pos + Vector3.up * 0.5f, Quaternion.identity);
+            spawned = UnityEngine.Object.Instantiate(palette.pressureGatePrefab, pos, Quaternion.identity);
             PressureGate g = spawned.GetComponent<PressureGate>();
             if (g) g.SetRequiredTier(id == "gate_t2" ? 2 : 1);
         }
@@ -342,7 +395,17 @@ public static class CustomLevelSceneAdapter
         }
         else if (id == "platform" && palette.movingPlatformPrefab)
         {
-            spawned = UnityEngine.Object.Instantiate(palette.movingPlatformPrefab, pos - new Vector3(8f, 0.399f, 0f), Quaternion.identity);
+            spawned = UnityEngine.Object.Instantiate(palette.movingPlatformPrefab, Vector3.zero, Quaternion.identity);
+            Transform mov = spawned.transform.Find("Movement");
+            Transform t1 = spawned.transform.Find("Tocka 1");
+            Transform t2 = spawned.transform.Find("Tocka2");
+            float sx = Mathf.Abs(cell.spanX) < 0.01f && Mathf.Abs(cell.spanY) < 0.01f ? 6f : cell.spanX;
+            float sy = cell.spanY;
+            Vector3 p1 = pos;
+            Vector3 p2 = pos + new Vector3(sx, sy, 0f);
+            if (t1) t1.position = p1;
+            if (t2) t2.position = p2;
+            if (mov) mov.position = p1;
         }
         else if (id == "stabilization" && palette.stabilizationPickupPrefab)
         {

@@ -42,6 +42,17 @@ public class LevelExit : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(levelLoadDelay);
 
+        int activeCustomStage = PlayerPrefs.GetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, 0);
+        if (activeCustomStage >= 7)
+        {
+            PlayerPrefs.SetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, 0);
+            PlayerPrefs.Save();
+            var spCustom = FindObjectOfType<ScenePersist>();
+            if (spCustom) spCustom.ResetScenePersist();
+            SceneManager.LoadScene("Level selector");
+            yield break;
+        }
+
         int currentNumber = ParseLevelNumber(currentName);
         int nextNumber = currentNumber + 1;
 

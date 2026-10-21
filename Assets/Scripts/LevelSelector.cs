@@ -39,9 +39,10 @@ public class LevelSelector : MonoBehaviour
         }
 
         int unlocked = PlayerPrefs.GetInt(UnlockedLevelKey, 1);
-        if (btn) btn.interactable = (level <= unlocked);
+        if (btn) btn.interactable = (level <= unlocked || level >= 7);
         RefreshMedalBadge();
         EnsureCreatorButton();
+        EnsureCustomStageButtons();
     }
 
     void EnsureCreatorButton()
@@ -88,6 +89,10 @@ public class LevelSelector : MonoBehaviour
     {
         LevelPersonalBest record = GameSession.GetPersonalBest($"level-{level}");
         string badgeText = LevelMedals.FormatShortBadge(record);
+        if (level >= 1 && level <= 6 && CustomLevelSceneAdapter.HasCampaignOverride(level))
+        {
+            badgeText = string.IsNullOrEmpty(badgeText) ? "REMIXED" : $"{badgeText} *";
+        }
         if (string.IsNullOrEmpty(badgeText))
         {
             if (medalBadge) medalBadge.gameObject.SetActive(false);
@@ -124,8 +129,75 @@ public class LevelSelector : MonoBehaviour
         medalBadge.text = badgeText;
     }
 
+    void EnsureCustomStageButtons()
+    {
+        if (level != 1) return;
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (!canvas) return;
+
+        var stages = CustomLevelSceneAdapter.GetSavedCustomStageNumbers();
+        for (int i = 0; i < stages.Count; i++)
+        {
+            int stageNum = stages[i];
+            string btnName = $"Button_CustomStage_{stageNum}";
+            if (canvas.transform.Find(btnName)) continue;
+
+            var stageObj = new GameObject(btnName, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LevelSelector));
+            stageObj.transform.SetParent(canvas.transform, false);
+            RectTransform rect = stageObj.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0f, 0f);
+            rect.pivot = new Vector2(0f, 0f);
+            rect.anchoredPosition = new Vector2(24f + i * 150f, 24f);
+            rect.sizeDelta = new Vector2(140f, 48f);
+
+            Image img = stageObj.GetComponent<Image>();
+            img.color = new Color(0.24f, 0.16f, 0.42f, 0.94f);
+            Button stageBtn = stageObj.GetComponent<Button>();
+            stageBtn.targetGraphic = img;
+
+            var labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelObj.transform.SetParent(stageObj.transform, false);
+            RectTransform labelRect = labelObj.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.sizeDelta = Vector2.zero;
+
+            TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI parentLabel = GetComponentInChildren<TextMeshProUGUI>();
+            if (parentLabel && parentLabel.font) label.font = parentLabel.font;
+            label.text = $"STAGE {stageNum}";
+            label.alignment = TextAlignmentOptions.Center;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 11f;
+            label.fontSizeMax = 18f;
+            label.color = new Color(0.98f, 0.92f, 1f);
+            label.raycastTarget = false;
+
+            LevelSelector selector = stageObj.GetComponent<LevelSelector>();
+            selector.level = stageNum;
+            stageBtn.onClick.AddListener(selector.OpenScene);
+            selector.RefreshMedalBadge();
+        }
+    }
+
     public void OpenScene()
     {
+        if (level >= 7)
+        {
+            string stagePath = CustomLevelSceneAdapter.GetCustomStageFilePath(level);
+            if (System.IO.File.Exists(stagePath))
+            {
+                CustomLevelDocument doc = CustomLevelDocument.FromJson(System.IO.File.ReadAllText(stagePath));
+                int hostLvl = Mathf.Clamp(doc.sourceCampaignLevel, 1, 6);
+                PlayerPrefs.SetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, level);
+                PlayerPrefs.Save();
+                SceneManager.LoadScene($"Level {hostLvl}");
+                return;
+            }
+        }
+
+        PlayerPrefs.SetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, 0);
         int unlocked = PlayerPrefs.GetInt(UnlockedLevelKey, 1);
         if (level <= unlocked)
         {

@@ -31,6 +31,13 @@ public class Bullets : MonoBehaviour
         }
         if (other.tag == "Enemy")
         {
+            ShieldedEnemyGuard guard = other.GetComponentInParent<ShieldedEnemyGuard>();
+            float vx = myRigidbody ? myRigidbody.velocity.x : brzinaMetka;
+            if (guard && guard.ShouldDeflectBullet(transform.position, vx))
+            {
+                Destroy(gameObject);
+                return;
+            }
             Destroy(other.gameObject);
         }
         Destroy(gameObject);

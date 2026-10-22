@@ -25,7 +25,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - Per-level completion results, Gold/Silver/Bronze medals (Time, Banked Ore, Survival), and persistent personal bests on the Level Selector
 - Live Campaign Level Remixer & Custom Stage Builder: load any campaign level (Levels 1-6) with its real Unity Tilemaps and prefabs intact, paint with all game tiles (`Rule plocica` auto-tiling rock/grass, `Ljestve` ladders, `Gljiva` bounce mushrooms, `Spikes`, `Water`, animated `Lava`, `Background`) and all game prefabs (`Enemy`, `Red Enemy`, `Moving Platform`, `Coin 100/150/200`, `BreakableOreCrate`, `OreBankCheckpoint`, `PressurePulseVent`, `PressureGate T1/T2`, `StabilizationPickup`), save playable harder Campaign Overrides (`SAVE L1..L6`), or add new playable Custom Stages (`+STAGE` -> `STAGE 7+`) directly onto the Level Selector
 - Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
-- Custom banking checkpoint, pulse-vent, pressure-gate, and breakable ore-crate prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
+- Custom banking checkpoint, pulse-vent, pressure-gate, breakable ore-crate, directional jump-pad, aiming sentry-turret, and shielded-patrol prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
 
 ## Enemy AI
 

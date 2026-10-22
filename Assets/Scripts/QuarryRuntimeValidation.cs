@@ -321,6 +321,9 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "Creator rejects placing a grounded enemy high in mid-air with no floor support.");
         Require(creator.ApplyToolAtCell(-5, 5, "red_enemy") && creator.Document.GetObject(-5, 4) == "red_enemy",
             "Creator snaps a placed Red Enemy down onto the solid tile at (-5,3).");
+        Require(creator.ApplyToolAtCell(-6, 3, "ground") && creator.ApplyToolAtCell(-6, 5, "jump_pad") &&
+            creator.Document.GetObject(-6, 4) == "jump_pad",
+            "Creator snaps a placed JumpPad down onto the solid tile at (-6,3).");
         Require(creator.ApplyToolAtCell(-2, 2, "coin_200") && creator.Document.GetObject(-2, 2) == "coin_200",
             "Creator places a 200-ore coin prefab onto the level.");
         string draftPath = Path.Combine(outputDirectory, "creator-draft.json");
@@ -662,6 +665,43 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.6f);
         Require(FindObjectsOfType<BreakableOreCrate>().Length == 1,
             "Shattered crate is destroyed and removed from persistent level objects.");
+        JumpPad jumpPad = FindObjectOfType<JumpPad>();
+        SentryTurret sentry = FindObjectOfType<SentryTurret>();
+        ShieldedEnemyGuard shielded = FindObjectOfType<ShieldedEnemyGuard>();
+        Require(jumpPad && sentry && shielded,
+            "Level 4 contains the authored JumpPad, SentryTurret, and ShieldedEnemy.");
+        body.constraints = RigidbodyConstraints2D.FreezeRotation;
+        MovePlayer(body, jumpPad.transform.position);
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForFixedUpdate();
+        Require(body.velocity.y >= jumpPad.LaunchVelocity - 1.5f && jumpPad.IsFlashing,
+            "Touching the JumpPad launches the player upward and flashes BOOST!.");
+        body.constraints = RigidbodyConstraints2D.FreezeAll;
+        EnemyPatrol2D shieldedPatrol = shielded.GetComponent<EnemyPatrol2D>();
+        shieldedPatrol.enabled = false;
+        shielded.transform.localScale = new Vector3(1f, 1f, 1f);
+        MovePlayer(body, shielded.transform.position + Vector3.right * 1.6f);
+        player.transform.localScale = new Vector3(-1f, 1f, 1f);
+        Instantiate(configuredBullet, new Vector3(shielded.transform.position.x + 0.7f, shielded.transform.position.y, 0f), Quaternion.identity);
+        yield return Until(() => shielded.RecentlyDeflected, 1.2f,
+            "A frontal bullet is deflected by the ShieldedEnemy's front shield.");
+        Require(shielded != null && shielded.gameObject != null,
+            "ShieldedEnemy survives a frontal bullet hit.");
+        yield return Capture("shielded-enemy-blocked", 1280, 720);
+        MovePlayer(body, shielded.transform.position + Vector3.left * 1.6f);
+        player.transform.localScale = new Vector3(1f, 1f, 1f);
+        Instantiate(configuredBullet, new Vector3(shielded.transform.position.x - 0.7f, shielded.transform.position.y, 0f), Quaternion.identity);
+        yield return Until(() => !shielded, 1.2f,
+            "A bullet from behind defeats the ShieldedEnemy.");
+        session.HealStability(3);
+        int hitsBeforeSentry = session.GetHitsTaken();
+        MovePlayer(body, sentry.transform.position + Vector3.left * 2.2f);
+        yield return Until(() => sentry.Phase == SentryTurret.SentryPhase.Aiming, 1.2f,
+            "SentryTurret enters its AIM! warning phase when the player is in line of sight.");
+        yield return Capture("sentry-turret-aiming", 1280, 720);
+        yield return Until(() => session.GetHitsTaken() > hitsBeforeSentry, 2f,
+            "SentryTurret transitions to FIRE! and damages the visible player after the aim warning.");
+        sentry.enabled = false;
         MovePlayer(body, originalPosition);
         body.constraints = originalConstraints;
         player.enabled = true;

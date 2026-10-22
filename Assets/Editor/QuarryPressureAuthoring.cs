@@ -12,6 +12,9 @@ public static class QuarryPressureAuthoring
     public const string VentPath = "Assets/Prefabs/PressurePulseVent.prefab";
     public const string CratePath = "Assets/Prefabs/BreakableOreCrate.prefab";
     public const string GatePath = "Assets/Prefabs/PressureGate.prefab";
+    public const string JumpPadPath = "Assets/Prefabs/JumpPad.prefab";
+    public const string SentryPath = "Assets/Prefabs/SentryTurret.prefab";
+    public const string ShieldedEnemyPath = "Assets/Prefabs/ShieldedEnemy.prefab";
     const string ArtFolder = "Assets/Sprites/QuarryPressure";
 
     [MenuItem("Tools/QuantumQuarry/Pressure/Create Custom Prefabs")]
@@ -25,9 +28,44 @@ public static class QuarryPressureAuthoring
             CreateSprite("BreakableOreCrate", QuarryPressureArt.Crate), new Vector2(0.95f, 0.95f), false, "Ground");
         CreatePrefab<PressureGate>(GatePath, "PressureGate", "LOCK T1",
             CreateSprite("PressureGate", QuarryPressureArt.Gate), new Vector2(0.8f, 1.8f), false, "Ground", new Vector3(1f, 2f, 1f));
+        CreatePrefab<JumpPad>(JumpPadPath, "JumpPad", "JUMP",
+            CreateSprite("JumpPad", QuarryPressureArt.JumpPad), new Vector2(0.9f, 0.55f));
+        CreatePrefab<SentryTurret>(SentryPath, "SentryTurret", "SENTRY",
+            CreateSprite("SentryTurret", QuarryPressureArt.Sentry), new Vector2(0.85f, 0.85f), true, "Enemy", null, "Enemy");
+        CreateShieldedEnemyPrefab();
         EnsureAssetPalette();
         AssetDatabase.SaveAssets();
         Debug.Log("Pressure prefabs ready. Place them in a level using Tools > QuantumQuarry > Pressure.");
+    }
+
+    static void CreateShieldedEnemyPrefab()
+    {
+        if (File.Exists(ShieldedEnemyPath)) return;
+        GameObject baseEnemy = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy.prefab");
+        if (!baseEnemy) throw new InvalidOperationException("Enemy.prefab is required to build ShieldedEnemy.prefab.");
+        Sprite shieldSprite = CreateSprite("ShieldedEnemy", QuarryPressureArt.ShieldedEnemy);
+        GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(baseEnemy);
+        try
+        {
+            root.name = "ShieldedEnemy";
+            Animator anim = root.GetComponent<Animator>();
+            if (anim) UnityEngine.Object.DestroyImmediate(anim);
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            if (sr) sr.sprite = shieldSprite;
+            root.AddComponent<ShieldedEnemyGuard>();
+            var labelObject = new GameObject("Label");
+            labelObject.transform.SetParent(root.transform, false);
+            labelObject.transform.localPosition = new Vector3(0f, 1.3f, 0f);
+            TextMeshPro label = labelObject.AddComponent<TextMeshPro>();
+            label.text = "SHIELD";
+            label.fontSize = 2.5f;
+            label.alignment = TextAlignmentOptions.Center;
+            if (sr) label.sortingLayerID = sr.sortingLayerID;
+            label.sortingOrder = 100;
+            label.rectTransform.sizeDelta = new Vector2(2.6f, 0.5f);
+            PrefabUtility.SaveAsPrefabAsset(root, ShieldedEnemyPath);
+        }
+        finally { UnityEngine.Object.DestroyImmediate(root); }
     }
 
     [MenuItem("Tools/QuantumQuarry/Creator/Create Or Update Asset Palette")]
@@ -64,6 +102,9 @@ public static class QuarryPressureAuthoring
         palette.pulseVentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(VentPath);
         palette.pressureGatePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(GatePath);
         palette.stabilizationPickupPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/StabilizationPickup.prefab");
+        palette.jumpPadPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(JumpPadPath);
+        palette.sentryPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(SentryPath);
+        palette.shieldedEnemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ShieldedEnemyPath);
         EditorUtility.SetDirty(palette);
         AssetDatabase.SaveAssets();
         Debug.Log("QuarryAssetPalette updated with real project tiles and prefabs.");
@@ -118,7 +159,7 @@ public static class QuarryPressureAuthoring
     }
 
     static void CreatePrefab<T>(string path, string objectName, string labelText, Sprite sprite, Vector2 triggerSize,
-        bool isTrigger = true, string layerName = null, Vector3? rootScale = null)
+        bool isTrigger = true, string layerName = null, Vector3? rootScale = null, string tagName = null)
         where T : Component
     {
         if (File.Exists(path)) return;
@@ -129,6 +170,7 @@ public static class QuarryPressureAuthoring
             if (!reference) throw new InvalidOperationException("StabilizationPickup prefab is required for the collision layer.");
             int resolvedLayer = !string.IsNullOrEmpty(layerName) ? LayerMask.NameToLayer(layerName) : -1;
             root.layer = resolvedLayer >= 0 ? resolvedLayer : reference.layer;
+            if (!string.IsNullOrEmpty(tagName)) root.tag = tagName;
             Vector3 scale = rootScale ?? Vector3.one;
             root.transform.localScale = scale;
             SpriteRenderer renderer = root.AddComponent<SpriteRenderer>();
@@ -212,6 +254,7 @@ public static class QuarryPressureAuthoring
             PlacePilotObject(scene, CheckpointPath, "Pressure Pilot Bank", -12f, 8f);
             PlacePilotObject(scene, VentPath, "Pressure Pilot Vent", 27f, 5f);
             PlacePilotObject(scene, GatePath, "Pressure Pilot Gate", 11.5f, 13f, 1f);
+            PlacePilotObject(scene, JumpPadPath, "Pressure Pilot JumpPad", 9f, 13f);
             ScenePersist persistence = null;
             foreach (GameObject root in scene.GetRootGameObjects())
             {
@@ -221,6 +264,8 @@ public static class QuarryPressureAuthoring
             if (!persistence) throw new InvalidOperationException("Level 4 needs ScenePersist to retain collected ore during Store visits.");
             PlacePilotParentedPrefab(scene, persistence.transform, CratePath, "Pressure Vault Crate 01", 15f, 13f);
             PlacePilotParentedPrefab(scene, persistence.transform, CratePath, "Pressure Vault Crate 02", 18f, 13f);
+            PlacePilotParentedPrefab(scene, persistence.transform, SentryPath, "Pressure Pilot Sentry", 22f, 13f);
+            PlacePilotParentedPrefab(scene, persistence.transform, ShieldedEnemyPath, "Pressure Pilot ShieldedEnemy", 2.5f, 9f);
             PlacePilotCoin(scene, persistence.transform, "Pressure Approach Ore", new Vector2(25.5f, 5.8f));
             Vector2[] route = {
                 new Vector2(-10f, -4f), new Vector2(-6f, 1f), new Vector2(-4.5f, 1f), new Vector2(-3f, 1f),

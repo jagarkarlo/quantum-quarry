@@ -33,3 +33,6 @@ MonoBehaviour:
   pulseVentPrefab: {fileID: 5283109375189660047, guid: 59ebd613bb71daa42857e2a70943d882, type: 3}
   pressureGatePrefab: {fileID: 3317563931924463426, guid: 3ee8c12ece2cd784e9678034b163131d, type: 3}
   stabilizationPickupPrefab: {fileID: 7792364549821346701, guid: 5e847b0b1bf143d7951cb5e5e2ad9d77, type: 3}
+  jumpPadPrefab: {fileID: 6813754992670903369, guid: 7e050545436dc2a45a8f511610e689c3, type: 3}
+  sentryPrefab: {fileID: 4391148652898073459, guid: 52018ce9f89c18345929f086399a861d, type: 3}
+  shieldedEnemyPrefab: {fileID: 4468010812773172913, guid: f595a9e6aec3c1244b49790390c982e5, type: 3}

@@ -207,18 +207,24 @@ public static class QuantumQuarryProjectValidator
         ValidatePrefabComponent<PressurePulseHazard>(QuarryPressureAuthoring.VentPath, errors);
         ValidatePrefabComponent<BreakableOreCrate>(QuarryPressureAuthoring.CratePath, errors);
         ValidatePrefabComponent<PressureGate>(QuarryPressureAuthoring.GatePath, errors);
+        ValidatePrefabComponent<JumpPad>(QuarryPressureAuthoring.JumpPadPath, errors);
+        ValidatePrefabComponent<SentryTurret>(QuarryPressureAuthoring.SentryPath, errors);
+        ValidatePrefabComponent<ShieldedEnemyGuard>(QuarryPressureAuthoring.ShieldedEnemyPath, errors);
         foreach (string path in new[]
         {
             QuarryPressureAuthoring.CheckpointPath,
             QuarryPressureAuthoring.VentPath,
             QuarryPressureAuthoring.CratePath,
-            QuarryPressureAuthoring.GatePath
+            QuarryPressureAuthoring.GatePath,
+            QuarryPressureAuthoring.JumpPadPath,
+            QuarryPressureAuthoring.SentryPath,
+            QuarryPressureAuthoring.ShieldedEnemyPath
         })
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (!prefab) continue;
             Collider2D col = prefab.GetComponent<Collider2D>();
-            bool expectTrigger = path == QuarryPressureAuthoring.CheckpointPath || path == QuarryPressureAuthoring.VentPath;
+            bool expectTrigger = path != QuarryPressureAuthoring.CratePath && path != QuarryPressureAuthoring.GatePath;
             if (!col || !col.enabled || col.isTrigger != expectTrigger)
                 errors.Add($"{path} requires an enabled {(expectTrigger ? "trigger" : "solid")} collider.");
             SpriteRenderer renderer = prefab.GetComponent<SpriteRenderer>();
@@ -260,7 +266,8 @@ public static class QuantumQuarryProjectValidator
         if (!palette.playerPrefab || !palette.exitPrefab || !palette.enemyPrefab || !palette.redEnemyPrefab ||
             !palette.movingPlatformPrefab || !palette.coinPrefab || !palette.breakableCratePrefab ||
             !palette.bankCheckpointPrefab || !palette.pulseVentPrefab || !palette.pressureGatePrefab ||
-            !palette.stabilizationPickupPrefab)
+            !palette.stabilizationPickupPrefab || !palette.jumpPadPrefab || !palette.sentryPrefab ||
+            !palette.shieldedEnemyPrefab)
             errors.Add("QuarryAssetPalette is missing one or more required prefab references.");
     }
 

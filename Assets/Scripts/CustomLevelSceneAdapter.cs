@@ -208,10 +208,27 @@ public static class CustomLevelSceneAdapter
 
         foreach (EnemyPatrol2D enemy in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true))
         {
+            Vector3 p = enemy.transform.position;
+            if (enemy.GetComponent<ShieldedEnemyGuard>())
+            {
+                doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "shielded_enemy", p.x, p.y);
+                continue;
+            }
             SpriteRenderer sr = enemy.GetComponent<SpriteRenderer>();
             bool isRed = (sr && sr.color.r > 0.5f && sr.color.g < 0.4f) || enemy.name.Contains("Crveni") || enemy.name.Contains("Red");
-            Vector3 p = enemy.transform.position;
             doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), isRed ? "red_enemy" : "enemy", p.x, p.y);
+        }
+
+        foreach (SentryTurret sentry in UnityEngine.Object.FindObjectsOfType<SentryTurret>(true))
+        {
+            Vector3 p = sentry.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "sentry", p.x, p.y);
+        }
+
+        foreach (JumpPad pad in UnityEngine.Object.FindObjectsOfType<JumpPad>(true))
+        {
+            Vector3 p = pad.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "jump_pad", p.x, p.y);
         }
 
         foreach (FollowingPoint plat in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
@@ -290,6 +307,8 @@ public static class CustomLevelSceneAdapter
                 if (c.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(c.gameObject);
             foreach (EnemyPatrol2D e in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true))
                 if (e.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(e.gameObject);
+            foreach (SentryTurret s in UnityEngine.Object.FindObjectsOfType<SentryTurret>(true))
+                if (s.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(s.gameObject);
             foreach (StabilizationPickup s in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true))
                 if (s.transform.parent != persistParent) UnityEngine.Object.DestroyImmediate(s.gameObject);
         }
@@ -298,12 +317,14 @@ public static class CustomLevelSceneAdapter
             foreach (Collecting c in UnityEngine.Object.FindObjectsOfType<Collecting>(true)) UnityEngine.Object.DestroyImmediate(c.gameObject);
             foreach (BreakableOreCrate c in UnityEngine.Object.FindObjectsOfType<BreakableOreCrate>(true)) UnityEngine.Object.DestroyImmediate(c.gameObject);
             foreach (EnemyPatrol2D e in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true)) UnityEngine.Object.DestroyImmediate(e.gameObject);
+            foreach (SentryTurret s in UnityEngine.Object.FindObjectsOfType<SentryTurret>(true)) UnityEngine.Object.DestroyImmediate(s.gameObject);
             foreach (StabilizationPickup s in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true)) UnityEngine.Object.DestroyImmediate(s.gameObject);
         }
 
         foreach (OreBankCheckpoint b in UnityEngine.Object.FindObjectsOfType<OreBankCheckpoint>(true)) UnityEngine.Object.DestroyImmediate(b.gameObject);
         foreach (PressurePulseHazard v in UnityEngine.Object.FindObjectsOfType<PressurePulseHazard>(true)) UnityEngine.Object.DestroyImmediate(v.gameObject);
         foreach (PressureGate g in UnityEngine.Object.FindObjectsOfType<PressureGate>(true)) UnityEngine.Object.DestroyImmediate(g.gameObject);
+        foreach (JumpPad j in UnityEngine.Object.FindObjectsOfType<JumpPad>(true)) UnityEngine.Object.DestroyImmediate(j.gameObject);
         foreach (FollowingPoint p in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
         {
             GameObject root = p.transform.parent ? p.transform.parent.gameObject : p.gameObject;
@@ -317,7 +338,7 @@ public static class CustomLevelSceneAdapter
                 CustomLevelCell obj = doc.objects[i];
                 bool isPersistedType = obj.id == "coin_100" || obj.id == "coin_150" || obj.id == "coin_200" ||
                                        obj.id == "crate_250" || obj.id == "enemy" || obj.id == "red_enemy" ||
-                                       obj.id == "stabilization";
+                                       obj.id == "shielded_enemy" || obj.id == "sentry" || obj.id == "stabilization";
                 if (preservePersistedObjects && isPersistedType) continue;
                 SpawnObjectFromPalette(palette, obj, persistParent, liveGameplay);
             }
@@ -393,6 +414,18 @@ public static class CustomLevelSceneAdapter
         {
             spawned = UnityEngine.Object.Instantiate(palette.redEnemyPrefab, pos, Quaternion.identity, persistParent);
         }
+        else if (id == "shielded_enemy" && palette.shieldedEnemyPrefab)
+        {
+            spawned = UnityEngine.Object.Instantiate(palette.shieldedEnemyPrefab, pos, Quaternion.identity, persistParent);
+        }
+        else if (id == "sentry" && palette.sentryPrefab)
+        {
+            spawned = UnityEngine.Object.Instantiate(palette.sentryPrefab, pos, Quaternion.identity, persistParent);
+        }
+        else if (id == "jump_pad" && palette.jumpPadPrefab)
+        {
+            spawned = UnityEngine.Object.Instantiate(palette.jumpPadPrefab, pos, Quaternion.identity);
+        }
         else if (id == "platform" && palette.movingPlatformPrefab)
         {
             spawned = UnityEngine.Object.Instantiate(palette.movingPlatformPrefab, Vector3.zero, Quaternion.identity);
@@ -415,6 +448,7 @@ public static class CustomLevelSceneAdapter
         if (spawned && !live)
         {
             foreach (EnemyPatrol2D patrol in spawned.GetComponentsInChildren<EnemyPatrol2D>(true)) patrol.enabled = false;
+            foreach (SentryTurret sentry in spawned.GetComponentsInChildren<SentryTurret>(true)) sentry.enabled = false;
             foreach (FollowingPoint fp in spawned.GetComponentsInChildren<FollowingPoint>(true)) fp.enabled = false;
             foreach (Rigidbody2D rb in spawned.GetComponentsInChildren<Rigidbody2D>(true)) rb.simulated = false;
         }

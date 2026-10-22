@@ -45,7 +45,8 @@ public sealed class CustomLevelDocument
     public static readonly string[] AllowedObjectIds =
     {
         "coin_100", "coin_150", "coin_200", "crate_250", "bank", "vent",
-        "gate_t1", "gate_t2", "enemy", "red_enemy", "platform", "stabilization"
+        "gate_t1", "gate_t2", "enemy", "red_enemy", "shielded_enemy", "sentry",
+        "platform", "jump_pad", "stabilization"
     };
 
     public int formatVersion = CurrentFormatVersion;
@@ -124,7 +125,8 @@ public sealed class CustomLevelDocument
 
     public static bool RequiresGroundSupport(string objectId)
     {
-        return objectId == "enemy" || objectId == "red_enemy" || objectId == "crate_250" ||
+        return objectId == "enemy" || objectId == "red_enemy" || objectId == "shielded_enemy" ||
+               objectId == "sentry" || objectId == "jump_pad" || objectId == "crate_250" ||
                objectId == "bank" || objectId == "vent" || objectId == "gate_t1" || objectId == "gate_t2";
     }
 

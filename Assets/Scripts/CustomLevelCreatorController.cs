@@ -442,15 +442,16 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
         string[] row2 =
         {
-            "coin_100", "coin_150", "coin_200", "crate_250", "enemy", "red_enemy", "platform", "bank", "vent", "gate_t1", "gate_t2", "stabilization"
+            "coin_100", "coin_150", "coin_200", "crate_250", "enemy", "red_enemy", "shielded_enemy",
+            "sentry", "platform", "jump_pad", "bank", "vent", "gate_t1", "gate_t2", "stabilization"
         };
-        float x2 = 12f;
+        float x2 = 10f;
         for (int i = 0; i < row2.Length; i++)
         {
             string tool = row2[i];
-            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x2, -86f), new Vector2(72f, 26f),
+            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x2, -86f), new Vector2(58f, 26f),
                 new Color(0.18f, 0.22f, 0.36f), () => SelectTool(tool));
-            x2 += 75f;
+            x2 += 60f;
         }
 
         CreateToolbarButton(topBar.transform, "Btn_Undo", "UNDO", new Vector2(918f, -86f), new Vector2(54f, 26f),
@@ -487,9 +488,12 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             case "coin_150": return "COIN 150";
             case "coin_200": return "COIN 200";
             case "crate_250": return "CRATE";
-            case "red_enemy": return "RED ENEMY";
-            case "platform": return "PLATFORM";
-            case "stabilization": return "STABILIZE";
+            case "red_enemy": return "RED ENM";
+            case "shielded_enemy": return "SHIELD";
+            case "sentry": return "SENTRY";
+            case "platform": return "PLATFRM";
+            case "jump_pad": return "JUMPPAD";
+            case "stabilization": return "HEAL";
             default: return id.ToUpperInvariant();
         }
     }

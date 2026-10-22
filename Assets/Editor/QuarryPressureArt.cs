@@ -78,4 +78,61 @@ public static class QuarryPressureArt
         "..#ssssssssss#..",
         "..############.."
     };
+    public static readonly string[] JumpPad =
+    {
+        "................",
+        "................",
+        ".......cc.......",
+        "......cwwc......",
+        ".....ccwwcc.....",
+        "....cwwccwwc....",
+        "................",
+        ".##############.",
+        "#gggggggggggggg#",
+        "#gwwwwwwwwwwwwg#",
+        ".##############.",
+        "...#ss####ss#...",
+        "..#ss#....#ss#..",
+        "...#ss####ss#...",
+        ".##############.",
+        "#ssssssssssssss#"
+    };
+    public static readonly string[] Sentry =
+    {
+        "....########....",
+        "...#ssssssss#...",
+        "..#ss######ss#..",
+        "..#s#cccccc#s#..",
+        "..#s#ccwwcc#s#..",
+        "###s#ccwwcc#s###",
+        "#yys#cccccc#syy#",
+        "###ss######ss###",
+        "...#ssssssss#...",
+        "....########....",
+        ".....#ssss#.....",
+        "....#ssssss#....",
+        "...#s######s#...",
+        "..#ss#yyyy#ss#..",
+        ".##############.",
+        ".ssssssssssssss."
+    };
+    public static readonly string[] ShieldedEnemy =
+    {
+        "....########..##",
+        "...#ssssssss##c#",
+        "..#ss######ss#c#",
+        "..#s#yyyyyy#s#w#",
+        "..#s#yywwyy#s#w#",
+        "..#s#yyyyyy#s#w#",
+        "..#s########s#w#",
+        "..#ssssssssss#w#",
+        "..#ss######ss#w#",
+        "..#s#cccccc#s#c#",
+        "..#s########s#c#",
+        "...#ssssssss##c#",
+        "....#ss##ss#..##",
+        "...#ss#..#ss#...",
+        "..####....####..",
+        "................"
+    };
 }

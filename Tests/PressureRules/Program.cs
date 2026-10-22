@@ -97,7 +97,11 @@ static class Program
                 Equal(first.ChaseMultiplier, second.ChaseMultiplier, "reproducible speed");
             }
         }
-        foreach (string[] artwork in new[] { QuarryPressureArt.Checkpoint, QuarryPressureArt.Vent, QuarryPressureArt.Crate, QuarryPressureArt.Gate })
+        foreach (string[] artwork in new[]
+        {
+            QuarryPressureArt.Checkpoint, QuarryPressureArt.Vent, QuarryPressureArt.Crate, QuarryPressureArt.Gate,
+            QuarryPressureArt.JumpPad, QuarryPressureArt.Sentry, QuarryPressureArt.ShieldedEnemy
+        })
         {
             Equal(16, artwork.Length, "artwork height");
             foreach (string row in artwork)

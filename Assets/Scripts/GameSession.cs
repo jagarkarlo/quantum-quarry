@@ -156,6 +156,7 @@ public class GameSession : MonoBehaviour
     void RebindUI()
     {
         QuarryPressureHUD.EnsureForScene(this);
+        GhostReplayRunner.EnsureForScene(this);
         if (!livesText)
         {
             var go = GameObject.FindGameObjectWithTag("LivesText");
@@ -553,6 +554,8 @@ public class GameSession : MonoBehaviour
             GetLevelHitsTaken());
         LastCompletedLevelResult = result;
         if (isPlaytestMode) return result;
+        GhostReplayRunner ghostRunner = FindObjectOfType<GhostReplayRunner>();
+        if (ghostRunner) ghostRunner.CommitRunIfCompleted();
         LevelPersonalBest updated = LevelMedals.MergePersonalBest(GetPersonalBest(id), result);
         SavePersonalBest(id, updated);
         return result;

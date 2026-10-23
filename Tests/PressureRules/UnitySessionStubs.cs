@@ -70,3 +70,8 @@ namespace TMPro
 }
 public class ScenePersist : UnityEngine.Object { public void ResetScenePersist() { } }
 public static class QuarryPressureHUD { public static void EnsureForScene(GameSession session) { } }
+public sealed class GhostReplayRunner : UnityEngine.Object
+{
+    public static void EnsureForScene(GameSession session) { }
+    public void CommitRunIfCompleted() { }
+}

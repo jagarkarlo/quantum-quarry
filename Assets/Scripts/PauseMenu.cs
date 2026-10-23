@@ -7,10 +7,15 @@ public class PauseMenu : MonoBehaviour
 {
     public static bool GameIsPaused = false;
     public GameObject pauseMenuUI;
+    TextMeshProUGUI volumeBtnLabel;
+    TextMeshProUGUI flashBtnLabel;
+    TextMeshProUGUI splitsBtnLabel;
 
     void Start()
     {
+        QuarrySettings.ApplyRuntimeAudio();
         CreatePauseButton();
+        EnsureAccessibilityControls();
     }
 
     void Update()
@@ -80,6 +85,70 @@ public class PauseMenu : MonoBehaviour
         label.fontSize = 24f;
         label.color = Color.white;
         label.raycastTarget = false;
+    }
+
+    void EnsureAccessibilityControls()
+    {
+        if (!pauseMenuUI || pauseMenuUI.transform.Find("Button_AudioVol")) return;
+        volumeBtnLabel = CreateOptionButton("Button_AudioVol", new Vector2(-180f, -245f), () =>
+        {
+            QuarrySettings.CycleVolumeStep();
+            RefreshOptionLabels();
+        });
+        flashBtnLabel = CreateOptionButton("Button_ReducedFlash", new Vector2(0f, -245f), () =>
+        {
+            QuarrySettings.ReducedHitFlash = !QuarrySettings.ReducedHitFlash;
+            RefreshOptionLabels();
+        });
+        splitsBtnLabel = CreateOptionButton("Button_ShowSplits", new Vector2(180f, -245f), () =>
+        {
+            QuarrySettings.ShowSpeedrunSplits = !QuarrySettings.ShowSpeedrunSplits;
+            RefreshOptionLabels();
+        });
+        RefreshOptionLabels();
+    }
+
+    TextMeshProUGUI CreateOptionButton(string name, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClick)
+    {
+        var btnObj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        btnObj.transform.SetParent(pauseMenuUI.transform, false);
+        RectTransform rect = btnObj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPos;
+        rect.sizeDelta = new Vector2(165f, 40f);
+
+        Image img = btnObj.GetComponent<Image>();
+        img.color = new Color(0.08f, 0.22f, 0.34f, 0.94f);
+        Button btn = btnObj.GetComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(onClick);
+
+        var labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+        labelObj.transform.SetParent(btnObj.transform, false);
+        RectTransform lrect = labelObj.GetComponent<RectTransform>();
+        lrect.anchorMin = Vector2.zero;
+        lrect.anchorMax = Vector2.one;
+        lrect.sizeDelta = Vector2.zero;
+
+        TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI anyLabel = pauseMenuUI.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (anyLabel && anyLabel.font) label.font = anyLabel.font;
+        label.alignment = TextAlignmentOptions.Center;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 9f;
+        label.fontSizeMax = 15f;
+        label.color = Color.white;
+        label.raycastTarget = false;
+        return label;
+    }
+
+    void RefreshOptionLabels()
+    {
+        if (volumeBtnLabel) volumeBtnLabel.text = $"AUDIO: {QuarrySettings.MasterVolumePercent}%";
+        if (flashBtnLabel) flashBtnLabel.text = $"FLASH: {(QuarrySettings.ReducedHitFlash ? "SOFT" : "FULL")}";
+        if (splitsBtnLabel) splitsBtnLabel.text = $"SPLITS: {(QuarrySettings.ShowSpeedrunSplits ? "ON" : "OFF")}";
     }
 
     public void LoadMenu()

@@ -62,6 +62,8 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         }
         Require(GameObject.Find("Button_FrontLevelCreator") != null,
             "Start menu displays the front-page LEVEL CREATOR button.");
+        Require(GameObject.Find("Button_DailyChallenge") != null && GameObject.Find("Button_WipeProfile") != null,
+            "Start menu displays the DAILY CHALLENGE and RESET PROFILE buttons.");
         yield return Capture("start-menu", 1280, 720);
         yield return SceneManager.LoadSceneAsync("Level 1");
         yield return new WaitForSecondsRealtime(0.5f);
@@ -91,6 +93,11 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(pause, "Gameplay has a pause menu.");
         pause.TogglePause();
         Require(PauseMenu.GameIsPaused && Time.timeScale == 0f, "Pause freezes gameplay.");
+        Require(GameObject.Find("Button_AudioVol") != null && GameObject.Find("Button_ReducedFlash") != null &&
+            GameObject.Find("Button_ShowSplits") != null,
+            "Pause menu exposes Audio Volume, Reduced Flash, and Speedrun Splits option buttons.");
+        Require(FindObjectOfType<GhostReplayRunner>() != null,
+            "Gameplay scene spawns the GhostReplayRunner and Speedrun Splits HUD.");
         int expectedBalance = session.GetCoins() + session.Pressure.PendingCoins;
         int remainingCoins = FindObjectsOfType<Collecting>().Length;
         pause.LoadStore();

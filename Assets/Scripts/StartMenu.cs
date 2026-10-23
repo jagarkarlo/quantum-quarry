@@ -8,6 +8,8 @@ public class StartMenu : MonoBehaviour
 {
     [SerializeField] float sceneLoadDelay = 0.25f;
     public const string UnlockedLevelKey = "UnlockedLevelNumber";
+    bool wipeConfirmPending;
+    TextMeshProUGUI wipeButtonLabel;
 
     void Awake()
     {
@@ -16,6 +18,7 @@ public class StartMenu : MonoBehaviour
             PlayerPrefs.SetInt(UnlockedLevelKey, 1);
             PlayerPrefs.Save();
         }
+        QuarrySettings.ApplyRuntimeAudio();
         EnsureFrontPageCreatorButton();
     }
 
@@ -26,23 +29,42 @@ public class StartMenu : MonoBehaviour
         if (!canvas) canvas = FindObjectOfType<Canvas>();
         if (!canvas || canvas.transform.Find("Button_FrontLevelCreator")) return;
 
-        var creatorObj = new GameObject("Button_FrontLevelCreator", typeof(RectTransform), typeof(Image), typeof(Button));
-        creatorObj.transform.SetParent(canvas.transform, false);
-        RectTransform rect = creatorObj.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1f, 0f);
-        rect.anchorMax = new Vector2(1f, 0f);
-        rect.pivot = new Vector2(1f, 0f);
-        rect.anchoredPosition = new Vector2(-24f, 24f);
-        rect.sizeDelta = new Vector2(230f, 52f);
+        CreateFrontButton(canvas, "Button_FrontLevelCreator", "LEVEL CREATOR",
+            new Vector2(1f, 0f), new Vector2(-24f, 24f), new Vector2(220f, 48f),
+            new Color(0.08f, 0.38f, 0.52f, 0.96f), OpenLevelCreator);
 
-        Image img = creatorObj.GetComponent<Image>();
-        img.color = new Color(0.08f, 0.38f, 0.52f, 0.96f);
-        Button btn = creatorObj.GetComponent<Button>();
+        System.DateTime now = System.DateTime.UtcNow;
+        DailyChallengeDescriptor daily = SeededChallengeRules.BuildForDate(now.Year, now.Month, now.Day);
+        CreateFrontButton(canvas, "Button_DailyChallenge", daily.Title,
+            new Vector2(0f, 0f), new Vector2(24f, 24f), new Vector2(260f, 48f),
+            new Color(0.42f, 0.24f, 0.12f, 0.96f), () => StartDailyChallenge(daily));
+
+        Button wipeBtn = CreateFrontButton(canvas, "Button_WipeProfile", "RESET PROFILE",
+            new Vector2(1f, 0f), new Vector2(-24f, 80f), new Vector2(220f, 40f),
+            new Color(0.45f, 0.14f, 0.16f, 0.94f), OnWipeProfileClicked);
+        wipeButtonLabel = wipeBtn.GetComponentInChildren<TextMeshProUGUI>();
+    }
+
+    Button CreateFrontButton(Canvas canvas, string name, string text, Vector2 anchor, Vector2 pos, Vector2 size,
+        Color color, UnityEngine.Events.UnityAction onClick)
+    {
+        var obj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        obj.transform.SetParent(canvas.transform, false);
+        RectTransform rect = obj.GetComponent<RectTransform>();
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = anchor;
+        rect.anchoredPosition = pos;
+        rect.sizeDelta = size;
+
+        Image img = obj.GetComponent<Image>();
+        img.color = color;
+        Button btn = obj.GetComponent<Button>();
         btn.targetGraphic = img;
-        btn.onClick.AddListener(OpenLevelCreator);
+        btn.onClick.AddListener(onClick);
 
         var labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        labelObj.transform.SetParent(creatorObj.transform, false);
+        labelObj.transform.SetParent(obj.transform, false);
         RectTransform labelRect = labelObj.GetComponent<RectTransform>();
         labelRect.anchorMin = Vector2.zero;
         labelRect.anchorMax = Vector2.one;
@@ -51,13 +73,42 @@ public class StartMenu : MonoBehaviour
         TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
         TextMeshProUGUI anyLabel = canvas.GetComponentInChildren<TextMeshProUGUI>();
         if (anyLabel && anyLabel.font) label.font = anyLabel.font;
-        label.text = "LEVEL CREATOR";
+        label.text = text;
         label.alignment = TextAlignmentOptions.Center;
         label.enableAutoSizing = true;
-        label.fontSizeMin = 12f;
-        label.fontSizeMax = 22f;
+        label.fontSizeMin = 10f;
+        label.fontSizeMax = 20f;
         label.color = Color.white;
         label.raycastTarget = false;
+        return btn;
+    }
+
+    public void StartDailyChallenge(DailyChallengeDescriptor challenge)
+    {
+        int unlocked = Mathf.Clamp(PlayerPrefs.GetInt(UnlockedLevelKey, 1), 1, 6);
+        int targetLvl = Mathf.Min(challenge.TargetLevelNumber, unlocked);
+        PlayerPrefs.SetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, 0);
+        PlayerPrefs.SetInt(SeededChallengeRules.ActiveChallengeSeedKey, challenge.Seed);
+        PlayerPrefs.SetInt(SeededChallengeRules.ActiveChallengeNoStoreKey, challenge.NoStoreAllowed ? 1 : 0);
+        PlayerPrefs.SetInt(SeededChallengeRules.ActiveChallengeDateKey, challenge.DateCode);
+        PlayerPrefs.SetInt(GameSession.PressureSeedKey, challenge.Seed);
+        PlayerPrefs.Save();
+        SceneManager.LoadScene($"Level {targetLvl}");
+    }
+
+    public void OnWipeProfileClicked()
+    {
+        if (!wipeConfirmPending)
+        {
+            wipeConfirmPending = true;
+            if (wipeButtonLabel) wipeButtonLabel.text = "CONFIRM WIPE?";
+            return;
+        }
+        wipeConfirmPending = false;
+        QuarryProfileManager.WipeFullProfileConfirmed();
+        var gs = FindObjectOfType<GameSession>();
+        if (gs) gs.ResetSession();
+        if (wipeButtonLabel) wipeButtonLabel.text = "PROFILE WIPED";
     }
 
     public void OpenLevelCreator()

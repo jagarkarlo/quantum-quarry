@@ -24,5 +24,7 @@
     <Compile Include="../../Assets/Scripts/DamageLog.cs" Link="DamageLog.cs" />
     <Compile Include="../../Assets/Scripts/LevelMedals.cs" Link="LevelMedals.cs" />
     <Compile Include="../../Assets/Scripts/CustomLevelDocument.cs" Link="CustomLevelDocument.cs" />
+    <Compile Include="../../Assets/Scripts/SeededChallengeRules.cs" Link="SeededChallengeRules.cs" />
+    <Compile Include="../../Assets/Scripts/GhostReplayData.cs" Link="GhostReplayData.cs" />
   </ItemGroup>
 </Project>

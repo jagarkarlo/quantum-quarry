@@ -58,8 +58,12 @@ public sealed class PlayerStability : MonoBehaviour
 
         if (!playerRenderer) return;
 
+        Color activeFlashColor = QuarrySettings.ReducedHitFlash
+            ? new Color(1f, 0.78f, 0.78f)
+            : hitFlashColor;
+
         playerRenderer.color = Time.time < hitFlashUntil
-            ? hitFlashColor
+            ? activeFlashColor
             : IsInvulnerable && Mathf.FloorToInt(Time.unscaledTime * 16f) % 2 == 0
                 ? new Color(0.45f, 0.95f, 1f, 0.35f)
                 : Color.white;

@@ -258,6 +258,58 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         RefreshToolbarText();
     }
 
+    public void GenerateProceduralDraft(int seed = 0)
+    {
+        if (!isEditing) return;
+        undoStack.Push(document.ToJson());
+        redoStack.Clear();
+        int chosenSeed = seed != 0 ? seed : System.Environment.TickCount;
+        document = ProceduralQuarryGenerator.Generate(chosenSeed, 2);
+        document.sourceCampaignLevel = currentCampaignLevel;
+        RebuildWorld(false);
+        CenterCameraOnSpawn();
+        statusMessage = $"Generated procedural stage '{document.title}' (Seed {chosenSeed}).";
+        RefreshToolbarText();
+    }
+
+    public string GetDefaultShareFilePath()
+    {
+        return Path.Combine(CustomLevelSceneAdapter.GetCustomLevelsFolder(), $"{document.levelId}{CustomLevelSharing.FileExtension}");
+    }
+
+    public bool ExportShareFile(string explicitPath = null)
+    {
+        string path = explicitPath ?? GetDefaultShareFilePath();
+        if (!CustomLevelSharing.ExportToFile(document, path, out string error))
+        {
+            statusMessage = $"Export failed: {error}";
+            RefreshToolbarText();
+            return false;
+        }
+        statusMessage = $"Exported verified {Path.GetFileName(path)}";
+        RefreshToolbarText();
+        return true;
+    }
+
+    public bool ImportShareFile(string explicitPath = null)
+    {
+        string path = explicitPath ?? GetDefaultShareFilePath();
+        if (!CustomLevelSharing.ImportFromFile(path, out CustomLevelDocument imported, out string error))
+        {
+            statusMessage = $"Import rejected: {error}";
+            RefreshToolbarText();
+            return false;
+        }
+        undoStack.Push(document.ToJson());
+        redoStack.Clear();
+        document = imported;
+        RebuildWorld(!isEditing);
+        CenterCameraOnSpawn();
+        statusMessage = $"Imported verified {Path.GetFileName(path)}";
+        RefreshToolbarText();
+        return true;
+    }
+
     public void StartPlaytest()
     {
         List<string> errors = document.Validate();
@@ -403,7 +455,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         toolText = CreateText(topBar.transform, "ToolText", new Vector2(12f, -26f), new Vector2(680f, 20f), 12f, TextAlignmentOptions.Left);
         toolText.color = new Color(0.65f, 0.92f, 1f);
 
-        float lx = 700f;
+        float lx = 636f;
         int unlocked = Mathf.Clamp(PlayerPrefs.GetInt(StartMenu.UnlockedLevelKey, 1), 1, 6);
         for (int lvl = 1; lvl <= 6; lvl++)
         {
@@ -411,7 +463,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             bool isUnlocked = lvl <= unlocked;
             string btnLabel = isUnlocked ? $"REMIX L{lvl}" : $"L{lvl} LOCK";
             Color btnColor = isUnlocked ? new Color(0.18f, 0.28f, 0.42f) : new Color(0.16f, 0.18f, 0.22f, 0.6f);
-            CreateToolbarButton(topBar.transform, $"Btn_LoadL{lvl}", btnLabel, new Vector2(lx, -6f), new Vector2(74f, 24f),
+            CreateToolbarButton(topBar.transform, $"Btn_LoadL{lvl}", btnLabel, new Vector2(lx, -6f), new Vector2(64f, 24f),
                 btnColor, () =>
                 {
                     if (!isUnlocked)
@@ -422,10 +474,19 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                     }
                     LoadCampaignLevelForRemix(capturedLvl);
                 });
-            lx += 78f;
+            lx += 66f;
         }
-        CreateToolbarButton(topBar.transform, "Btn_Blank", "NEW BLANK", new Vector2(lx, -6f), new Vector2(88f, 24f),
+        CreateToolbarButton(topBar.transform, "Btn_Blank", "BLANK", new Vector2(lx, -6f), new Vector2(56f, 24f),
             new Color(0.24f, 0.34f, 0.24f), ClearToBlankTemplate);
+        lx += 58f;
+        CreateToolbarButton(topBar.transform, "Btn_ProcGen", "GEN SEED", new Vector2(lx, -6f), new Vector2(68f, 24f),
+            new Color(0.36f, 0.24f, 0.46f), () => GenerateProceduralDraft());
+        lx += 70f;
+        CreateToolbarButton(topBar.transform, "Btn_ExportShare", "EXPORT", new Vector2(lx, -6f), new Vector2(56f, 24f),
+            new Color(0.16f, 0.38f, 0.44f), () => ExportShareFile());
+        lx += 58f;
+        CreateToolbarButton(topBar.transform, "Btn_ImportShare", "IMPORT", new Vector2(lx, -6f), new Vector2(56f, 24f),
+            new Color(0.22f, 0.34f, 0.48f), () => ImportShareFile());
 
         string[] row1 =
         {

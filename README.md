@@ -19,12 +19,12 @@ The project explores a complete platform-game loop across six levels: movement a
 - Buoyant swimming with level-scaled breath, half-point drowning damage, and lethal lava
 - Physics-driven moving platforms that carry idle players and preserve jump momentum
 - Distinct 100, 150, and 200-value coins with size, color, pulse, and pickup feedback
-- A responsive store with stackable speed, invisibility, and double-jump inventory
+- A responsive store with stackable speed, invisibility, and double-jump inventory, `StoreCatalog` ScriptableObject configuration, and permanent `Pickaxe` (+15%/+30% base ore) and `Magnet` (2.2m/3.8m coin attraction) upgrades
 - Safe ghost movement that prevents rematerializing inside solid platforms
 - Pause, victory, and game-over flows
 - Per-level completion results, Gold/Silver/Bronze medals (Time, Banked Ore, Survival), and persistent personal bests on the Level Selector
 - Speedrun Ghost Replays & Live Split HUD (`GhostReplayRunner` & `GhostReplayData`), Seeded Daily Challenges (`SeededChallengeRules`), two-step confirmed Profile Reset (`QuarryProfileManager`), and Pause Menu Accessibility/Options toggles (`AUDIO`, `FLASH`, `SPLITS`)
-- Live Campaign Level Remixer & Custom Stage Builder: load any campaign level (Levels 1-6) with its real Unity Tilemaps and prefabs intact, paint with all game tiles (`Rule plocica` auto-tiling rock/grass, `Ljestve` ladders, `Gljiva` bounce mushrooms, `Spikes`, `Water`, animated `Lava`, `Background`) and all game prefabs (`Enemy`, `Red Enemy`, `Moving Platform`, `Coin 100/150/200`, `BreakableOreCrate`, `OreBankCheckpoint`, `PressurePulseVent`, `PressureGate T1/T2`, `StabilizationPickup`), save playable harder Campaign Overrides (`SAVE L1..L6`), or add new playable Custom Stages (`+STAGE` -> `STAGE 7+`) directly onto the Level Selector
+- Live Campaign Level Remixer, Custom Stage Builder, Checksummed `.qqlevel` Sharing (`CustomLevelSharing`), and Procedural Quarry Generator (`ProceduralQuarryGenerator`): load any campaign level (Levels 1-6) with its real Unity Tilemaps and prefabs intact, paint with all game tiles and prefabs, generate deterministic seeded stages (`GEN SEED`), export/import FNV-1a checksummed `.qqlevel` packages (`EXPORT` / `IMPORT`), save playable harder Campaign Overrides (`SAVE L1..L6`), or add new playable Custom Stages (`+STAGE` -> `STAGE 7+`) directly onto the Level Selector
 - Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
 - Custom banking checkpoint, pulse-vent, pressure-gate, breakable ore-crate, directional jump-pad, aiming sentry-turret, and shielded-patrol prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
 

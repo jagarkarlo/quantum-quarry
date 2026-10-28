@@ -23,7 +23,7 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Verified outside Unity: deterministic C# rules, session transitions with Unity test doubles, artwork dimensions/palette, and C# 9 syntax.
 - Verified in Unity 2022.3.12f1 on 2026-09-21: package restoration, API compilation, custom sprite/prefab generation, strict custom-prefab validation, project validation, and a Windows x64 build of all 11 enabled scenes.
 - Authored pilot: Level 4 has an optional bank, a warning-labelled exit vent, a tier-1 pressure gate guarding two 250-ore breakable crates, and a 2050-base-ore pickup route. Persistent collectibles and crates are hidden and suspended in menus/Store without respawning on return.
-- Verified in the isolated Windows player on 2026-10-23: 341 controlled runtime checks and 31 screenshots covering all 11 scenes, including banking, pressure-gate unlocking, bullet-shattered ore crates, Jump Pad launches, Shielded Patrol frontal bullet deflection and rear vulnerability, Sentry Turret aim warnings and beam damage, Speedrun Ghost playback & Splits HUD, Daily Challenge & Profile Reset buttons, Pause accessibility options, level-completion medal banners, Level Selector badges, locked campaign levels, non-overlapping side-arrow paginated custom stages, front-page/selector navigation, the Live Campaign Level Remixer & Custom Stage Builder, vent phases/contact damage and armor rounding, pause, invisibility, death/reset, Store round trips, persistent-level transitions, Pressure HUD bounds at three resolutions, and lava/water compatibility. A real-enemy fixture also verifies terrain occlusion, stealth loss/reacquisition, and pressure-scaled perception/pursuit.
+- Verified in the isolated Windows player on 2026-10-28: 346 controlled runtime checks and 31 screenshots covering all 11 scenes, including banking, pressure-gate unlocking, bullet-shattered ore crates, Jump Pad launches, Shielded Patrol frontal bullet deflection and rear vulnerability, Sentry Turret aim warnings and beam damage, Speedrun Ghost playback & Splits HUD, Daily Challenge & Profile Reset buttons, Pause accessibility options, Store permanent Pickaxe/Magnet upgrades, `.qqlevel` checksummed sharing, procedural stage generation, level-completion medal banners, Level Selector badges, locked campaign levels, non-overlapping side-arrow paginated custom stages, front-page/selector navigation, the Live Campaign Level Remixer & Custom Stage Builder, vent phases/contact damage and armor rounding, pause, invisibility, death/reset, Store round trips, persistent-level transitions, Pressure HUD bounds at three resolutions, and lava/water compatibility. A real-enemy fixture also verifies terrain occlusion, stealth loss/reacquisition, and pressure-scaled perception/pursuit.
 - Readability follow-up: the vent distinguishes `OFF` from armed `SAFE`, then `WARNING` and `DANGER`. The HUD explains carried-reward loss, the arming threshold, and banking to disarm; the [vent guide](../README.md#trying-the-pressure-vent) explains how to play it.
 - Unresolved encounter decisions: all 15 Level 4 pickups are currently required to reach tier 2, and the pause-menu Store already provides banking without the physical detour. Evaluate these in the [human route check](DEVELOPMENT_WORKFLOW.md#remaining-human-route-check) before changing placement or economy.
 - Pending milestone gate: manually complete the pilot route without upgrades, tune the risk/reward encounter, and finish the remaining [pressure smoke test](DEVELOPMENT_WORKFLOW.md#quarry-pressure-validation). Automated repositioning and seeded ore are not proof of full-route playability or enemy encounter balance. Do not start the next milestone before this gate passes.
@@ -34,18 +34,17 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 - Stack purchased power-up duration instead of overwriting repeated purchases.
 - Show prices, queued duration, affordability, and purchase feedback.
 - Preserve existing PlayerPrefs saves through legacy queue migration.
-- Next: replace hard-coded products with ScriptableObject catalog entries and add permanent upgrade tiers.
+- Implemented (`StoreCatalog` + `StoreEconomy` + `StoreManager`): ScriptableObject store catalog (`Assets/Resources/StoreCatalog.asset`) and permanent upgrade tiers for `Armor` (-25%/-45% damage), `Pickaxe` (+15%/+30% base ore yield), and `Magnet` (2.2m/3.8m coin attraction radius).
 
 ## 4. Progression and replayability
 
 - Implemented: per-level completion results (elapsed time, banked ore, lost ore, hits taken), separate Gold/Silver/Bronze medals for Time, Banked Ore, and Survival across Levels 1-6, and persistent personal-best records stored by stable level ID (`level-1`..`level-6`).
 - Implemented: level-exit completion banner, medal badges (`T:G O:G S:G`) on Level Selector buttons, and total earned medal count on the Victory/GameOver summary. Pause and Store visits are excluded from the level timer, and resetting a run preserves personal bests.
-- Add permanent upgrades, unlock conditions, and a resettable profile.
-- Introduce daily or seeded challenge rules without requiring an online service.
+- Implemented: permanent Pickaxe/Magnet/Armor upgrades, campaign unlock gates, two-step confirmed profile reset (`QuarryProfileManager`), and offline date-seeded Daily Challenges (`SeededChallengeRules`).
 
 ## 5. Level format
 
-- Implemented (`CustomLevelDocument` + `QuarryAssetPalette`): a versioned (`formatVersion = 1`), serializable JSON level document that captures and reconstructs full multi-layer Unity Tilemaps (`Platformer Map`, `Climbing`, `Jump`, `Hazard`, `Background`) and all real prefabs (`Enemy`, `Red Enemy`, `Platform` moving platforms, `Coin 100/150/200`, `BreakableOreCrate`, `OreBankCheckpoint`, `PressurePulseVent`, `PressureGate T1/T2`, `StabilizationPickup`).
+- Implemented (`CustomLevelDocument` + `QuarryAssetPalette`): a versioned (`formatVersion = 1`), serializable JSON level document that captures and reconstructs full multi-layer Unity Tilemaps (`Platformer Map`, `Climbing`, `Jump`, `Hazard`, `Background`) and all real prefabs (`Enemy`, `Red Enemy`, `ShieldedEnemy`, `SentryTurret`, `Platform` moving platforms, `JumpPad`, `Coin 100/150/200`, `BreakableOreCrate`, `OreBankCheckpoint`, `PressurePulseVent`, `PressureGate T1/T2`, `StabilizationPickup`).
 
 ## 6. In-game level creator
 
@@ -53,15 +52,14 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 
 ## 7. Sharing and discovery
 
-- Export and import validated level files with checksums and size limits.
-- Add local browsing, filtering, favorites, and completion records.
+- Implemented (`CustomLevelSharing`): export and import validated `.qqlevel` packages with `QQLEVEL1|<CRC32-FNV1A>|` checksums, 256 KB size limits, and creator toolbar `EXPORT` / `IMPORT` actions.
 - Consider an optional moderated online level service only after the offline workflow is stable.
 
 ## 8. Advanced systems
 
 - Implemented retro enemy archetypes and movement objects (`SentryTurret`, `ShieldedEnemyGuard`, `JumpPad`): 16x16 pixel-art stationary aiming sentries (`SENTRY` -> `AIM!` -> `FIRE!`), frontal-shielded patrols (`SHIELD` -> `BLOCKED!`, vulnerable from behind), and spring jump pads (`JUMP` -> `BOOST!`), authored in Level 4 and integrated into the Level Creator palette.
 - Implemented Speedrun Ghosts & Live Splits (`GhostReplayData`, `GhostReplayRunner`), offline Seeded Daily Challenges (`SeededChallengeRules`), two-step confirmed Profile Reset (`QuarryProfileManager`), and Pause Menu Accessibility/Options toggles (`QuarrySettings`).
-- Add procedural challenge generation that uses the same validator as user-created levels.
+- Implemented deterministic Procedural Quarry Generation (`ProceduralQuarryGenerator`) using the same `CustomLevelDocument` validator and grounded-object rules as user-created levels (`GEN SEED` in the Level Creator).
 
 Machine learning is not required for these features. Deterministic AI, seeded generation, and strong validation will make the game more reliable and easier to test. ML can be explored later for level ranking or generation assistance only if it provides a measurable improvement.
 

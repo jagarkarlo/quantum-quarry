@@ -36,6 +36,20 @@ public class Collecting : MonoBehaviour
         float pulseSpeed = pointsForCoinPickup >= 200 ? 4.5f : 3f;
         float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * 0.04f;
         transform.localScale = baseScale * pulse;
+
+        if (!wasCollected && session && !session.IsPlaytestMode && session.GetMagnetTier() > 0)
+        {
+            float radius = StoreEconomy.GetMagnetRadius(session.GetMagnetTier());
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj)
+            {
+                Vector3 diff = playerObj.transform.position - transform.position;
+                if (diff.sqrMagnitude <= radius * radius)
+                {
+                    transform.position = Vector3.MoveTowards(transform.position, playerObj.transform.position, 6.5f * Time.deltaTime);
+                }
+            }
+        }
     }
 
     void Start()

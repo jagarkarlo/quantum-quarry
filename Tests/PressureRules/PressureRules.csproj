@@ -26,5 +26,7 @@
     <Compile Include="../../Assets/Scripts/CustomLevelDocument.cs" Link="CustomLevelDocument.cs" />
     <Compile Include="../../Assets/Scripts/SeededChallengeRules.cs" Link="SeededChallengeRules.cs" />
     <Compile Include="../../Assets/Scripts/GhostReplayData.cs" Link="GhostReplayData.cs" />
+    <Compile Include="../../Assets/Scripts/CustomLevelSharing.cs" Link="CustomLevelSharing.cs" />
+    <Compile Include="../../Assets/Scripts/ProceduralQuarryGenerator.cs" Link="ProceduralQuarryGenerator.cs" />
   </ItemGroup>
 </Project>

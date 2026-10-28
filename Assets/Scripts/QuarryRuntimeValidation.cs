@@ -113,6 +113,8 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return Capture("store", 1280, 720);
         StoreManager store = FindObjectOfType<StoreManager>();
         Require(store, "Store has a manager.");
+        Require(GameObject.Find("Button_Pickaxe") != null && GameObject.Find("Button_Magnet") != null,
+            "Store displays permanent Pickaxe and Magnet upgrade buttons.");
         store.ReturnToGame();
         yield return null;
         yield return new WaitForSecondsRealtime(0.3f);
@@ -336,6 +338,16 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         string draftPath = Path.Combine(outputDirectory, "creator-draft.json");
         Require(creator.SaveDraft(draftPath) && File.Exists(draftPath),
             "Creator saves a validated JSON draft to disk.");
+        string sharePath = Path.Combine(outputDirectory, "shared-level.qqlevel");
+        Require(creator.ExportShareFile(sharePath) && File.Exists(sharePath),
+            "Creator exports a checksummed .qqlevel file.");
+        Require(creator.ImportShareFile(sharePath) && creator.Document.GetObject(-2, 2) == "coin_200",
+            "Creator imports and verifies the checksummed .qqlevel file.");
+        creator.GenerateProceduralDraft(7319);
+        Require(creator.Document.Validate().Count == 0 && creator.Document.levelId.StartsWith("proc-"),
+            "Creator generates a valid deterministic procedural level.");
+        Require(creator.LoadDraft(draftPath) && creator.Document.GetObject(-2, 2) == "coin_200",
+            "Creator reloads the edited Level 4 draft after procedural preview.");
         Require(creator.SaveCurrentLevelCampaignOverride() && CustomLevelSceneAdapter.HasCampaignOverride(4),
             "Creator saves a live Campaign Override for Level 4.");
         int savedStageNum = creator.SaveAsPlayableCustomStage(7);

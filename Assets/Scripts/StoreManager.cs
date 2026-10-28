@@ -24,14 +24,28 @@ public class StoreManager : MonoBehaviour
     Button invisibilityButton;
     Button doubleJumpButton;
     Button armorButton;
+    Button pickaxeButton;
+    Button magnetButton;
     Button backButton;
     TextMeshProUGUI statusText;
     Coroutine statusRoutine;
+    StoreCatalog catalog;
 
     GameSession GS => FindObjectOfType<GameSession>();
 
     void OnEnable()
     {
+        catalog = StoreCatalog.Load();
+        if (catalog)
+        {
+            priceLife = catalog.extraLife.basePrice;
+            priceSpeed = catalog.speedBoost.basePrice;
+            speedSeconds = catalog.speedBoost.durationSeconds;
+            priceInvis = catalog.invisibility.basePrice;
+            invisSeconds = catalog.invisibility.durationSeconds;
+            priceDoubleJump = catalog.doubleJump.basePrice;
+            doubleJumpSeconds = catalog.doubleJump.durationSeconds;
+        }
         if (GS) GS.BankOre();
         BindStoreUI();
         BuildResponsiveLayout();
@@ -94,12 +108,49 @@ public class StoreManager : MonoBehaviour
         ConfigureLabel(statusText, "StoreStatus", -130f, contentWidth, 34f, 14f, 22f);
         statusText.text = string.Empty;
 
-        ConfigureButton(lifeButton, -188f, new Color(0.98f, 0.69f, 0.25f), contentWidth);
-        ConfigureButton(speedButton, -260f, new Color(0.18f, 0.72f, 0.92f), contentWidth);
-        ConfigureButton(invisibilityButton, -332f, new Color(0.35f, 0.82f, 0.63f), contentWidth);
-        ConfigureButton(doubleJumpButton, -404f, new Color(0.78f, 0.48f, 0.86f), contentWidth);
-        ConfigureButton(armorButton, -476f, new Color(0.55f, 0.60f, 0.68f), contentWidth);
+        ConfigureButton(lifeButton, -172f, new Color(0.98f, 0.69f, 0.25f), contentWidth, 52f);
+        ConfigureButton(speedButton, -230f, new Color(0.18f, 0.72f, 0.92f), contentWidth, 52f);
+        ConfigureButton(invisibilityButton, -288f, new Color(0.35f, 0.82f, 0.63f), contentWidth, 52f);
+        ConfigureButton(doubleJumpButton, -346f, new Color(0.78f, 0.48f, 0.86f), contentWidth, 52f);
+        ConfigureButton(armorButton, -404f, new Color(0.55f, 0.60f, 0.68f), contentWidth, 52f);
+        EnsurePermanentUpgradeButtons(panel, contentWidth);
         ConfigureButton(backButton, -568f, new Color(0.25f, 0.29f, 0.35f), 260f, 52f);
+    }
+
+    void EnsurePermanentUpgradeButtons(RectTransform panel, float contentWidth)
+    {
+        if (!armorButton) return;
+        float halfWidth = (contentWidth - 16f) * 0.5f;
+
+        Transform existingPick = panel.Find("Button_Pickaxe");
+        if (!existingPick)
+        {
+            GameObject clone = Instantiate(armorButton.gameObject, panel);
+            clone.name = "Button_Pickaxe";
+            pickaxeButton = clone.GetComponent<Button>();
+            pickaxeButton.onClick.RemoveAllListeners();
+            pickaxeButton.onClick.AddListener(BuyPickaxe);
+        }
+        else pickaxeButton = existingPick.GetComponent<Button>();
+
+        Transform existingMag = panel.Find("Button_Magnet");
+        if (!existingMag)
+        {
+            GameObject clone = Instantiate(armorButton.gameObject, panel);
+            clone.name = "Button_Magnet";
+            magnetButton = clone.GetComponent<Button>();
+            magnetButton.onClick.RemoveAllListeners();
+            magnetButton.onClick.AddListener(BuyMagnet);
+        }
+        else magnetButton = existingMag.GetComponent<Button>();
+
+        ConfigureButton(pickaxeButton, -472f, new Color(0.88f, 0.52f, 0.22f), halfWidth, 54f);
+        if (pickaxeButton)
+            ((RectTransform)pickaxeButton.transform).anchoredPosition = new Vector2(-(halfWidth * 0.5f + 8f), -472f);
+
+        ConfigureButton(magnetButton, -472f, new Color(0.28f, 0.68f, 0.78f), halfWidth, 54f);
+        if (magnetButton)
+            ((RectTransform)magnetButton.transform).anchoredPosition = new Vector2(halfWidth * 0.5f + 8f, -472f);
     }
 
     TextMeshProUGUI GetOrCreateLabel(RectTransform parent, string objectName)
@@ -166,6 +217,8 @@ public class StoreManager : MonoBehaviour
         RefreshPowerupButton(doubleJumpButton, "DOUBLE JUMP", doubleJumpSeconds,
             priceDoubleJump, GameSession.DoubleJumpQueuedSecs, coins);
         RefreshArmorButton(coins);
+        RefreshPickaxeButton(coins);
+        RefreshMagnetButton(coins);
 
         if (backButton)
         {
@@ -222,6 +275,36 @@ public class StoreManager : MonoBehaviour
         int reduction = StoreEconomy.GetArmorDamageReductionPercent(nextTier);
         string label = $"<b>ARMOR TIER {nextTier}</b>  -{reduction}% DMG\n{cost} COINS";
         RefreshButton(armorButton, label, coins, cost, true);
+    }
+
+    void RefreshPickaxeButton(int coins)
+    {
+        if (!pickaxeButton) return;
+        int currentTier = GS ? GS.GetPickaxeTier() : PlayerPrefs.GetInt(GameSession.PickaxeTierKey, 0);
+        int nextTier = currentTier + 1;
+        if (!StoreEconomy.IsValidPickaxeTier(nextTier))
+        {
+            RefreshButton(pickaxeButton, "<b>PICKAXE</b> MAX", coins, int.MaxValue, false);
+            return;
+        }
+        int cost = StoreEconomy.GetPickaxeUpgradeCost(nextTier);
+        int bonus = StoreEconomy.GetPickaxeBonusPercent(nextTier);
+        RefreshButton(pickaxeButton, $"<b>PICKAXE T{nextTier}</b> +{bonus}% ORE\n{cost} COINS", coins, cost, true);
+    }
+
+    void RefreshMagnetButton(int coins)
+    {
+        if (!magnetButton) return;
+        int currentTier = GS ? GS.GetMagnetTier() : PlayerPrefs.GetInt(GameSession.MagnetTierKey, 0);
+        int nextTier = currentTier + 1;
+        if (!StoreEconomy.IsValidMagnetTier(nextTier))
+        {
+            RefreshButton(magnetButton, "<b>MAGNET</b> MAX", coins, int.MaxValue, false);
+            return;
+        }
+        int cost = StoreEconomy.GetMagnetUpgradeCost(nextTier);
+        float rad = StoreEconomy.GetMagnetRadius(nextTier);
+        RefreshButton(magnetButton, $"<b>MAGNET T{nextTier}</b> {rad:0.0}m\n{cost} COINS", coins, cost, true);
     }
 
     bool Spend(int cost)
@@ -307,6 +390,28 @@ public class StoreManager : MonoBehaviour
         }
 
         ShowStatus("Armor upgraded");
+    }
+
+    public void BuyPickaxe()
+    {
+        GameSession session = GS;
+        if (!session || !session.PurchasePickaxeUpgrade())
+        {
+            ShowStatus("CANNOT UPGRADE PICKAXE", false);
+            return;
+        }
+        ShowStatus("Pickaxe upgraded permanently!");
+    }
+
+    public void BuyMagnet()
+    {
+        GameSession session = GS;
+        if (!session || !session.PurchaseMagnetUpgrade())
+        {
+            ShowStatus("CANNOT UPGRADE MAGNET", false);
+            return;
+        }
+        ShowStatus("Ore Magnet upgraded permanently!");
     }
 
     public void ReturnToGame()

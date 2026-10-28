@@ -269,6 +269,9 @@ public static class QuantumQuarryProjectValidator
             !palette.stabilizationPickupPrefab || !palette.jumpPadPrefab || !palette.sentryPrefab ||
             !palette.shieldedEnemyPrefab)
             errors.Add("QuarryAssetPalette is missing one or more required prefab references.");
+        var storeCatalog = AssetDatabase.LoadAssetAtPath<StoreCatalog>("Assets/Resources/StoreCatalog.asset");
+        if (!storeCatalog)
+            errors.Add("Missing Assets/Resources/StoreCatalog.asset (run Tools > QuantumQuarry > Store > Create Or Update Store Catalog).");
     }
 
     static void ValidatePrefabComponent<T>(string path, List<string> errors) where T : Component

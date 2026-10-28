@@ -106,8 +106,24 @@ public static class QuarryPressureAuthoring
         palette.sentryPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(SentryPath);
         palette.shieldedEnemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ShieldedEnemyPath);
         EditorUtility.SetDirty(palette);
+        EnsureStoreCatalog();
         AssetDatabase.SaveAssets();
         Debug.Log("QuarryAssetPalette updated with real project tiles and prefabs.");
+    }
+
+    [MenuItem("Tools/QuantumQuarry/Store/Create Or Update Store Catalog")]
+    public static void EnsureStoreCatalog()
+    {
+        if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        const string catalogPath = "Assets/Resources/StoreCatalog.asset";
+        StoreCatalog catalog = AssetDatabase.LoadAssetAtPath<StoreCatalog>(catalogPath);
+        if (!catalog)
+        {
+            catalog = ScriptableObject.CreateInstance<StoreCatalog>();
+            AssetDatabase.CreateAsset(catalog, catalogPath);
+        }
+        EditorUtility.SetDirty(catalog);
     }
 
     static Sprite CreateSprite(string assetName, string[] pixels)

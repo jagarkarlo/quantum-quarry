@@ -25,6 +25,8 @@ public class GameSession : MonoBehaviour
     public const string StabilityKey = "QuantumStability";
     public const string StabilityUnitsKey = "QuantumStabilityUnits";
     public const string ArmorTierKey = "ArmorTier";
+    public const string PickaxeTierKey = "PickaxeTier";
+    public const string MagnetTierKey = "MagnetTier";
     public const string HitsTakenKey = "RunHitsTaken";
     public const string StabilityLostUnitsKey = "RunStabilityLostUnits";
     public const string LastHitsTakenKey = "LastHitsTaken";
@@ -44,6 +46,8 @@ public class GameSession : MonoBehaviour
     public event System.Action PressureChanged;
     DamageLog damageLog;
     int armorTier;
+    int pickaxeTier;
+    int magnetTier;
     float breathRemaining = -1f;
     float breathMaximum;
     string activeLevelId;
@@ -101,6 +105,8 @@ public class GameSession : MonoBehaviour
         stability = QuantumStability.FromUnits(
             maxStability * QuantumStability.UnitsPerPoint, persistedUnits);
         armorTier = Mathf.Clamp(PlayerPrefs.GetInt(ArmorTierKey, 0), 0, StoreEconomy.MaxArmorTier);
+        pickaxeTier = Mathf.Clamp(PlayerPrefs.GetInt(PickaxeTierKey, 0), 0, StoreEconomy.MaxPickaxeTier);
+        magnetTier = Mathf.Clamp(PlayerPrefs.GetInt(MagnetTierKey, 0), 0, StoreEconomy.MaxMagnetTier);
         damageLog = new DamageLog(
             PlayerPrefs.GetInt(HitsTakenKey, 0),
             PlayerPrefs.GetInt(StabilityLostUnitsKey, 0));
@@ -193,12 +199,15 @@ public class GameSession : MonoBehaviour
     public float GetMaxStability() => stability.Max;
     public bool IsCriticalStability() => stability.IsCritical;
     public int GetArmorTier() => armorTier;
+    public int GetPickaxeTier() => pickaxeTier;
+    public int GetMagnetTier() => magnetTier;
     public int GetHitsTaken() => damageLog.HitsTaken;
     public float GetStabilityLost() => damageLog.StabilityPointsLost;
 
     public int AddCoins(int amount)
     {
-        int awardedCoins = pressure.Collect(amount, stability.IsCritical);
+        int boostedBase = StoreEconomy.ApplyPickaxeBonusOre(amount, isPlaytestMode ? 0 : pickaxeTier);
+        int awardedCoins = pressure.Collect(boostedBase, stability.IsCritical);
         SavePressure();
         RefreshCoinsUI();
         PressureChanged?.Invoke();
@@ -275,6 +284,36 @@ public class GameSession : MonoBehaviour
         if (!isPlaytestMode)
         {
             PlayerPrefs.SetInt(ArmorTierKey, armorTier);
+            PlayerPrefs.Save();
+        }
+        return true;
+    }
+
+    public bool PurchasePickaxeUpgrade()
+    {
+        int nextTier = pickaxeTier + 1;
+        if (!StoreEconomy.IsValidPickaxeTier(nextTier)) return false;
+        if (!SpendCoins(StoreEconomy.GetPickaxeUpgradeCost(nextTier))) return false;
+
+        pickaxeTier = nextTier;
+        if (!isPlaytestMode)
+        {
+            PlayerPrefs.SetInt(PickaxeTierKey, pickaxeTier);
+            PlayerPrefs.Save();
+        }
+        return true;
+    }
+
+    public bool PurchaseMagnetUpgrade()
+    {
+        int nextTier = magnetTier + 1;
+        if (!StoreEconomy.IsValidMagnetTier(nextTier)) return false;
+        if (!SpendCoins(StoreEconomy.GetMagnetUpgradeCost(nextTier))) return false;
+
+        magnetTier = nextTier;
+        if (!isPlaytestMode)
+        {
+            PlayerPrefs.SetInt(MagnetTierKey, magnetTier);
             PlayerPrefs.Save();
         }
         return true;

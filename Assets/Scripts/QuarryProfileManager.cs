@@ -35,6 +35,8 @@ public static class QuarryProfileManager
         GameSession.ClearPersistentRunState();
         PlayerPrefs.SetInt(StartMenu.UnlockedLevelKey, 1);
         PlayerPrefs.DeleteKey("BestScore");
+        PlayerPrefs.DeleteKey(GameSession.PickaxeTierKey);
+        PlayerPrefs.DeleteKey(GameSession.MagnetTierKey);
         PlayerPrefs.DeleteKey(SeededChallengeRules.ActiveChallengeSeedKey);
         PlayerPrefs.DeleteKey(SeededChallengeRules.ActiveChallengeNoStoreKey);
         PlayerPrefs.DeleteKey(SeededChallengeRules.ActiveChallengeDateKey);

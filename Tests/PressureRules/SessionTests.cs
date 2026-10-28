@@ -138,6 +138,13 @@ static class SessionTests
         Equal(false, session.IsPlaytestMode, "session exits playtest mode");
         Equal(950, session.GetCoins(), "exiting playtest restores campaign coins");
         Equal(300, session.Pressure.CarriedOre, "exiting playtest restores campaign carried ore");
+        Equal(true, session.PurchasePickaxeUpgrade(), "purchase pickaxe tier 1");
+        Equal(1, session.GetPickaxeTier(), "pickaxe tier 1 persisted");
+        Equal(true, session.PurchaseMagnetUpgrade(), "purchase magnet tier 1");
+        Equal(1, session.GetMagnetTier(), "magnet tier 1 persisted");
+        int oreBeforePickaxe = session.Pressure.CarriedOre;
+        session.AddCoins(100);
+        Equal(oreBeforePickaxe + 115, session.Pressure.CarriedOre, "pickaxe tier 1 boosts collected base ore by 15 percent");
         Console.WriteLine($"GameSession integration (Unity test doubles): {assertions} assertions passed.");
     }
 }

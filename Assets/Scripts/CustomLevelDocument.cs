@@ -45,7 +45,8 @@ public sealed class CustomLevelDocument
     public static readonly string[] AllowedObjectIds =
     {
         "coin_100", "coin_150", "coin_200", "crate_250", "bank", "vent",
-        "gate_t1", "gate_t2", "enemy", "red_enemy", "shielded_enemy", "sentry",
+        "gate_t1", "gate_t2", "gate_latch_t1", "gauge",
+        "enemy", "red_enemy", "shielded_enemy", "sentry",
         "platform", "jump_pad", "stabilization"
     };
 
@@ -127,7 +128,8 @@ public sealed class CustomLevelDocument
     {
         return objectId == "enemy" || objectId == "red_enemy" || objectId == "shielded_enemy" ||
                objectId == "sentry" || objectId == "jump_pad" || objectId == "crate_250" ||
-               objectId == "bank" || objectId == "vent" || objectId == "gate_t1" || objectId == "gate_t2";
+               objectId == "bank" || objectId == "vent" || objectId == "gate_t1" ||
+               objectId == "gate_t2" || objectId == "gate_latch_t1" || objectId == "gauge";
     }
 
     public bool IsSolidSupportTile(int x, int y)
@@ -290,6 +292,66 @@ public sealed class CustomLevelDocument
         bool removedObj = RemoveAt(objects, x, y);
         if (removedTile) ReconcileGroundedObjectsInColumn(x);
         return removedTile || removedObj;
+    }
+
+    public int FillRect(int x0, int y0, int x1, int y1, string tileId)
+    {
+        if (!IsAllowedTileId(tileId) && !string.IsNullOrEmpty(tileId)) return 0;
+        int minX = Math.Max(MinCoord, Math.Min(x0, x1));
+        int maxX = Math.Min(MaxCoord, Math.Max(x0, x1));
+        int minY = Math.Max(MinCoord, Math.Min(y0, y1));
+        int maxY = Math.Min(MaxCoord, Math.Max(y0, y1));
+        if ((maxX - minX + 1) * (maxY - minY + 1) > 1024) return 0;
+
+        int count = 0;
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int y = minY; y <= maxY; y++)
+            {
+                if (string.IsNullOrEmpty(tileId))
+                {
+                    if (ClearCell(x, y)) count++;
+                }
+                else
+                {
+                    if (SetTile(x, y, tileId)) count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    public List<CustomLevelCell> CopyRegion(int x0, int y0, int x1, int y1)
+    {
+        int minX = Math.Min(x0, x1);
+        int maxX = Math.Max(x0, x1);
+        int minY = Math.Min(y0, y1);
+        int maxY = Math.Max(y0, y1);
+        var copied = new List<CustomLevelCell>();
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            CustomLevelCell c = tiles[i];
+            if (c.x >= minX && c.x <= maxX && c.y >= minY && c.y <= maxY)
+                copied.Add(new CustomLevelCell(c.x - minX, c.y - minY, c.id));
+        }
+        return copied;
+    }
+
+    public int PasteRegion(int destX, int destY, List<CustomLevelCell> clipboard)
+    {
+        if (clipboard == null || clipboard.Count == 0) return 0;
+        int pasted = 0;
+        for (int i = 0; i < clipboard.Count; i++)
+        {
+            CustomLevelCell c = clipboard[i];
+            int tx = destX + c.x;
+            int ty = destY + c.y;
+            if (InBounds(tx, ty) && IsAllowedTileId(c.id))
+            {
+                if (SetTile(tx, ty, c.id)) pasted++;
+            }
+        }
+        return pasted;
     }
 
     public List<string> Validate()

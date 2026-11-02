@@ -141,7 +141,9 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                     return false;
                 }
                 y = groundedY;
-                float exactY = (chosen == "gate_t1" || chosen == "gate_t2") ? supportTopY + 1f : supportTopY + 0.5f;
+                float exactY = (chosen == "gate_t1" || chosen == "gate_t2" || chosen == "gate_latch_t1")
+                    ? supportTopY + 1f
+                    : supportTopY + 0.5f;
                 changed = document.SetObject(x, y, chosen, x, exactY);
             }
             else
@@ -153,10 +155,29 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         if (!changed) return false;
         undoStack.Push(snapshot);
         redoStack.Clear();
+        WriteAutosaveSnapshot();
         RebuildWorld(false);
         statusMessage = $"Applied {chosen} at ({x},{y})";
         RefreshToolbarText();
         return true;
+    }
+
+    public string GetAutosaveFilePath()
+    {
+        return Path.Combine(CustomLevelSceneAdapter.GetCustomLevelsFolder(), "creator-autosave.json");
+    }
+
+    public void WriteAutosaveSnapshot()
+    {
+        if (document == null || document.Validate().Count > 0) return;
+        File.WriteAllText(GetAutosaveFilePath(), document.ToJson());
+    }
+
+    public bool RecoverAutosaveSnapshot()
+    {
+        string path = GetAutosaveFilePath();
+        if (!File.Exists(path)) return false;
+        return LoadDraft(path);
     }
 
     public bool Undo()
@@ -504,15 +525,15 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         string[] row2 =
         {
             "coin_100", "coin_150", "coin_200", "crate_250", "enemy", "red_enemy", "shielded_enemy",
-            "sentry", "platform", "jump_pad", "bank", "vent", "gate_t1", "gate_t2", "stabilization"
+            "sentry", "platform", "jump_pad", "bank", "vent", "gauge", "gate_t1", "gate_latch_t1", "stabilization"
         };
-        float x2 = 10f;
+        float x2 = 8f;
         for (int i = 0; i < row2.Length; i++)
         {
             string tool = row2[i];
-            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x2, -86f), new Vector2(58f, 26f),
+            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x2, -86f), new Vector2(54f, 26f),
                 new Color(0.18f, 0.22f, 0.36f), () => SelectTool(tool));
-            x2 += 60f;
+            x2 += 56f;
         }
 
         CreateToolbarButton(topBar.transform, "Btn_Undo", "UNDO", new Vector2(918f, -86f), new Vector2(54f, 26f),
@@ -554,6 +575,8 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             case "sentry": return "SENTRY";
             case "platform": return "PLATFRM";
             case "jump_pad": return "JUMPPAD";
+            case "gauge": return "GAUGE";
+            case "gate_latch_t1": return "LATCH1";
             case "stabilization": return "HEAL";
             default: return id.ToUpperInvariant();
         }

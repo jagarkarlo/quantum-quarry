@@ -15,6 +15,7 @@ public static class QuarryPressureAuthoring
     public const string JumpPadPath = "Assets/Prefabs/JumpPad.prefab";
     public const string SentryPath = "Assets/Prefabs/SentryTurret.prefab";
     public const string ShieldedEnemyPath = "Assets/Prefabs/ShieldedEnemy.prefab";
+    public const string GaugePath = "Assets/Prefabs/PressureGauge.prefab";
     const string ArtFolder = "Assets/Sprites/QuarryPressure";
 
     [MenuItem("Tools/QuantumQuarry/Pressure/Create Custom Prefabs")]
@@ -32,6 +33,8 @@ public static class QuarryPressureAuthoring
             CreateSprite("JumpPad", QuarryPressureArt.JumpPad), new Vector2(0.9f, 0.55f));
         CreatePrefab<SentryTurret>(SentryPath, "SentryTurret", "SENTRY",
             CreateSprite("SentryTurret", QuarryPressureArt.Sentry), new Vector2(0.85f, 0.85f), true, "Enemy", null, "Enemy");
+        CreatePrefab<PressureGauge>(GaugePath, "PressureGauge", "T0 0/500",
+            CreateSprite("PressureGauge", QuarryPressureArt.Gauge), new Vector2(0.85f, 0.85f));
         CreateShieldedEnemyPrefab();
         EnsureAssetPalette();
         AssetDatabase.SaveAssets();
@@ -105,6 +108,7 @@ public static class QuarryPressureAuthoring
         palette.jumpPadPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(JumpPadPath);
         palette.sentryPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(SentryPath);
         palette.shieldedEnemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ShieldedEnemyPath);
+        palette.pressureGaugePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(GaugePath);
         EditorUtility.SetDirty(palette);
         EnsureStoreCatalog();
         AssetDatabase.SaveAssets();
@@ -271,6 +275,7 @@ public static class QuarryPressureAuthoring
             PlacePilotObject(scene, VentPath, "Pressure Pilot Vent", 27f, 5f);
             PlacePilotObject(scene, GatePath, "Pressure Pilot Gate", 11.5f, 13f, 1f);
             PlacePilotObject(scene, JumpPadPath, "Pressure Pilot JumpPad", 9f, 13f);
+            PlacePilotObject(scene, GaugePath, "Pressure Pilot Gauge", 10.2f, 13f);
             ScenePersist persistence = null;
             foreach (GameObject root in scene.GetRootGameObjects())
             {

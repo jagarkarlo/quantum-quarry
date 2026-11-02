@@ -33,6 +33,7 @@ public sealed class QuarryAssetPalette : ScriptableObject
     public GameObject jumpPadPrefab;
     public GameObject sentryPrefab;
     public GameObject shieldedEnemyPrefab;
+    public GameObject pressureGaugePrefab;
 
     static QuarryAssetPalette cached;
 

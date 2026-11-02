@@ -36,3 +36,4 @@ MonoBehaviour:
   jumpPadPrefab: {fileID: 6813754992670903369, guid: 7e050545436dc2a45a8f511610e689c3, type: 3}
   sentryPrefab: {fileID: 4391148652898073459, guid: 52018ce9f89c18345929f086399a861d, type: 3}
   shieldedEnemyPrefab: {fileID: 4468010812773172913, guid: f595a9e6aec3c1244b49790390c982e5, type: 3}
+  pressureGaugePrefab: {fileID: 1444845862572092276, guid: c04f09ec2eb381c46aca11fd810c9c74, type: 3}

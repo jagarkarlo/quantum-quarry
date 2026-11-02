@@ -210,6 +210,7 @@ public static class QuantumQuarryProjectValidator
         ValidatePrefabComponent<JumpPad>(QuarryPressureAuthoring.JumpPadPath, errors);
         ValidatePrefabComponent<SentryTurret>(QuarryPressureAuthoring.SentryPath, errors);
         ValidatePrefabComponent<ShieldedEnemyGuard>(QuarryPressureAuthoring.ShieldedEnemyPath, errors);
+        ValidatePrefabComponent<PressureGauge>(QuarryPressureAuthoring.GaugePath, errors);
         foreach (string path in new[]
         {
             QuarryPressureAuthoring.CheckpointPath,
@@ -218,7 +219,8 @@ public static class QuantumQuarryProjectValidator
             QuarryPressureAuthoring.GatePath,
             QuarryPressureAuthoring.JumpPadPath,
             QuarryPressureAuthoring.SentryPath,
-            QuarryPressureAuthoring.ShieldedEnemyPath
+            QuarryPressureAuthoring.ShieldedEnemyPath,
+            QuarryPressureAuthoring.GaugePath
         })
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -267,7 +269,7 @@ public static class QuantumQuarryProjectValidator
             !palette.movingPlatformPrefab || !palette.coinPrefab || !palette.breakableCratePrefab ||
             !palette.bankCheckpointPrefab || !palette.pulseVentPrefab || !palette.pressureGatePrefab ||
             !palette.stabilizationPickupPrefab || !palette.jumpPadPrefab || !palette.sentryPrefab ||
-            !palette.shieldedEnemyPrefab)
+            !palette.shieldedEnemyPrefab || !palette.pressureGaugePrefab)
             errors.Add("QuarryAssetPalette is missing one or more required prefab references.");
         var storeCatalog = AssetDatabase.LoadAssetAtPath<StoreCatalog>("Assets/Resources/StoreCatalog.asset");
         if (!storeCatalog)

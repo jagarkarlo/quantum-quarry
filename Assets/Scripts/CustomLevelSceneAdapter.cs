@@ -201,9 +201,15 @@ public static class CustomLevelSceneAdapter
 
         foreach (PressureGate gate in UnityEngine.Object.FindObjectsOfType<PressureGate>(true))
         {
-            string id = gate.RequiredTier >= 2 ? "gate_t2" : "gate_t1";
+            string id = gate.LatchWhenOpened ? "gate_latch_t1" : (gate.RequiredTier >= 2 ? "gate_t2" : "gate_t1");
             Vector3 p = gate.transform.position;
             doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y - 0.5f), id, p.x, p.y);
+        }
+
+        foreach (PressureGauge gauge in UnityEngine.Object.FindObjectsOfType<PressureGauge>(true))
+        {
+            Vector3 p = gauge.transform.position;
+            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "gauge", p.x, p.y);
         }
 
         foreach (EnemyPatrol2D enemy in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true))
@@ -324,6 +330,7 @@ public static class CustomLevelSceneAdapter
         foreach (OreBankCheckpoint b in UnityEngine.Object.FindObjectsOfType<OreBankCheckpoint>(true)) UnityEngine.Object.DestroyImmediate(b.gameObject);
         foreach (PressurePulseHazard v in UnityEngine.Object.FindObjectsOfType<PressurePulseHazard>(true)) UnityEngine.Object.DestroyImmediate(v.gameObject);
         foreach (PressureGate g in UnityEngine.Object.FindObjectsOfType<PressureGate>(true)) UnityEngine.Object.DestroyImmediate(g.gameObject);
+        foreach (PressureGauge pg in UnityEngine.Object.FindObjectsOfType<PressureGauge>(true)) UnityEngine.Object.DestroyImmediate(pg.gameObject);
         foreach (JumpPad j in UnityEngine.Object.FindObjectsOfType<JumpPad>(true)) UnityEngine.Object.DestroyImmediate(j.gameObject);
         foreach (FollowingPoint p in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
         {
@@ -400,11 +407,15 @@ public static class CustomLevelSceneAdapter
         {
             spawned = UnityEngine.Object.Instantiate(palette.pulseVentPrefab, pos, Quaternion.identity);
         }
-        else if ((id == "gate_t1" || id == "gate_t2") && palette.pressureGatePrefab)
+        else if ((id == "gate_t1" || id == "gate_t2" || id == "gate_latch_t1") && palette.pressureGatePrefab)
         {
             spawned = UnityEngine.Object.Instantiate(palette.pressureGatePrefab, pos, Quaternion.identity);
             PressureGate g = spawned.GetComponent<PressureGate>();
-            if (g) g.SetRequiredTier(id == "gate_t2" ? 2 : 1);
+            if (g) g.SetRequiredTier(id == "gate_t2" ? 2 : 1, id == "gate_latch_t1");
+        }
+        else if (id == "gauge" && palette.pressureGaugePrefab)
+        {
+            spawned = UnityEngine.Object.Instantiate(palette.pressureGaugePrefab, pos, Quaternion.identity);
         }
         else if (id == "enemy" && palette.enemyPrefab)
         {

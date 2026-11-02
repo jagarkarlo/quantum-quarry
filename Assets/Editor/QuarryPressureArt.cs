@@ -135,4 +135,23 @@ public static class QuarryPressureArt
         "..####....####..",
         "................"
     };
+    public static readonly string[] Gauge =
+    {
+        "....########....",
+        "..##ssssssss##..",
+        ".#ss########ss#.",
+        ".#s#ccyyyygg#s#.",
+        "#ss#cwwwwwwg#ss#",
+        "#s##cw####wg##s#",
+        "#s#ccw#yy#wgg#s#",
+        "#s#ccw#yy#wgg#s#",
+        "#s##cw####wg##s#",
+        "#ss#cwwwwwwg#ss#",
+        ".#s#ccyyyygg#s#.",
+        ".#ss########ss#.",
+        "..##ssssssss##..",
+        "....##ssss##....",
+        "...##########...",
+        "..############.."
+    };
 }

@@ -75,6 +75,21 @@ public sealed class QuarryPressure
         return MeetsGateRequirement(clamped) ? "OPEN" : $"LOCK T{clamped}";
     }
 
+    public string GetGaugeLabel()
+    {
+        if (NextThreshold <= 0) return $"MAX T3 ({CarriedOre})";
+        return $"T{Tier} {CarriedOre}/{NextThreshold}";
+    }
+
+    public float GetGaugeNormalizedFill()
+    {
+        if (Tier >= 3) return 1f;
+        int prev = Tier == 0 ? 0 : Tier == 1 ? FirstThreshold : SecondThreshold;
+        int next = NextThreshold;
+        int span = Math.Max(1, next - prev);
+        return Math.Max(0f, Math.Min(1f, (CarriedOre - prev) / (float)span));
+    }
+
     public PulsePhase GetPulsePhase(float elapsedSeconds)
     {
         if (!HasHazardPulses || float.IsNaN(elapsedSeconds) || float.IsInfinity(elapsedSeconds))

@@ -26,7 +26,7 @@ The project explores a complete platform-game loop across six levels: movement a
 - Speedrun Ghost Replays & Live Split HUD (`GhostReplayRunner` & `GhostReplayData`), Seeded Daily Challenges (`SeededChallengeRules`), two-step confirmed Profile Reset (`QuarryProfileManager`), and Pause Menu Accessibility/Options toggles (`AUDIO`, `FLASH`, `SPLITS`)
 - Live Campaign Level Remixer, Custom Stage Builder, Checksummed `.qqlevel` Sharing (`CustomLevelSharing`), and Procedural Quarry Generator (`ProceduralQuarryGenerator`): load any campaign level (Levels 1-6) with its real Unity Tilemaps and prefabs intact, paint with all game tiles and prefabs, generate deterministic seeded stages (`GEN SEED`), export/import FNV-1a checksummed `.qqlevel` packages (`EXPORT` / `IMPORT`), save playable harder Campaign Overrides (`SAVE L1..L6`), or add new playable Custom Stages (`+STAGE` -> `STAGE 7+`) directly onto the Level Selector
 - Quarry Pressure source implementation: unbanked ore, risk/reward multipliers, seeded enemy modifiers, and reward previews
-- Custom banking checkpoint, pulse-vent, pressure-gate, breakable ore-crate, directional jump-pad, aiming sentry-turret, and shielded-patrol prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
+- Custom banking checkpoint, pulse-vent, pressure-gate (standard and latching with anti-crush safety), pressure-gauge (`T0..T3` world dial), breakable ore-crate, directional jump-pad, aiming sentry-turret, and shielded-patrol prefabs with a Level 4 vault pilot and 2050-base-ore route (automated Unity runtime checks pass; manual route acceptance remains pending)
 
 ## Enemy AI
 

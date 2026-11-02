@@ -333,6 +333,11 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(creator.ApplyToolAtCell(-6, 3, "ground") && creator.ApplyToolAtCell(-6, 5, "jump_pad") &&
             creator.Document.GetObject(-6, 4) == "jump_pad",
             "Creator snaps a placed JumpPad down onto the solid tile at (-6,3).");
+        Require(creator.ApplyToolAtCell(-7, 3, "ground") && creator.ApplyToolAtCell(-7, 5, "gauge") &&
+            creator.Document.GetObject(-7, 4) == "gauge",
+            "Creator snaps a placed PressureGauge down onto the solid tile at (-7,3).");
+        Require(File.Exists(creator.GetAutosaveFilePath()),
+            "Creator automatically writes an autosave recovery snapshot after edits.");
         Require(creator.ApplyToolAtCell(-2, 2, "coin_200") && creator.Document.GetObject(-2, 2) == "coin_200",
             "Creator places a 200-ore coin prefab onto the level.");
         string draftPath = Path.Combine(outputDirectory, "creator-draft.json");
@@ -687,8 +692,12 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         JumpPad jumpPad = FindObjectOfType<JumpPad>();
         SentryTurret sentry = FindObjectOfType<SentryTurret>();
         ShieldedEnemyGuard shielded = FindObjectOfType<ShieldedEnemyGuard>();
-        Require(jumpPad && sentry && shielded,
-            "Level 4 contains the authored JumpPad, SentryTurret, and ShieldedEnemy.");
+        PressureGauge gauge = FindObjectOfType<PressureGauge>();
+        Require(jumpPad && sentry && shielded && gauge,
+            "Level 4 contains the authored JumpPad, SentryTurret, ShieldedEnemy, and PressureGauge.");
+        gauge.RefreshGauge();
+        Require(gauge.CurrentText == session.Pressure.GetGaugeLabel(),
+            "PressureGauge displays the exact live Pressure tier and carried ore progress.");
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
         MovePlayer(body, jumpPad.transform.position);
         yield return new WaitForFixedUpdate();

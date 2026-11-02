@@ -100,7 +100,7 @@ static class Program
         foreach (string[] artwork in new[]
         {
             QuarryPressureArt.Checkpoint, QuarryPressureArt.Vent, QuarryPressureArt.Crate, QuarryPressureArt.Gate,
-            QuarryPressureArt.JumpPad, QuarryPressureArt.Sentry, QuarryPressureArt.ShieldedEnemy
+            QuarryPressureArt.JumpPad, QuarryPressureArt.Sentry, QuarryPressureArt.ShieldedEnemy, QuarryPressureArt.Gauge
         })
         {
             Equal(16, artwork.Length, "artwork height");
@@ -226,6 +226,16 @@ static class Program
         CustomLevelDocument procB = ProceduralQuarryGenerator.Generate(7319, 2);
         Equal(0, procA.Validate().Count, "procedurally generated quarry level passes validator");
         Equal(procA.ToJson(), procB.ToJson(), "procedural generator is deterministic for the same seed");
+        var gaugeTest = new QuarryPressure(7319, 250);
+        Equal("T0 250/500", gaugeTest.GetGaugeLabel(), "gauge label at tier 0");
+        Equal(true, Math.Abs(gaugeTest.GetGaugeNormalizedFill() - 0.5f) < 0.01f, "gauge normalized fill at 250/500");
+        var copyDoc = CustomLevelDocument.CreateStarterDraft();
+        int filled = copyDoc.FillRect(30, 2, 32, 3, "ground");
+        Equal(6, filled, "FillRect paints 3x2 rectangular region");
+        var clip = copyDoc.CopyRegion(30, 2, 32, 3);
+        Equal(6, clip.Count, "CopyRegion captures 6 tiles");
+        Equal(6, copyDoc.PasteRegion(40, 2, clip), "PasteRegion stamps 6 tiles at destination");
+        Equal("ground", copyDoc.GetTile(42, 3), "PasteRegion places top-right tile accurately");
         var invalidDoc = new CustomLevelDocument { formatVersion = 99, width = 999, spawnX = 5, spawnY = 5, exitX = 5, exitY = 5 };
         Equal(true, invalidDoc.Validate().Count >= 3, "invalid document reports format, bounds, and overlap errors");
         Console.WriteLine($"Quarry Pressure/liquid rules and custom artwork: {assertions} assertions passed.");

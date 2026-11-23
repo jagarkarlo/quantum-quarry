@@ -508,8 +508,10 @@ public sealed class CustomLevelDocument
                 if (includeExactAndSpan)
                 {
                     sb.AppendFormat(CultureInfo.InvariantCulture,
-                        "{{\"x\":{0},\"y\":{1},\"id\":\"{2}\",\"ex\":{3:R},\"ey\":{4:R},\"sx\":{5:R},\"sy\":{6:R}}}",
+                        "{{\"x\":{0},\"y\":{1},\"id\":\"{2}\",\"ex\":{3:R},\"ey\":{4:R},\"sx\":{5:R},\"sy\":{6:R}",
                         c.x, c.y, Escape(c.id), c.exactX, c.exactY, c.spanX, c.spanY);
+                    // Mono treats an escaped closing brace next to :R as part of the numeric format.
+                    sb.Append('}');
                 }
                 else
                 {

@@ -72,28 +72,18 @@ public class StoreManager : MonoBehaviour
     {
         if (!coinsText || !lifeButton) return;
 
-        CanvasScaler scaler = GetComponentInParent<CanvasScaler>();
-        if (scaler) scaler.matchWidthOrHeight = 0.5f;
-
         RectTransform panel = lifeButton.transform.parent as RectTransform;
         if (!panel) return;
 
-        Canvas canvas = panel.GetComponentInParent<Canvas>();
-        Rect canvasRect = canvas ? ((RectTransform)canvas.transform).rect : new Rect(0f, 0f, 800f, 600f);
-        // Panel is taller than the 4 original products to leave room for the
-        // armor button once Button_Armor is added to the Store scene.
-        float panelWidth = Mathf.Min(720f, Mathf.Max(320f, canvasRect.width - 40f));
-        float panelHeight = Mathf.Min(660f, Mathf.Max(600f, canvasRect.height - 40f));
-
         panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
         panel.anchoredPosition = Vector2.zero;
-        panel.sizeDelta = new Vector2(panelWidth, panelHeight);
+        panel.sizeDelta = new Vector2(720f, 608f);
 
         Image panelImage = panel.GetComponent<Image>();
         if (panelImage) panelImage.color = new Color(0.13f, 0.16f, 0.20f, 0.97f);
 
         coinsText.transform.SetParent(panel, false);
-        float contentWidth = Mathf.Max(280f, panelWidth - 100f);
+        float contentWidth = panel.sizeDelta.x - 100f;
         ConfigureLabel(coinsText, "StoreBalance", -96f, contentWidth, 38f, 18f, 28f);
         coinsText.fontStyle = FontStyles.Bold;
         coinsText.color = new Color(1f, 0.86f, 0.30f);
@@ -105,7 +95,7 @@ public class StoreManager : MonoBehaviour
         titleText.color = Color.white;
 
         statusText = GetOrCreateLabel(panel, "StoreStatus");
-        ConfigureLabel(statusText, "StoreStatus", -130f, contentWidth, 34f, 14f, 22f);
+        ConfigureLabel(statusText, "StoreStatus", -130f, contentWidth, 26f, 14f, 22f);
         statusText.text = string.Empty;
 
         ConfigureButton(lifeButton, -172f, new Color(0.98f, 0.69f, 0.25f), contentWidth, 52f);

@@ -12,6 +12,7 @@ public class UIGameOver : MonoBehaviour
 
     void Start()
     {
+        if (scoreText && scoreText.canvas) QuarryMenuFrame.Ensure(scoreText.canvas.rootCanvas);
         bool isVictory = SceneManager.GetActiveScene().name == "Victory";
         int final = isVictory
             ? PlayerPrefs.GetInt(GameSession.FinalCoinsKey, 0)

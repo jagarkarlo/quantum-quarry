@@ -398,7 +398,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             if (brain) brain.enabled = true;
         }
         QuarryPressureHUD.EnsureForScene(session);
-        statusMessage = "PLAYTESTING (isolated save) — click Edit Mode to return";
+        statusMessage = "ISOLATED PLAYTEST";
         RefreshToolbarText();
     }
 
@@ -563,7 +563,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         toolText = CreateText(topBar.transform, "ToolText", new Vector2(12f, -30f), new Vector2(1256f, 20f), 14f, TextAlignmentOptions.Left);
         toolText.color = new Color(0.65f, 0.92f, 1f);
 
-        float lx = 636f;
+        float lx = 490f;
         int unlocked = Mathf.Clamp(PlayerPrefs.GetInt(StartMenu.UnlockedLevelKey, 1), 1, 6);
         for (int lvl = 1; lvl <= 6; lvl++)
         {
@@ -571,7 +571,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             bool isUnlocked = lvl <= unlocked;
             string btnLabel = isUnlocked ? $"REMIX L{lvl}" : $"L{lvl} LOCK";
             Color btnColor = isUnlocked ? new Color(0.18f, 0.28f, 0.42f) : new Color(0.16f, 0.18f, 0.22f, 0.6f);
-            CreateToolbarButton(topBar.transform, $"Btn_LoadL{lvl}", btnLabel, new Vector2(lx, -6f), new Vector2(64f, 24f),
+            CreateToolbarButton(topBar.transform, $"Btn_LoadL{lvl}", btnLabel, new Vector2(lx, -6f), new Vector2(82f, 24f),
                 btnColor, () =>
                 {
                     if (!isUnlocked)
@@ -582,7 +582,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                     }
                     LoadCampaignLevelForRemix(capturedLvl);
                 });
-            lx += 66f;
+            lx += 88f;
         }
         CreateToolbarButton(topBar.transform, "Btn_Blank", "BLANK", new Vector2(lx, -6f), new Vector2(56f, 24f),
             new Color(0.24f, 0.34f, 0.24f), ClearToBlankTemplate);
@@ -736,10 +736,11 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         if (headerText)
         {
             RectTransform bar = (RectTransform)headerText.transform.parent;
-            bar.anchorMin = new Vector2(0, isEditing ? 1 : 0);
-            bar.anchorMax = new Vector2(1, isEditing ? 1 : 0);
-            bar.offsetMin = new Vector2(0, isEditing ? -124 : 0);
-            bar.offsetMax = new Vector2(0, isEditing ? 0 : 40);
+            bar.anchorMin = new Vector2(isEditing ? 0 : 0.5f, 1);
+            bar.anchorMax = new Vector2(isEditing ? 1 : 0.5f, 1);
+            bar.offsetMin = isEditing ? new Vector2(0, -124) : new Vector2(-270, -108);
+            bar.offsetMax = isEditing ? Vector2.zero : new Vector2(270, -70);
+            headerText.rectTransform.sizeDelta = new Vector2(isEditing ? 465f : 305f, 28f);
             foreach (Transform child in bar)
             {
                 bool transport = child.name == "Btn_Playtest" || child.name == "Btn_ExitCreator";
@@ -747,14 +748,16 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                 if (transport)
                 {
                     var rect = (RectTransform)child;
-                    rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, isEditing ? -54 : -6);
+                    bool play = child.name == "Btn_Playtest";
+                    rect.anchoredPosition = isEditing ? new Vector2(play ? 1070 : 1172, -54) :
+                        new Vector2(play ? 330 : 434, -5);
                 }
             }
             foreach (var button in tileButtons) button.SetActive(isEditing && !objectPalette);
             foreach (var button in objectButtons) button.SetActive(isEditing && objectPalette);
             string modeLabel = isEditing ? $"REMIXING LEVEL {currentCampaignLevel}" : "ISOLATED PLAYTEST";
             string hasOverride = CustomLevelSceneAdapter.HasCampaignOverride(currentCampaignLevel) ? " [OVERRIDDEN]" : "";
-            headerText.text = isEditing ? $"LEVEL CREATOR / {modeLabel}{hasOverride}" : $"PLAYTEST / {statusMessage}";
+            headerText.text = isEditing ? $"LEVEL CREATOR / {modeLabel}{hasOverride}" : statusMessage;
         }
         if (toolText)
         {

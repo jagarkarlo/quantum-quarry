@@ -28,6 +28,9 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
     Vector2Int? railAnchor;
     TextMeshProUGUI headerText;
     TextMeshProUGUI toolText;
+    readonly List<GameObject> tileButtons = new List<GameObject>();
+    readonly List<GameObject> objectButtons = new List<GameObject>();
+    bool objectPalette;
     GameSession session;
 
     public CustomLevelDocument Document => document;
@@ -544,7 +547,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         CanvasScaler scaler = editorCanvasObj.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1280f, 720f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.matchWidthOrHeight = 0f;
 
         var topBar = new GameObject("TopBar", typeof(RectTransform), typeof(Image));
         topBar.transform.SetParent(editorCanvasObj.transform, false);
@@ -554,10 +557,10 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         barRect.pivot = new Vector2(0.5f, 1f);
         barRect.offsetMin = new Vector2(0f, -124f);
         barRect.offsetMax = Vector2.zero;
-        topBar.GetComponent<Image>().color = new Color(0.04f, 0.07f, 0.11f, 0.94f);
+        topBar.GetComponent<Image>().color = new Color(0.04f, 0.07f, 0.11f, 1f);
 
-        headerText = CreateText(topBar.transform, "HeaderText", new Vector2(12f, -4f), new Vector2(680f, 24f), 15f, TextAlignmentOptions.Left);
-        toolText = CreateText(topBar.transform, "ToolText", new Vector2(12f, -26f), new Vector2(680f, 20f), 12f, TextAlignmentOptions.Left);
+        headerText = CreateText(topBar.transform, "HeaderText", new Vector2(12f, -4f), new Vector2(610f, 24f), 15f, TextAlignmentOptions.Left);
+        toolText = CreateText(topBar.transform, "ToolText", new Vector2(12f, -30f), new Vector2(1256f, 20f), 14f, TextAlignmentOptions.Left);
         toolText.color = new Color(0.65f, 0.92f, 1f);
 
         float lx = 636f;
@@ -595,46 +598,54 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
         string[] row1 =
         {
-            "ground", "rock", "ladder", "bounce", "hazard_spike", "water_surface", "lava_surface", "bg", "spawn", "exit", "erase"
+            "ground", "rock", "ladder", "bounce", "hazard_spike", "water_surface", "water", "lava_surface", "lava", "bg", "spawn", "exit", "erase"
         };
         float x1 = 12f;
         for (int i = 0; i < row1.Length; i++)
         {
             string tool = row1[i];
-            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x1, -54f), new Vector2(96f, 26f),
-                new Color(0.12f, 0.24f, 0.34f), () => SelectTool(tool));
-            x1 += 100f;
+            tileButtons.Add(CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x1, -88f), new Vector2(92f, 28f),
+                new Color(0.12f, 0.24f, 0.34f), () => SelectTool(tool)));
+            x1 += 97f;
         }
 
         string[] row2 =
         {
             "coin_100", "coin_150", "coin_200", "crate_250", "enemy", "red_enemy", "shielded_enemy",
-            "sentry", "platform", "jump_pad", "bank", "vent", "gauge", "gate_t1", "gate_latch_t1", "stabilization"
+            "sentry", "platform", "jump_pad", "bank", "vent", "gauge", "gate_t1", "gate_t2", "gate_latch_t1", "stabilization"
         };
         float x2 = 8f;
         for (int i = 0; i < row2.Length; i++)
         {
             string tool = row2[i];
-            CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x2, -86f), new Vector2(54f, 26f),
-                new Color(0.18f, 0.22f, 0.36f), () => SelectTool(tool));
-            x2 += 56f;
+            objectButtons.Add(CreateToolbarButton(topBar.transform, $"Btn_{tool}", FormatToolLabel(tool), new Vector2(x2, -88f), new Vector2(70f, 28f),
+                new Color(0.18f, 0.22f, 0.36f), () => SelectTool(tool)));
+            x2 += 74f;
         }
 
-        CreateToolbarButton(topBar.transform, "Btn_Undo", "UNDO", new Vector2(918f, -86f), new Vector2(54f, 26f),
+        CreateToolbarButton(topBar.transform, "Btn_Tiles", "TILES", new Vector2(12f, -54f), new Vector2(92f, 28f),
+            new Color(0.12f, 0.34f, 0.44f), () => { objectPalette = false; SelectTool("ground"); });
+        CreateToolbarButton(topBar.transform, "Btn_Objects", "OBJECTS", new Vector2(110f, -54f), new Vector2(92f, 28f),
+            new Color(0.24f, 0.27f, 0.46f), () => { objectPalette = true; SelectTool("platform"); });
+        CreateText(topBar.transform, "GuideKey", new Vector2(218f, -54f), new Vector2(320f, 28f), 14f,
+            TextAlignmentOptions.Left).text = "CYAN: RAIL   /   AMBER: PATROL";
+        CreateToolbarButton(topBar.transform, "Btn_Undo", "UNDO", new Vector2(550f, -54f), new Vector2(72f, 28f),
             new Color(0.26f, 0.26f, 0.32f), () => Undo());
-        CreateToolbarButton(topBar.transform, "Btn_SaveOverride", $"SAVE L{currentCampaignLevel}", new Vector2(976f, -86f), new Vector2(72f, 26f),
+        CreateToolbarButton(topBar.transform, "Btn_Redo", "REDO", new Vector2(628f, -54f), new Vector2(72f, 28f),
+            new Color(0.26f, 0.26f, 0.32f), () => Redo());
+        CreateToolbarButton(topBar.transform, "Btn_SaveOverride", $"SAVE L{currentCampaignLevel}", new Vector2(722f, -54f), new Vector2(96f, 28f),
             new Color(0.14f, 0.44f, 0.26f), () => SaveCurrentLevelCampaignOverride());
-        CreateToolbarButton(topBar.transform, "Btn_ResetOverride", "RESET L", new Vector2(1052f, -86f), new Vector2(64f, 26f),
+        CreateToolbarButton(topBar.transform, "Btn_ResetOverride", "RESET L", new Vector2(824f, -54f), new Vector2(90f, 28f),
             new Color(0.42f, 0.26f, 0.14f), () => ResetCurrentLevelCampaignOverride());
-        CreateToolbarButton(topBar.transform, "Btn_SaveStage", "+STAGE", new Vector2(1120f, -86f), new Vector2(66f, 26f),
+        CreateToolbarButton(topBar.transform, "Btn_SaveStage", "+STAGE", new Vector2(920f, -54f), new Vector2(100f, 28f),
             new Color(0.22f, 0.42f, 0.52f), () => SaveAsPlayableCustomStage());
-        CreateToolbarButton(topBar.transform, "Btn_Playtest", "PLAY", new Vector2(1190f, -86f), new Vector2(44f, 26f),
+        CreateToolbarButton(topBar.transform, "Btn_Playtest", "PLAY", new Vector2(1070f, -54f), new Vector2(96f, 28f),
             new Color(0.85f, 0.48f, 0.12f), () =>
             {
                 if (isEditing) StartPlaytest();
                 else EnterEditMode();
             });
-        CreateToolbarButton(topBar.transform, "Btn_ExitCreator", "EXIT", new Vector2(1236f, -86f), new Vector2(38f, 26f),
+        CreateToolbarButton(topBar.transform, "Btn_ExitCreator", "EXIT", new Vector2(1172f, -54f), new Vector2(96f, 28f),
             new Color(0.48f, 0.16f, 0.16f), ExitCreatorToLevelSelector);
     }
 
@@ -647,8 +658,8 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             case "ladder": return "LADDER";
             case "bounce": return "MUSHROOM";
             case "hazard_spike": return "SPIKES";
-            case "water_surface": return "WATER";
-            case "lava_surface": return "LAVA";
+            case "water_surface": return "WATER TOP";
+            case "lava_surface": return "LAVA TOP";
             case "bg": return "BG TILE";
             case "coin_100": return "COIN 100";
             case "coin_150": return "COIN 150";
@@ -657,7 +668,9 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             case "red_enemy": return "RED ENM";
             case "shielded_enemy": return "SHIELD";
             case "sentry": return "SENTRY";
-            case "platform": return "PLATFRM";
+            case "platform": return "RAIL A-B";
+            case "gate_t1": return "GATE 1";
+            case "gate_t2": return "GATE 2";
             case "jump_pad": return "JUMPPAD";
             case "gauge": return "GAUGE";
             case "gate_latch_t1": return "LATCH1";
@@ -684,7 +697,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         return tmp;
     }
 
-    static void CreateToolbarButton(Transform parent, string name, string label, Vector2 anchoredPos, Vector2 size, Color bgColor, UnityEngine.Events.UnityAction onClick)
+    static GameObject CreateToolbarButton(Transform parent, string name, string label, Vector2 anchoredPos, Vector2 size, Color bgColor, UnityEngine.Events.UnityAction onClick)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
@@ -711,19 +724,37 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         tmp.fontSize = 10f;
         tmp.enableAutoSizing = true;
         tmp.fontSizeMin = 7f;
-        tmp.fontSizeMax = 11f;
+        tmp.fontSizeMax = 14f;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.white;
         tmp.raycastTarget = false;
+        return go;
     }
 
     void RefreshToolbarText()
     {
         if (headerText)
         {
+            RectTransform bar = (RectTransform)headerText.transform.parent;
+            bar.anchorMin = new Vector2(0, isEditing ? 1 : 0);
+            bar.anchorMax = new Vector2(1, isEditing ? 1 : 0);
+            bar.offsetMin = new Vector2(0, isEditing ? -124 : 0);
+            bar.offsetMax = new Vector2(0, isEditing ? 0 : 40);
+            foreach (Transform child in bar)
+            {
+                bool transport = child.name == "Btn_Playtest" || child.name == "Btn_ExitCreator";
+                child.gameObject.SetActive(isEditing || transport || child == headerText.transform);
+                if (transport)
+                {
+                    var rect = (RectTransform)child;
+                    rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, isEditing ? -54 : -6);
+                }
+            }
+            foreach (var button in tileButtons) button.SetActive(isEditing && !objectPalette);
+            foreach (var button in objectButtons) button.SetActive(isEditing && objectPalette);
             string modeLabel = isEditing ? $"REMIXING LEVEL {currentCampaignLevel}" : "ISOLATED PLAYTEST";
             string hasOverride = CustomLevelSceneAdapter.HasCampaignOverride(currentCampaignLevel) ? " [OVERRIDDEN]" : "";
-            headerText.text = $"LEVEL CREATOR ({modeLabel}{hasOverride})  |  {document.tiles.Count} tiles, {document.objects.Count} objects";
+            headerText.text = isEditing ? $"LEVEL CREATOR / {modeLabel}{hasOverride}" : $"PLAYTEST / {statusMessage}";
         }
         if (toolText)
         {

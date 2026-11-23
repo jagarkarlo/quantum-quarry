@@ -227,12 +227,29 @@ public sealed class CustomLevelDocument
                 error = $"Rail or rider blocked by {tile.id} at ({tile.x},{tile.y}).";
                 return false;
             }
-        foreach (var obj in objects)
-            if (BlocksRail(obj.id) && SweepsCell(rail, obj.x, obj.y, BlockHeight(obj.id)))
+        for (int i = 0; i < objects.Count; i++)
+        {
+            if (i == existing) continue;
+            var obj = objects[i];
+            if (obj.id == "platform")
+            {
+                // The new route is axis-aligned; test the other deck against its swept corridor.
+                float enter = 0f, leave = 1f;
+                if (CrossesSlab(obj.exactX, obj.spanX, Math.Min(ax, ax + rail.spanX) - 2.14f,
+                    Math.Max(ax, ax + rail.spanX) + 2.14f, ref enter, ref leave) &&
+                    CrossesSlab(obj.exactY, obj.spanY, Math.Min(ay, ay + rail.spanY) - 2.26f,
+                    Math.Max(ay, ay + rail.spanY) + 2.26f, ref enter, ref leave))
+                {
+                    error = "Leave room between rails for both decks and their riders.";
+                    return false;
+                }
+            }
+            else if (BlocksRail(obj.id) && SweepsCell(rail, obj.x, obj.y, BlockHeight(obj.id)))
             {
                 error = $"Rail blocked by {obj.id} at ({obj.x},{obj.y}).";
                 return false;
             }
+        }
         if (existing >= 0) objects[existing] = rail;
         else objects.Add(rail);
         return true;
@@ -277,7 +294,7 @@ public sealed class CustomLevelDocument
             if (removed) ReconcileGroundedObjectsInColumn(x);
             return removed;
         }
-        if (!IsAllowedTileId(id)) return false;
+        if (!IsAllowedTileId(id) || WouldBlockRail(x, y, id)) return false;
         if (!IsBackgroundTileId(id))
         {
             RemoveForegroundTilesAt(x, y);
@@ -345,7 +362,7 @@ public sealed class CustomLevelDocument
         {
             return RemoveAt(objects, x, y);
         }
-        if (!IsAllowedObjectId(id) || id == "platform") return false;
+        if (!IsAllowedObjectId(id) || id == "platform" || WouldBlockRail(x, y, id)) return false;
         if ((x == spawnX && y == spawnY) || (x == exitX && y == exitY)) return false;
         if (GetObject(x, y) == null && objects.Count >= MaxObjects) return false;
         float ex = float.IsNaN(exactX) ? x + 0.5f : exactX;

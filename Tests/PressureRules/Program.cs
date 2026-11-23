@@ -195,6 +195,8 @@ static class Program
         Equal(false, starter.TrySetPlatformRoute(9, 9, 9, 4, out _), "deck cannot sweep through the shelf");
         Equal(false, starter.TrySetPlatformRoute(9, 9, 11, 11, out _), "new rails reject diagonal endpoints");
         Equal(true, starter.WouldBlockRail(10, 13, "ground"), "terrain edits respect deck width and rider headroom");
+        Equal(false, starter.TrySetPlatformRoute(6, 10, 13, 10, out _), "intersecting rails cannot run through another rider");
+        Equal(0, starter.FillRect(9, 12, 10, 13, "rock"), "region edits cannot bury an existing rail");
         Equal(3f, starter.objects.Find(c => c.id == "platform").spanY, "an invalid replacement preserves the original lift");
         int groundedY;
         float groundedTop;

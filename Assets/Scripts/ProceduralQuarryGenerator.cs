@@ -71,8 +71,15 @@ public static class ProceduralQuarryGenerator
             curX += segLen;
         }
 
+        // Keep a level boarding lip on both banks; don't roll waypoints independently of terrain.
+        doc.SetTile(curX, curY, "ground");
+        int railA = curX + 2;
+        int railB = railA + NextRange(ref state, 3, 6);
+        curX = railB + 2;
         for (int x = curX; x <= curX + 4; x++)
             doc.SetTile(x, curY, "ground");
+        if (!doc.TrySetPlatformRoute(railA, curY + 1, railB, curY + 1, out string railError))
+            throw new InvalidOperationException($"Generated ferry has no clearance: {railError}");
 
         doc.SetObject(curX + 1, curY + 1, "vent");
         doc.SetExit(curX + 3, curY + 1);

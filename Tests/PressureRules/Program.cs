@@ -179,7 +179,7 @@ static class Program
         Equal(true, starter.SetTile(-8, -3, "lava"), "paint lava tile at negative campaign coordinate");
         Equal(true, starter.SetTile(-8, -3, "bg"), "background tile coexists with foreground tile");
         Equal("lava", starter.GetTile(-8, -3), "foreground tile returned over background");
-        Equal(true, starter.SetObject(9, 2, "platform"), "place moving platform object");
+        Equal(true, starter.TrySetPlatformRoute(9, 9, 9, 12, out _), "place vertical lift above the starter floor");
         Equal(true, starter.SetObject(11, 2, "coin_200"), "place 200-ore coin object");
         Equal(false, starter.SetObject(starter.spawnX, starter.spawnY, "coin_100"), "cannot place object on spawn");
         Equal(false, starter.SetObject(3, 3, "malicious_prefab"), "reject non-allowlisted object id");
@@ -190,7 +190,12 @@ static class Program
         Equal(starter.tiles.Count, roundTrip.tiles.Count, "round-trip preserves tile count");
         Equal(starter.objects.Count, roundTrip.objects.Count, "round-trip preserves object count");
         Equal("lava", roundTrip.GetTile(-8, -3), "round-trip preserves negative-coord lava");
-        Equal("platform", roundTrip.GetObject(9, 2), "round-trip preserves moving platform");
+        Equal("platform", roundTrip.GetObject(9, 9), "round-trip preserves moving platform");
+        Equal(3f, roundTrip.objects.Find(c => c.id == "platform").spanY, "round-trip retains lift height");
+        Equal(false, starter.TrySetPlatformRoute(9, 9, 9, 4, out _), "deck cannot sweep through the shelf");
+        Equal(false, starter.TrySetPlatformRoute(9, 9, 11, 11, out _), "new rails reject diagonal endpoints");
+        Equal(true, starter.WouldBlockRail(10, 13, "ground"), "terrain edits respect deck width and rider headroom");
+        Equal(3f, starter.objects.Find(c => c.id == "platform").spanY, "an invalid replacement preserves the original lift");
         int groundedY;
         float groundedTop;
         Equal(true, starter.TryResolveGroundedCell(10, 8, "enemy", out groundedY, out groundedTop), "enemy snaps down onto platform at y=5");
@@ -226,6 +231,19 @@ static class Program
         CustomLevelDocument procB = ProceduralQuarryGenerator.Generate(7319, 2);
         Equal(0, procA.Validate().Count, "procedurally generated quarry level passes validator");
         Equal(procA.ToJson(), procB.ToJson(), "procedural generator is deterministic for the same seed");
+        foreach (int seed in new[] { int.MinValue, -33, 0, 42, int.MaxValue })
+        {
+            var stage = ProceduralQuarryGenerator.Generate(seed, 3);
+            CustomLevelCell ferry = stage.objects.Find(c => c.id == "platform");
+            Equal(true, ferry.spanX > 0 && stage.IsSolidSupportTile(ferry.x - 2, ferry.y - 1) &&
+                stage.IsSolidSupportTile(ferry.x + (int)ferry.spanX + 2, ferry.y - 1), "seeded ferry connects two solid banks");
+            foreach (var obj in stage.objects.FindAll(c => CustomLevelDocument.IsPatrol(c.id)))
+            {
+                Equal(true, stage.TryGetPatrolLane(obj, out float left, out float right, out float top) &&
+                    left <= obj.exactX && right >= obj.exactX && obj.exactY == top + 0.5f,
+                    "seeded patrol starts on the actual floor, between supported limits");
+            }
+        }
         var gaugeTest = new QuarryPressure(7319, 250);
         Equal("T0 250/500", gaugeTest.GetGaugeLabel(), "gauge label at tier 0");
         Equal(true, Math.Abs(gaugeTest.GetGaugeNormalizedFill() - 0.5f) < 0.01f, "gauge normalized fill at 250/500");

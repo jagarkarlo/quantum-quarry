@@ -338,23 +338,19 @@ public sealed class CustomLevelDocument
         return adjusted;
     }
 
-    public bool SetObject(int x, int y, string id, float exactX = float.NaN, float exactY = float.NaN,
-        float spanX = 0f, float spanY = 0f)
+    public bool SetObject(int x, int y, string id, float exactX = float.NaN, float exactY = float.NaN)
     {
         if (!InBounds(x, y)) return false;
         if (string.IsNullOrEmpty(id))
         {
             return RemoveAt(objects, x, y);
         }
-        if (!IsAllowedObjectId(id)) return false;
+        if (!IsAllowedObjectId(id) || id == "platform") return false;
         if ((x == spawnX && y == spawnY) || (x == exitX && y == exitY)) return false;
         if (GetObject(x, y) == null && objects.Count >= MaxObjects) return false;
         float ex = float.IsNaN(exactX) ? x + 0.5f : exactX;
         float ey = float.IsNaN(exactY) ? GroundedCenterY(id, y) : exactY;
-        float sx = spanX;
-        float sy = spanY;
-        if (id == "platform" && Math.Abs(sx) < 0.01f && Math.Abs(sy) < 0.01f) sx = 6f;
-        Upsert(objects, new CustomLevelCell(x, y, id, ex, ey, sx, sy));
+        Upsert(objects, new CustomLevelCell(x, y, id, ex, ey));
         return true;
     }
 

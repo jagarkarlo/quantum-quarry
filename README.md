@@ -108,6 +108,8 @@ cd quantum-quarry
 
 To create a standalone build, open **File > Build Settings**, choose a supported desktop target, confirm the configured scenes, and select **Build**.
 
+On Windows, press **Alt+Enter** to switch between fullscreen and windowed play. In windowed mode you can drag an edge while the shop, pause menu, or level selector is open; there is no need to reopen the screen. Main menus keep their proportions and use dark margins when the window has a different shape. In a level, the HUD stays near the edges and a wider window can show more of the world.
+
 ## Game Flow
 
 ```mermaid

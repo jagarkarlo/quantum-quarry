@@ -40,9 +40,9 @@ After the project compiles and passes **Tools > QuantumQuarry > Validate Project
 
 ## Quarry Pressure validation
 
-Status verified on 2026-11-02 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
+Status verified on 2026-11-23 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
 
-- All 2665 Pressure/liquid/medal/custom-level/challenge/ghost/sharing/procedural rule and artwork assertions, 65 session/scene-classification/medal/playtest-isolation/upgrade assertions, and 57 C# 9 source syntax checks pass in both normal and runtime-validation configurations.
+- The pure tests pass 2687 rule/artwork assertions and 65 session assertions. All 58 Unity source files pass C# 9 syntax checks in both normal and runtime-validation configurations.
 - Unity package restoration and API compilation pass, including Cinemachine 2.9.7.
 - Custom checkpoint, vent, pressure-gate, pressure-gauge, breakable ore-crate, jump-pad, sentry-turret, and shielded-enemy sprites and prefabs, plus `Assets/Resources/QuarryAssetPalette.asset` and `Assets/Resources/StoreCatalog.asset`, have been generated through Unity; strict custom-prefab validation and project validation pass.
 - A Windows x64 build of all 11 enabled scenes succeeds.
@@ -51,7 +51,7 @@ Status verified on 2026-11-02 with Unity 2022.3.12f1 and .NET SDK 8.0.425:
 - The Store loads its catalog from `StoreCatalog` (`Resources/StoreCatalog.asset`) and includes permanent `PICKAXE` (+15%/+30% base ore) and `MAGNET` (2.2m/3.8m coin attraction) upgrades alongside `ARMOR`.
 - The Start menu includes a deterministic date-seeded `DAILY CHALLENGE` button and a two-step confirmed `RESET PROFILE` button (`QuarryProfileManager`), while the Pause menu includes `AUDIO`, `FLASH` (soft/full hit flash), and `SPLITS` accessibility toggles (`QuarrySettings`).
 - The Live Campaign Level Remixer & Custom Stage Builder (`QuarryAssetPalette`, `CustomLevelSceneAdapter`, `CustomLevelDocument`, `CustomLevelSharing`, `ProceduralQuarryGenerator`, and `CustomLevelCreatorController`) is accessible from both the front `Start` menu and `Level selector`, captures any unlocked campaign scene (`REMIX L1`..`REMIX L6`) with exact round-trip floating-point coordinates, moving-platform waypoints (`Tocka 1`/`Tocka2`), and regenerated `CompositeCollider2D` geometry, supports all retro prefabs (`gauge`, `gate_latch_t1`, `jump_pad`, `sentry`, `shielded_enemy`, etc.), provides rectangular fill/copy/paste helpers (`FillRect`, `CopyRegion`, `PasteRegion`) and automatic `creator-autosave.json` recovery snapshots, generates deterministic seeded stages (`GEN SEED`), exports/imports FNV-1a checksummed `.qqlevel` files (`EXPORT` / `IMPORT`), enforces ground-support rules so enemies/crates/banks/vents/gates/pads/gauges never float in mid-air, locks unpassed campaign levels on both the `Level selector` and `REMIX` buttons, and paginates unlimited custom stages using non-overlapping `<` and `>` side-arrow boxes vertically centered beside the 6-slot grid (`x = -270, y = -20` between Levels 1 & 4 and `x = +270, y = -20` between Levels 3 & 6) with `PAGE X/Y` and a `BACK TO MENU` exit button.
-- The isolated Windows-player suite passes 349 checks and captures 31 screenshots across all 11 scenes. It checks real coin/checkpoint collisions, pressure-gate unlocking, world-space Pressure Gauge updates, bullet-shattered ore crates, Jump Pad launches, Shielded Patrol frontal bullet deflection and rear vulnerability, Sentry Turret aim warnings and beam damage, Speedrun Ghost & Splits HUD creation, Daily Challenge & Profile Reset buttons, Pause accessibility toggles, Store permanent Pickaxe/Magnet upgrade buttons, `.qqlevel` checksummed export/import, procedural stage generation, autosave snapshot creation, level-completion medal banners and Level Selector badges, front-page and selector navigation, non-overlapping side-arrow pagination boxes at 800x600 and 1280x720, locked campaign level states, paginated custom stages, physics-grounded Level Creator placement/undo/redo/override/playtest/load/return flows, distinct vent OFF/SAFE states, warning/damage/pause/invisibility, tier resets, armor retention and contact-damage rounding, death/reset losses, Store round trips, persistent-object suspension and level switching, and Pressure HUD bounds at 800x600, 1280x720, and 1920x1080.
+- The isolated Windows-player suite passes 487 checks and captures 53 screenshots across all 11 scenes. These cover Pressure and enemy encounters, economy and Store round trips, scene persistence, campaign unlocks and medals, custom-stage editing and publishing, and generated platform routes. See the [live resize matrix](#live-window-resizing) for UI coverage.
 - A controlled fixture clones a real Level 4 enemy and uses Ground-layer colliders to verify blocked sight, Alert/Chase/Search transitions, pressure-scaled detection and chase speed at all three tiers, invisibility loss/reacquisition, and banking restoring calm perception.
 - Level 6's 25 lava cells have dedicated animated artwork. Unity checks confirm four-frame animation, untinted colors, lethal contact, invisibility protection, and death/save behavior; Level 5 still supports swimming. Sprite physics outlines and scene cell geometry match the originals, and repeated authoring leaves the scene bytes unchanged.
 - One lava-validation run completed its assertions but hung during player shutdown and was correctly rejected by the wrapper timeout. A fresh run of the unchanged validation player completed all 243 checks and exited with code 0. Do not accept a passing JSON report without a successful process exit.
@@ -65,7 +65,7 @@ From the project root:
 dotnet run --project Tests/PressureRules/PressureRules.csproj
 ```
 
-Expected: 2665 Pressure/liquid/medal/custom-level/challenge/ghost/sharing/procedural rule and artwork assertions, 65 session/scene-classification/medal/playtest-isolation/upgrade assertions using Unity test doubles, and 57 Unity source files passing C# 9 syntax checks in normal and validation configurations. No external test packages are required. This is not a Unity API compilation check.
+The command runs the rule, artwork, session, and syntax checks listed above. No external test packages are required. This is not a Unity API compilation check.
 
 ### Windows validation
 
@@ -96,6 +96,12 @@ With this project's Editor closed, run:
 This builds and launches a separate Windows player with the `QUARRY_VALIDATION` compile define and product name `QuantumQuarry Validation`. Only that disposable PlayerPrefs namespace is cleared and seeded; the campaign save is not used. The builder restores the original product name in a `finally` block. The test runner is excluded from normal player builds.
 
 The player opens a window, changes resolution for captures, writes `report.json` and PNGs to a unique directory under `Logs\RuntimeValidation`, and exits with a failure code on errors or timeout. Leave it running without keyboard/mouse interaction until it exits. `-OutputDirectory` selects a new report directory; an existing report is never accepted as a fresh result. `-SceneSurvey` produces a Level 4 overview instead of running acceptance tests, and the report identifies that distinct mode.
+
+#### Live window resizing
+
+The suite keeps each screen open through `1280x720 -> 800x600 -> 1440x600 -> 600x800 -> 640x360 -> 1280x720`. It does this on Start, the gameplay HUD, Pause, Store, the results banner, the selector, the creator, playtest, Victory, and Game Over. It checks screen bounds, button intersections, text overflow, and whether controls return to their original position and size. For the five standalone menus it also checks that buttons keep their proportions and their offsets from the center at **each** size.
+
+Use `CanvasScaler`'s **Expand** mode for layouts that must fit on both axes. Start, the selector, and the end screens group artwork and controls in a centered reference frame. Store uses a centered panel that fits its `800x640` reference; do not size it from the opening window. The gameplay HUD anchors to the window edges instead. Very narrow windows can make text small. The suite uses programmatic resizes, not mouse dragging or moving between monitors with different Windows display scaling.
 
 ### Level 4 pilot
 

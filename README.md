@@ -76,6 +76,14 @@ Open `Assets/Levels/Level 6.unity` and press **Play**, or reach Level 6 through 
 
 **Tools > QuantumQuarry > Lava > Create Level 6 Artwork** creates the two four-frame tile assets and updates Level 6 through Unity's authoring APIs. It preserves existing artwork and refuses to operate on a dirty Level 6 scene. See the [lava authoring checks](docs/DEVELOPMENT_WORKFLOW.md#level-6-lava-artwork).
 
+### Build and ride a custom platform
+
+1. Open **Level Creator → OBJECTS → RAIL A-B**. Click the start cell, then click an end **1–12 tiles** away on the same row or column. Right-click cancels the first point. If a wall, crate or gate blocks the deck or rider, the editor keeps A and lets you retry B.
+2. **Cyan** shows a platform rail; the larger white square marks A. Click A again with the rail tool to change its destination. **Amber** shows the maximum ledge a ground enemy may patrol. Enemies look for walls and missing floor even while chasing; a short ledge means a short patrol.
+3. Use **PLAY** to test without the guides. **EDIT** returns to your draft. **+STAGE** adds a separate playable entry to the selector; **SAVE L…** replaces local campaign play for that level instead. **GEN SEED** includes a ferry near the exit; hop aboard at a bank and ride it across.
+
+Old drafts remain readable. If an older Unity save lost a platform's vertical span, its original height can't be recovered from the file: reselect A and set B, or capture the original campaign level again.
+
 ## Getting Started
 
 ### Requirements

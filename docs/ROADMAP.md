@@ -48,6 +48,8 @@ QuantumQuarry will grow in small, playable milestones. Each milestone must compi
 
 ## 6. In-game level creator
 
+- Movement routes: custom platforms have two editable endpoints, deck/rider clearance checks and edit-only guides. Seeded ferries connect two landing banks. Patrol ranges are rebuilt from continuous supported floor, not separate waypoint objects. This is a placement and movement check, not proof that a human can finish every generated stage.
+
 - Implemented Live Campaign Level Remixer & Custom Stage Builder (`CustomLevelCreatorController` + `CustomLevelSceneAdapter`): load any existing campaign level (`REMIX L1`..`REMIX L6`) with its real Unity Tilemaps and objects intact, paint with all game tiles and prefabs, save playable harder overrides (`SAVE L1..L6`) that automatically apply in campaign play (with `RESET L` to restore the original), or publish brand-new playable stages (`+STAGE` -> `STAGE 7+`) directly onto the Level Selector.
 
 ## 7. Sharing and discovery

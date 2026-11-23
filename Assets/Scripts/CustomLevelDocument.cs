@@ -38,6 +38,7 @@ public sealed class CustomLevelDocument
     public const int MinCoord = -128;
     public const int MaxCoord = 256;
     public const int MaxObjects = 512;
+    public const int MaxNewRailLength = 12;
 
     public static readonly string[] AllowedTileIds =
     {
@@ -200,6 +201,71 @@ public sealed class CustomLevelDocument
         for (int i = 0; i < objects.Count; i++)
             if (objects[i].x == x && objects[i].y == y) return objects[i].id;
         return null;
+    }
+
+    public bool TrySetPlatformRoute(int x, int y, int endX, int endY, out string error)
+    {
+        error = null;
+        if (!InBounds(x, y) || !InBounds(endX, endY) || (x == endX && y == endY) ||
+            (x != endX && y != endY) || Math.Abs(endX - x) + Math.Abs(endY - y) > MaxNewRailLength)
+            error = $"Choose a horizontal or vertical end, 1-{MaxNewRailLength} tiles from A.";
+        else if (x == spawnX && y == spawnY || x == exitX && y == exitY)
+            error = "Keep the rail anchor off spawn and exit.";
+        if (error != null) return false;
+        int existing = objects.FindIndex(c => c.x == x && c.y == y && c.id == "platform");
+        if (existing < 0 && (GetObject(x, y) != null || objects.Count >= MaxObjects))
+        {
+            error = "The rail needs an empty anchor cell and a free object slot.";
+            return false;
+        }
+        float ax = existing < 0 ? x + 0.5f : objects[existing].exactX;
+        float ay = existing < 0 ? y + 0.5f : objects[existing].exactY;
+        var rail = new CustomLevelCell(x, y, "platform", ax, ay, endX - x, endY - y);
+        foreach (var tile in tiles)
+            if (BlocksRail(tile.id) && SweepsCell(rail, tile.x, tile.y))
+            {
+                error = $"Rail or rider blocked by {tile.id} at ({tile.x},{tile.y}).";
+                return false;
+            }
+        foreach (var obj in objects)
+            if (BlocksRail(obj.id) && SweepsCell(rail, obj.x, obj.y, BlockHeight(obj.id)))
+            {
+                error = $"Rail blocked by {obj.id} at ({obj.x},{obj.y}).";
+                return false;
+            }
+        if (existing >= 0) objects[existing] = rail;
+        else objects.Add(rail);
+        return true;
+    }
+
+    public bool WouldBlockRail(int x, int y, string id)
+    {
+        if (!BlocksRail(id)) return false;
+        foreach (var rail in objects)
+            if (rail.id == "platform" && SweepsCell(rail, x, y, BlockHeight(id))) return true;
+        return false;
+    }
+
+    static bool BlocksRail(string id) => id == "ground" || id == "rock" || id == "bounce" ||
+        id == "hazard_spike" || id == "crate_250" || id == "gate_t1" || id == "gate_t2" || id == "gate_latch_t1";
+
+    static int BlockHeight(string id) => id.StartsWith("gate_", StringComparison.Ordinal) ? 2 : 1;
+
+    // Sweep the two-unit deck plus standing room, including for older diagonal campaign rails.
+    static bool SweepsCell(CustomLevelCell rail, int x, int y, int height = 1)
+    {
+        float enter = 0f, leave = 1f;
+        return CrossesSlab(rail.exactX, rail.spanX, x - 1.07f, x + 2.07f, ref enter, ref leave) &&
+            CrossesSlab(rail.exactY, rail.spanY, y - 2.1f, y + height + 0.16f, ref enter, ref leave);
+    }
+
+    static bool CrossesSlab(float start, float delta, float min, float max, ref float enter, ref float leave)
+    {
+        if (delta == 0f) return start >= min && start <= max;
+        float a = (min - start) / delta, b = (max - start) / delta;
+        enter = Math.Max(enter, Math.Min(a, b));
+        leave = Math.Min(leave, Math.Max(a, b));
+        return enter <= leave;
     }
 
     public bool SetTile(int x, int y, string id)

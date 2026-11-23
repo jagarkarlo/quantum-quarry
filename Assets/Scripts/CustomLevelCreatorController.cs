@@ -22,6 +22,10 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
     GameObject editorCanvasObj;
     GameObject spawnMarkerObj;
+    GameObject guideRoot;
+    GameObject anchorMarker;
+    Sprite guideSprite;
+    Vector2Int? railAnchor;
     TextMeshProUGUI headerText;
     TextMeshProUGUI toolText;
     GameSession session;
@@ -93,6 +97,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
     void OnDestroy()
     {
+        if (guideSprite) Destroy(guideSprite);
         CustomLevelSceneAdapter.SetSuppressAutoOverride(false);
         if (session)
         {
@@ -109,8 +114,9 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
     public void SelectTool(string toolId)
     {
+        CancelRail();
         activeTool = toolId;
-        statusMessage = $"Selected tool: {toolId}";
+        statusMessage = toolId == "platform" ? "Click rail start A (or an existing A to edit)." : $"Selected {FormatToolLabel(toolId)}";
         RefreshToolbarText();
     }
 
@@ -123,7 +129,29 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         string snapshot = document.ToJson();
         bool changed = false;
 
-        if (chosen == "erase") changed = document.ClearCell(x, y);
+        if (chosen != "platform") CancelRail();
+        if (chosen == "platform")
+        {
+            if (!railAnchor.HasValue)
+            {
+                railAnchor = new Vector2Int(x, y);
+                anchorMarker = DrawGuidePixel("Pending A", new Vector2(x + 0.5f, y + 0.5f), new Vector2(0.34f, 0.34f), Color.yellow);
+                statusMessage = $"A ({x},{y}): click end B on same row or column. Right-click cancels.";
+                RefreshToolbarText();
+                return false;
+            }
+            Vector2Int a = railAnchor.Value;
+            if (!document.TrySetPlatformRoute(a.x, a.y, x, y, out string reason))
+            {
+                statusMessage = reason + " Retry B or right-click.";
+                RefreshToolbarText();
+                return false;
+            }
+            changed = true;
+        }
+        else if (document.WouldBlockRail(x, y, chosen) && CustomLevelDocument.IsAllowedTileId(chosen))
+            return RejectBlockedRail();
+        else if (chosen == "erase") changed = document.ClearCell(x, y);
         else if (chosen == "spawn") changed = document.SetSpawn(x, y);
         else if (chosen == "exit") changed = document.SetExit(x, y);
         else if (CustomLevelDocument.IsAllowedTileId(chosen)) changed = document.SetTile(x, y, chosen);
@@ -138,6 +166,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                     return false;
                 }
                 y = groundedY;
+                if (document.WouldBlockRail(x, y, chosen)) return RejectBlockedRail();
                 var cell = new CustomLevelCell(x, y, chosen, x + 0.5f, CustomLevelDocument.GroundedCenterY(chosen, supportTopY));
                 if (CustomLevelDocument.IsPatrol(chosen) && !document.TryGetPatrolLane(cell, out _, out _, out _))
                 {
@@ -161,6 +190,19 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         statusMessage = $"Applied {chosen} at ({x},{y})";
         RefreshToolbarText();
         return true;
+    }
+
+    bool RejectBlockedRail()
+    {
+        statusMessage = "Keep the deck and rider clearance free. Move or erase the rail first.";
+        RefreshToolbarText();
+        return false;
+    }
+
+    void CancelRail()
+    {
+        railAnchor = null;
+        if (anchorMarker) DestroyImmediate(anchorMarker);
     }
 
     public string GetAutosaveFilePath()
@@ -413,6 +455,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
     {
         if (isEditing && Camera.main)
         {
+            if (railAnchor.HasValue && Input.GetMouseButtonDown(1)) SelectTool("platform");
             if (Input.GetMouseButtonDown(0))
             {
                 UnityEngine.EventSystems.EventSystem es = UnityEngine.EventSystems.EventSystem.current;
@@ -436,11 +479,26 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
 
     void RebuildWorld(bool spawnLivePlaytest)
     {
+        CancelRail();
+        if (guideRoot) DestroyImmediate(guideRoot);
         if (spawnMarkerObj) DestroyImmediate(spawnMarkerObj);
         CustomLevelSceneAdapter.ApplyDocumentToCurrentScene(document, spawnLivePlaytest);
 
         if (!spawnLivePlaytest)
         {
+            guideRoot = new GameObject("CreatorRouteGuides");
+            guideRoot.transform.SetParent(transform, false);
+            foreach (CustomLevelCell cell in document.objects)
+            {
+                if (cell.id == "platform")
+                {
+                    var a = new Vector2(cell.exactX, cell.exactY);
+                    DrawRoute(a, a + new Vector2(cell.spanX, cell.spanY), new Color(0.15f, 0.92f, 1f));
+                }
+                else if (CustomLevelDocument.IsPatrol(cell.id) &&
+                    document.TryGetPatrolLane(cell, out float left, out float right, out float top))
+                    DrawRoute(new Vector2(left, top + 0.12f), new Vector2(right, top + 0.12f), new Color(1f, 0.68f, 0.22f));
+            }
             spawnMarkerObj = new GameObject("CreatorSpawnMarker");
             spawnMarkerObj.transform.position = new Vector3(document.exactSpawnX, document.exactSpawnY + 0.8f, 0f);
             TextMeshPro tmp = spawnMarkerObj.AddComponent<TextMeshPro>();
@@ -450,6 +508,31 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             tmp.color = new Color(0.35f, 1f, 0.55f);
             tmp.sortingOrder = 120;
         }
+    }
+
+    void DrawRoute(Vector2 a, Vector2 b, Color color)
+    {
+        Vector2 delta = b - a;
+        var line = DrawGuidePixel("Route", (a + b) * 0.5f, new Vector2(delta.magnitude, 0.045f), color);
+        line.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
+        DrawGuidePixel("A", a, Vector2.one * 0.24f, Color.white);
+        DrawGuidePixel("B", b, Vector2.one * 0.18f, color);
+    }
+
+    GameObject DrawGuidePixel(string label, Vector2 position, Vector2 size, Color color)
+    {
+        if (!guideSprite)
+            guideSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 1, 1), Vector2.one * 0.5f, 1f);
+        var pixel = new GameObject(label, typeof(SpriteRenderer));
+        pixel.transform.SetParent(guideRoot.transform, false);
+        pixel.transform.position = position;
+        pixel.transform.localScale = size;
+        var sr = pixel.GetComponent<SpriteRenderer>();
+        sr.sprite = guideSprite;
+        sr.sortingLayerName = "Player";
+        sr.sortingOrder = 150;
+        sr.color = color;
+        return pixel;
     }
 
     void BuildToolbarUI()

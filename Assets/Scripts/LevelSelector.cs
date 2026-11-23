@@ -36,8 +36,7 @@ public class LevelSelector : MonoBehaviour
                 level = 1;
         }
         slotIndex = Mathf.Clamp(level, 1, 6);
-        Transform levelChild = transform.Find("Level");
-        if (levelChild) mainLabel = levelChild.GetComponent<TextMeshProUGUI>();
+        mainLabel = GetComponentInChildren<TextMeshProUGUI>(true);
     }
 
     void OnEnable()
@@ -137,40 +136,41 @@ public class LevelSelector : MonoBehaviour
     {
         Canvas canvas = GetComponentInParent<Canvas>();
         if (!canvas) return;
+        RectTransform frame = QuarryMenuFrame.Ensure(canvas);
 
-        if (!canvas.transform.Find("Button_BackToStart"))
+        if (!frame.Find("Button_BackToStart"))
         {
-            CreateNavButton(canvas.transform, "Button_BackToStart", "BACK TO MENU",
+            CreateNavButton(frame, "Button_BackToStart", "BACK TO MENU",
                 new Vector2(0f, 0f), new Vector2(24f, 20f), new Vector2(180f, 42f),
                 new Color(0.46f, 0.18f, 0.18f, 0.95f), () => SceneManager.LoadScene("Start"));
         }
 
-        if (!canvas.transform.Find("Button_LevelCreator"))
+        if (!frame.Find("Button_LevelCreator"))
         {
-            CreateNavButton(canvas.transform, "Button_LevelCreator", "LEVEL CREATOR",
+            CreateNavButton(frame, "Button_LevelCreator", "LEVEL CREATOR",
                 new Vector2(1f, 0f), new Vector2(-24f, 20f), new Vector2(180f, 42f),
                 new Color(0.12f, 0.36f, 0.48f, 0.95f), CustomLevelCreatorController.OpenCreatorFromMenu);
         }
 
-        if (!canvas.transform.Find("Button_PrevPage"))
+        if (!frame.Find("Button_PrevPage"))
         {
-            prevPageBtn = CreateNavButton(canvas.transform, "Button_PrevPage", "<",
+            prevPageBtn = CreateNavButton(frame, "Button_PrevPage", "<",
                 new Vector2(0.5f, 0.5f), new Vector2(-270f, -20f), new Vector2(64f, 64f),
                 new Color(0.14f, 0.28f, 0.44f, 0.96f), PrevPage, 32f);
         }
 
-        if (!canvas.transform.Find("Button_NextPage"))
+        if (!frame.Find("Button_NextPage"))
         {
-            nextPageBtn = CreateNavButton(canvas.transform, "Button_NextPage", ">",
+            nextPageBtn = CreateNavButton(frame, "Button_NextPage", ">",
                 new Vector2(0.5f, 0.5f), new Vector2(270f, -20f), new Vector2(64f, 64f),
                 new Color(0.14f, 0.28f, 0.44f, 0.96f), NextPage, 32f);
         }
 
-        Transform pageInfo = canvas.transform.Find("PageIndicator");
+        Transform pageInfo = frame.Find("PageIndicator");
         if (!pageInfo)
         {
             var infoObj = new GameObject("PageIndicator", typeof(RectTransform), typeof(TextMeshProUGUI));
-            infoObj.transform.SetParent(canvas.transform, false);
+            infoObj.transform.SetParent(frame, false);
             RectTransform rect = infoObj.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0.5f, 0f);
             rect.anchorMax = new Vector2(0.5f, 0f);
@@ -240,6 +240,7 @@ public class LevelSelector : MonoBehaviour
 
     public void RefreshMedalBadge(bool isUnlocked = true)
     {
+        if (mainLabel) mainLabel.rectTransform.anchorMin = Vector2.zero;
         if (!isUnlocked || level <= 0)
         {
             if (medalBadge) medalBadge.gameObject.SetActive(false);
@@ -284,6 +285,7 @@ public class LevelSelector : MonoBehaviour
 
         medalBadge.gameObject.SetActive(true);
         medalBadge.text = badgeText;
+        if (mainLabel) mainLabel.rectTransform.anchorMin = new Vector2(0f, 0.34f);
     }
 
     public void OpenScene()

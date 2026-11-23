@@ -65,6 +65,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(GameObject.Find("Button_DailyChallenge") != null && GameObject.Find("Button_WipeProfile") != null,
             "Start menu displays the DAILY CHALLENGE and RESET PROFILE buttons.");
         yield return Capture("start-menu", 1280, 720);
+        yield return ResizeOpenUI("start-menu", GameObject.Find("Button_FrontLevelCreator").GetComponentInParent<Canvas>(), centeredMenu: true);
         yield return SceneManager.LoadSceneAsync("Level 1");
         yield return new WaitForSecondsRealtime(0.5f);
         GameSession session = FindObjectOfType<GameSession>();
@@ -88,6 +89,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return Capture("level-4-pressure", 800, 600);
         yield return Capture("level-4-pressure", 1280, 720);
         yield return Capture("level-4-pressure", 1920, 1080);
+        yield return ResizeOpenUI("gameplay-hud", null);
         Time.timeScale = 1f;
         PauseMenu pause = FindObjectOfType<PauseMenu>();
         Require(pause, "Gameplay has a pause menu.");
@@ -98,6 +100,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "Pause menu exposes Audio Volume, Reduced Flash, and Speedrun Splits option buttons.");
         Require(FindObjectOfType<GhostReplayRunner>() != null,
             "Gameplay scene spawns the GhostReplayRunner and Speedrun Splits HUD.");
+        yield return ResizeOpenUI("pause", pause.pauseMenuUI.GetComponentInParent<Canvas>());
         int expectedBalance = session.GetCoins() + session.Pressure.PendingCoins;
         int remainingCoins = FindObjectsOfType<Collecting>().Length;
         pause.LoadStore();
@@ -115,6 +118,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(store, "Store has a manager.");
         Require(GameObject.Find("Button_Pickaxe") != null && GameObject.Find("Button_Magnet") != null,
             "Store displays permanent Pickaxe and Magnet upgrade buttons.");
+        yield return ResizeOpenUI("store", GameObject.Find("StorePanel").GetComponentInParent<Canvas>(), centeredMenu: true);
         store.ReturnToGame();
         yield return null;
         yield return new WaitForSecondsRealtime(0.3f);
@@ -130,6 +134,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "Completing Level 4 evaluates medals and personal bests by stable level ID.");
         LevelExit.ShowResultsBannerForTest(level4Result);
         yield return Capture("level-4-results-banner", 1280, 720);
+        yield return ResizeOpenUI("result-banner", GameObject.Find("LevelResultsBanner").GetComponent<Canvas>());
         GameObject bannerObj = GameObject.Find("LevelResultsBanner");
         if (bannerObj) Destroy(bannerObj);
         pause.TogglePause();
@@ -144,6 +149,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(GameObject.Find("Button_LevelCreator"),
             "Level selector creates the LEVEL CREATOR entry button.");
         yield return Capture("level-selector-after-gameplay", 1280, 720);
+        yield return ResizeOpenUI("selector", level4Button.GetComponentInParent<Canvas>(), centeredMenu: true);
         Require(!FindObjectOfType<QuarryPressureHUD>(), "Level selector does not display the gameplay Pressure HUD.");
         Require(FindObjectsOfType<Collecting>().Length == 0 && FindObjectsOfType<EnemyPatrol2D>().Length == 0,
             "Level selection does not show or simulate persisted gameplay objects.");
@@ -178,12 +184,22 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             if (level == 6) yield return CheckLava(session);
         }
         session.SaveFinalScoreForSummary();
+        PlayerPrefs.SetInt(GameSession.FinalCoinsKey, int.MaxValue);
+        PlayerPrefs.SetInt(GameSession.LastScoreKey, int.MaxValue);
         foreach (string scene in new[] { "Victory", "GameOver", "Start" })
         {
             yield return SceneManager.LoadSceneAsync(scene);
             yield return new WaitForSecondsRealtime(0.2f);
             Require(!FindObjectOfType<QuarryPressureHUD>(), $"{scene} has no gameplay Pressure HUD.");
             yield return Capture(scene.ToLowerInvariant(), 1280, 720);
+            if (scene != "Start")
+            {
+                var canvas = GameObject.Find("TitleText").GetComponentInParent<Canvas>();
+                var scores = Array.FindAll(canvas.GetComponentsInChildren<TextMeshProUGUI>(), t => t.text == int.MaxValue.ToString());
+                Require(scores.Length == (scene == "Victory" ? 1 : 2) && Array.TrueForAll(scores, t => t.textInfo.lineCount == 1),
+                    $"{scene} displays the longest possible score on one line.");
+                yield return ResizeOpenUI(scene, canvas, centeredMenu: true);
+            }
         }
         Finish();
     }
@@ -374,6 +390,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         CheckCreatorButtons();
         yield return Capture("level-creator-rail-tools", 800, 600);
         CheckCreatorButtons();
+        yield return ResizeOpenUI("creator", GameObject.Find("CustomCreatorCanvas").GetComponent<Canvas>());
         creator.StartPlaytest();
         yield return null;
         yield return new WaitForSecondsRealtime(0.25f);
@@ -386,6 +403,7 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         yield return Until(() => lift.Velocity.y < -1f && lift.transform.position.y > 41.5f, 2f,
             "The saved vertical lift travels up and starts back down at its authored end.");
         yield return Capture("level-creator-playtest", 1280, 720);
+        yield return ResizeOpenUI("playtest", GameObject.Find("CustomCreatorCanvas").GetComponent<Canvas>());
         var transport = (RectTransform)GameObject.Find("Btn_Playtest").transform.parent;
         foreach (var pressureLabel in FindObjectOfType<QuarryPressureHUD>().GetComponentsInChildren<TextMeshProUGUI>())
             Require(!RectsOverlapScreen(transport, pressureLabel.rectTransform), "Playtest controls leave the Pressure HUD uncovered.");
@@ -863,6 +881,86 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Rect ra = new Rect(ca[0].x, ca[0].y, ca[2].x - ca[0].x, ca[2].y - ca[0].y);
         Rect rb = new Rect(cb[0].x, cb[0].y, cb[2].x - cb[0].x, cb[2].y - cb[0].y);
         return ra.Overlaps(rb);
+    }
+
+    IEnumerator ResizeOpenUI(string label, Canvas root, bool centeredMenu = false)
+    {
+        var original = new Dictionary<UnityEngine.UI.Button, Rect>();
+        var sizes = new[] { new Vector2Int(1280, 720), new Vector2Int(800, 600),
+            new Vector2Int(1440, 600), new Vector2Int(600, 800), new Vector2Int(640, 360), new Vector2Int(1280, 720) };
+        Vector2 reference = centeredMenu ? root.GetComponent<UnityEngine.UI.CanvasScaler>().referenceResolution : Vector2.one;
+        float firstFit = Mathf.Min(sizes[0].x / reference.x, sizes[0].y / reference.y);
+        for (int index = 0; index < sizes.Length; index++)
+        {
+            var size = sizes[index];
+            Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
+            float timeout = Time.realtimeSinceStartup + 2f;
+            do { yield return null; }
+            while ((Screen.width != size.x || Screen.height != size.y) && Time.realtimeSinceStartup < timeout);
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            string at = $"{label} {size.x}x{size.y}";
+            Require(Screen.width == size.x && Screen.height == size.y, $"{at}: the open window resized.");
+            var buttons = root ? root.GetComponentsInChildren<UnityEngine.UI.Button>() : FindObjectsOfType<UnityEngine.UI.Button>();
+            var bounds = new Rect[buttons.Length];
+            if (index > 0 && buttons.Length != original.Count)
+                throw new InvalidOperationException($"{at}: the number of visible controls changed.");
+            float scale = Mathf.Min(size.x / reference.x, size.y / reference.y) / firstFit;
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                bounds[i] = ScreenBounds((RectTransform)buttons[i].transform);
+                CheckOnscreen(bounds[i], $"{at}/{buttons[i].name}");
+                for (int j = 0; j < i; j++)
+                {
+                    Rect overlap = Rect.MinMaxRect(Mathf.Max(bounds[i].xMin, bounds[j].xMin), Mathf.Max(bounds[i].yMin, bounds[j].yMin),
+                        Mathf.Min(bounds[i].xMax, bounds[j].xMax), Mathf.Min(bounds[i].yMax, bounds[j].yMax));
+                    if (overlap.width > 1f && overlap.height > 1f)
+                        throw new InvalidOperationException($"{at}: {buttons[i].name} overlaps {buttons[j].name}.");
+                }
+                if (index == 0) original.Add(buttons[i], bounds[i]);
+                else if (!original.TryGetValue(buttons[i], out Rect first))
+                    throw new InvalidOperationException($"{at}: unexpected control {buttons[i].name}.");
+                else if (centeredMenu || index == sizes.Length - 1)
+                {
+                    Vector2 center = (Vector2)size * 0.5f + (first.center - (Vector2)sizes[0] * 0.5f) * scale;
+                    if (Vector2.Distance(bounds[i].center, center) > 1.5f || Vector2.Distance(bounds[i].size, first.size * scale) > 1.5f)
+                        throw new InvalidOperationException($"{at}: {buttons[i].name} shifted or stretched relative to the original layout.");
+                }
+            }
+            var labels = root ? root.GetComponentsInChildren<TextMeshProUGUI>() : FindObjectsOfType<TextMeshProUGUI>();
+            foreach (var text in labels)
+            {
+                if (!text.isActiveAndEnabled || !text.canvas || !text.canvas.enabled || string.IsNullOrWhiteSpace(text.text)) continue;
+                CheckOnscreen(ScreenBounds(text.rectTransform), $"{at}/{text.name}");
+                if (text.isTextOverflowing || text.isTextTruncated)
+                    throw new InvalidOperationException($"{at}: clipped label '{text.text}' ({text.name}).");
+            }
+            if (label == "store" && GameObject.FindGameObjectWithTag("LivesText")?.GetComponentInParent<Canvas>() is Canvas hud && hud.enabled)
+                throw new InvalidOperationException("Gameplay HUD leaked into the shop.");
+            if (index == 2 || index == 3)
+            {
+                string path = Path.Combine(outputDirectory, $"resize-{label}-{size.x}x{size.y}.png");
+                var shot = ScreenCapture.CaptureScreenshotAsTexture();
+                try { File.WriteAllBytes(path, shot.EncodeToPNG()); }
+                finally { Destroy(shot); }
+                report.screenshots.Add(path);
+            }
+            Require(true, $"{at}: active controls and labels fit without clipping or intersecting buttons.");
+        }
+    }
+
+    static Rect ScreenBounds(RectTransform rect)
+    {
+        var corners = new Vector3[4];
+        rect.GetWorldCorners(corners);
+        return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
+    }
+
+    static void CheckOnscreen(Rect rect, string label)
+    {
+        if (rect.width <= 0 || rect.height <= 0 || rect.xMin < -1f || rect.yMin < -1f ||
+            rect.xMax > Screen.width + 1f || rect.yMax > Screen.height + 1f)
+            throw new InvalidOperationException($"{label}: offscreen or empty rect {rect}.");
     }
 
     IEnumerator Until(Func<bool> condition, float seconds, string message)

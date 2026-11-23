@@ -547,7 +547,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         CanvasScaler scaler = editorCanvasObj.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1280f, 720f);
-        scaler.matchWidthOrHeight = 0f;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
         var topBar = new GameObject("TopBar", typeof(RectTransform), typeof(Image));
         topBar.transform.SetParent(editorCanvasObj.transform, false);
@@ -736,10 +736,9 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         if (headerText)
         {
             RectTransform bar = (RectTransform)headerText.transform.parent;
-            bar.anchorMin = new Vector2(isEditing ? 0 : 0.5f, 1);
-            bar.anchorMax = new Vector2(isEditing ? 1 : 0.5f, 1);
-            bar.offsetMin = isEditing ? new Vector2(0, -124) : new Vector2(-270, -108);
-            bar.offsetMax = isEditing ? Vector2.zero : new Vector2(270, -70);
+            bar.anchorMin = bar.anchorMax = new Vector2(0.5f, 1);
+            bar.offsetMin = isEditing ? new Vector2(-640, -124) : new Vector2(-270, -108);
+            bar.offsetMax = isEditing ? new Vector2(640, 0) : new Vector2(270, -70);
             headerText.rectTransform.sizeDelta = new Vector2(isEditing ? 465f : 305f, 28f);
             foreach (Transform child in bar)
             {

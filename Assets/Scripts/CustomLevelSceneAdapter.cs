@@ -239,14 +239,13 @@ public static class CustomLevelSceneAdapter
 
         foreach (FollowingPoint plat in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
         {
-            Transform root = plat.transform.parent ? plat.transform.parent : plat.transform;
-            Transform t1 = root.Find("Tocka 1");
-            Transform t2 = root.Find("Tocka2");
-            Vector3 p1 = t1 ? t1.position : plat.transform.position;
-            Vector3 p2 = t2 ? t2.position : p1 + Vector3.right * 6f;
-            float spanX = p2.x - p1.x;
-            float spanY = p2.y - p1.y;
-            doc.AddCapturedObject(Mathf.RoundToInt(p1.x), Mathf.RoundToInt(p1.y), "platform", p1.x, p1.y, spanX, spanY);
+            if (!plat.TryGetRoute(out Vector2 a, out Vector2 b))
+                Debug.LogWarning($"Platform {plat.name} has missing route points; captured as stationary.", plat);
+            Vector2 span = b - a;
+            float fraction = span.sqrMagnitude > 0f
+                ? Mathf.Clamp01(Vector2.Dot((Vector2)plat.transform.position - a, span) / span.sqrMagnitude) : 0f;
+            doc.AddCapturedObject(Mathf.FloorToInt(a.x), Mathf.FloorToInt(a.y), "platform", a.x, a.y,
+                span.x, span.y, fraction);
         }
 
         foreach (StabilizationPickup pickup in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true))
@@ -334,8 +333,7 @@ public static class CustomLevelSceneAdapter
         foreach (JumpPad j in UnityEngine.Object.FindObjectsOfType<JumpPad>(true)) UnityEngine.Object.DestroyImmediate(j.gameObject);
         foreach (FollowingPoint p in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
         {
-            GameObject root = p.transform.parent ? p.transform.parent.gameObject : p.gameObject;
-            UnityEngine.Object.DestroyImmediate(root);
+            UnityEngine.Object.DestroyImmediate(p.RouteOwner);
         }
 
         if (palette)
@@ -439,17 +437,14 @@ public static class CustomLevelSceneAdapter
         }
         else if (id == "platform" && palette.movingPlatformPrefab)
         {
-            spawned = UnityEngine.Object.Instantiate(palette.movingPlatformPrefab, Vector3.zero, Quaternion.identity);
-            Transform mov = spawned.transform.Find("Movement");
-            Transform t1 = spawned.transform.Find("Tocka 1");
-            Transform t2 = spawned.transform.Find("Tocka2");
-            float sx = Mathf.Abs(cell.spanX) < 0.01f && Mathf.Abs(cell.spanY) < 0.01f ? 6f : cell.spanX;
-            float sy = cell.spanY;
-            Vector3 p1 = pos;
-            Vector3 p2 = pos + new Vector3(sx, sy, 0f);
-            if (t1) t1.position = p1;
-            if (t2) t2.position = p2;
-            if (mov) mov.position = p1;
+            spawned = UnityEngine.Object.Instantiate(palette.movingPlatformPrefab, pos, Quaternion.identity);
+            FollowingPoint mover = spawned.GetComponentInChildren<FollowingPoint>();
+            if (!mover || !mover.SetRoute(pos, (Vector2)pos + new Vector2(cell.spanX, cell.spanY), cell.startFraction))
+            {
+                Debug.LogError("Cannot rebuild platform: the prefab needs two assigned route points.", spawned);
+                UnityEngine.Object.DestroyImmediate(spawned);
+                return;
+            }
         }
         else if (id == "stabilization" && palette.stabilizationPickupPrefab)
         {

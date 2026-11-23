@@ -13,9 +13,10 @@ public struct CustomLevelCell
     public float exactY;
     public float spanX;
     public float spanY;
+    public float startFraction;
 
     public CustomLevelCell(int x, int y, string id, float exactX = float.NaN, float exactY = float.NaN,
-        float spanX = 0f, float spanY = 0f)
+        float spanX = 0f, float spanY = 0f, float startFraction = 0f)
     {
         this.x = x;
         this.y = y;
@@ -24,6 +25,7 @@ public struct CustomLevelCell
         this.exactY = float.IsNaN(exactY) ? y : exactY;
         this.spanX = spanX;
         this.spanY = spanY;
+        this.startFraction = startFraction;
     }
 }
 
@@ -195,10 +197,10 @@ public sealed class CustomLevelDocument
     }
 
     public void AddCapturedObject(int x, int y, string id, float exactX, float exactY,
-        float spanX = 0f, float spanY = 0f)
+        float spanX = 0f, float spanY = 0f, float startFraction = 0f)
     {
         if (!InBounds(x, y) || !IsAllowedObjectId(id) || objects.Count >= MaxObjects) return;
-        objects.Add(new CustomLevelCell(x, y, id, exactX, exactY, spanX, spanY));
+        objects.Add(new CustomLevelCell(x, y, id, exactX, exactY, spanX, spanY, startFraction));
     }
 
     public int ReconcileGroundedObjectsInColumn(int x)
@@ -395,11 +397,17 @@ public sealed class CustomLevelDocument
                     errors.Add($"Object at ({cell.x},{cell.y}) is out of bounds.");
                 if (!IsAllowedObjectId(cell.id))
                     errors.Add($"Object ID '{cell.id}' is not allowlisted.");
+                if (cell.id == "platform" && !(WithinWorld(cell.exactX) && WithinWorld(cell.exactY) &&
+                    WithinWorld(cell.exactX + cell.spanX) && WithinWorld(cell.exactY + cell.spanY) &&
+                    cell.startFraction >= 0f && cell.startFraction <= 1f))
+                    errors.Add($"Platform route at ({cell.x},{cell.y}) is outside the map.");
             }
         }
 
         return errors;
     }
+
+    static bool WithinWorld(float value) => value >= MinCoord && value < MaxCoord + 1f;
 
     public string ToJson()
     {
@@ -511,6 +519,8 @@ public sealed class CustomLevelDocument
                         "{{\"x\":{0},\"y\":{1},\"id\":\"{2}\",\"ex\":{3:R},\"ey\":{4:R},\"sx\":{5:R},\"sy\":{6:R}",
                         c.x, c.y, Escape(c.id), c.exactX, c.exactY, c.spanX, c.spanY);
                     // Mono treats an escaped closing brace next to :R as part of the numeric format.
+                    if (c.id == "platform" && c.startFraction != 0f)
+                        sb.AppendFormat(CultureInfo.InvariantCulture, ",\"phase\":{0:R}", c.startFraction);
                     sb.Append('}');
                 }
                 else
@@ -600,7 +610,8 @@ public sealed class CustomLevelDocument
                 ReadFloat(item, "ex", cx),
                 ReadFloat(item, "ey", cy),
                 ReadFloat(item, "sx", 0f),
-                ReadFloat(item, "sy", 0f)));
+                ReadFloat(item, "sy", 0f),
+                ReadFloat(item, "phase", 0f)));
             pos = close + 1;
         }
         return result;

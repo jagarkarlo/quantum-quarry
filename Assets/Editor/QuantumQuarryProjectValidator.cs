@@ -252,6 +252,11 @@ public static class QuantumQuarryProjectValidator
         ValidatePrefabComponent<StabilizationPickup>(StabilizationPickupPrefabPath, errors);
         ValidatePrefabComponent<FollowingPoint>("Assets/Prefabs/Platform.prefab", errors);
         ValidatePrefabComponent<StickyPlatform>("Assets/Prefabs/Platform.prefab", errors);
+        GameObject platform = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Platform.prefab");
+        FollowingPoint mover = platform ? platform.GetComponentInChildren<FollowingPoint>(true) : null;
+        if (!mover || !mover.TryGetRoute(out Vector2 a, out Vector2 b) || a == b || mover.RouteOwner != platform ||
+            !mover.GetComponent<BoxCollider2D>() || !mover.GetComponent<StickyPlatform>())
+            errors.Add("Platform needs a collidable riding deck and two distinct sibling route anchors.");
     }
 
     static void ValidateAssetPalette(List<string> errors)

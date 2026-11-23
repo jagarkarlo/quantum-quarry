@@ -20,6 +20,8 @@ public class PauseMenu : MonoBehaviour
 
     void Update()
     {
+        // The legacy panel also has this component as the target of its button events.
+        if (gameObject == pauseMenuUI) return;
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             TogglePause();
@@ -58,8 +60,8 @@ public class PauseMenu : MonoBehaviour
         buttonTransform.anchorMin = Vector2.one;
         buttonTransform.anchorMax = Vector2.one;
         buttonTransform.pivot = Vector2.one;
-        buttonTransform.anchoredPosition = new Vector2(-18f, -18f);
-        buttonTransform.sizeDelta = new Vector2(116f, 46f);
+        buttonTransform.anchoredPosition = new Vector2(-8f, -8f);
+        buttonTransform.sizeDelta = new Vector2(90f, 42f);
 
         Image image = buttonObject.GetComponent<Image>();
         image.color = new Color(0.04f, 0.12f, 0.18f, 0.82f);

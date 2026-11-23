@@ -27,29 +27,31 @@ public class StartMenu : MonoBehaviour
         if (SceneManager.GetActiveScene().name != "Start") return;
         Canvas canvas = GetComponentInParent<Canvas>();
         if (!canvas) canvas = FindObjectOfType<Canvas>();
-        if (!canvas || canvas.transform.Find("Button_FrontLevelCreator")) return;
+        if (!canvas) return;
+        RectTransform frame = QuarryMenuFrame.Ensure(canvas);
+        if (frame.Find("Button_FrontLevelCreator")) return;
 
-        CreateFrontButton(canvas, "Button_FrontLevelCreator", "LEVEL CREATOR",
-            new Vector2(1f, 0f), new Vector2(-24f, 24f), new Vector2(220f, 48f),
+        CreateFrontButton(frame, "Button_FrontLevelCreator", "LEVEL CREATOR",
+            new Vector2(1f, 0f), new Vector2(-24f, 24f), new Vector2(340f, 64f),
             new Color(0.08f, 0.38f, 0.52f, 0.96f), OpenLevelCreator);
 
         System.DateTime now = System.DateTime.UtcNow;
         DailyChallengeDescriptor daily = SeededChallengeRules.BuildForDate(now.Year, now.Month, now.Day);
-        CreateFrontButton(canvas, "Button_DailyChallenge", daily.Title,
-            new Vector2(0f, 0f), new Vector2(24f, 24f), new Vector2(260f, 48f),
+        CreateFrontButton(frame, "Button_DailyChallenge", daily.Title,
+            new Vector2(0f, 0f), new Vector2(24f, 24f), new Vector2(475f, 64f),
             new Color(0.42f, 0.24f, 0.12f, 0.96f), () => StartDailyChallenge(daily));
 
-        Button wipeBtn = CreateFrontButton(canvas, "Button_WipeProfile", "RESET PROFILE",
-            new Vector2(1f, 0f), new Vector2(-24f, 80f), new Vector2(220f, 40f),
+        Button wipeBtn = CreateFrontButton(frame, "Button_WipeProfile", "RESET PROFILE",
+            new Vector2(1f, 0f), new Vector2(-24f, 100f), new Vector2(340f, 64f),
             new Color(0.45f, 0.14f, 0.16f, 0.94f), OnWipeProfileClicked);
         wipeButtonLabel = wipeBtn.GetComponentInChildren<TextMeshProUGUI>();
     }
 
-    Button CreateFrontButton(Canvas canvas, string name, string text, Vector2 anchor, Vector2 pos, Vector2 size,
+    Button CreateFrontButton(RectTransform frame, string name, string text, Vector2 anchor, Vector2 pos, Vector2 size,
         Color color, UnityEngine.Events.UnityAction onClick)
     {
         var obj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
-        obj.transform.SetParent(canvas.transform, false);
+        obj.transform.SetParent(frame, false);
         RectTransform rect = obj.GetComponent<RectTransform>();
         rect.anchorMin = anchor;
         rect.anchorMax = anchor;
@@ -71,13 +73,13 @@ public class StartMenu : MonoBehaviour
         labelRect.sizeDelta = Vector2.zero;
 
         TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
-        TextMeshProUGUI anyLabel = canvas.GetComponentInChildren<TextMeshProUGUI>();
+        TextMeshProUGUI anyLabel = frame.GetComponentInChildren<TextMeshProUGUI>();
         if (anyLabel && anyLabel.font) label.font = anyLabel.font;
         label.text = text;
         label.alignment = TextAlignmentOptions.Center;
         label.enableAutoSizing = true;
-        label.fontSizeMin = 10f;
-        label.fontSizeMax = 20f;
+        label.fontSizeMin = 18f;
+        label.fontSizeMax = 36f;
         label.color = Color.white;
         label.raycastTarget = false;
         return btn;

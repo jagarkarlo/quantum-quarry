@@ -81,12 +81,12 @@ public sealed class CustomLevelDocument
             height = 24,
             spawnX = 2,
             spawnY = 2,
-            exactSpawnX = 2f,
-            exactSpawnY = 2f,
+            exactSpawnX = 2.5f,
+            exactSpawnY = 2.95f,
             exitX = 24,
             exitY = 2,
-            exactExitX = 24f,
-            exactExitY = 2f
+            exactExitX = 24.5f,
+            exactExitY = 2.5f
         };
 
         for (int x = 0; x <= 26; x++) doc.SetTile(x, 1, "ground");
@@ -101,7 +101,7 @@ public sealed class CustomLevelDocument
         doc.SetObject(12, 2, "bank");
         doc.SetObject(16, 7, "gate_t1");
         doc.SetObject(18, 7, "crate_250");
-        doc.SetObject(20, 6, "stabilization");
+        doc.SetObject(20, 7, "stabilization");
         doc.SetObject(21, 2, "vent");
         return doc;
     }
@@ -143,7 +143,7 @@ public sealed class CustomLevelDocument
     public bool TryResolveGroundedCell(int x, int y, string objectId, out int resolvedY, out float supportTopY)
     {
         resolvedY = y;
-        supportTopY = y - 0.5f;
+        supportTopY = y;
         if (!RequiresGroundSupport(objectId)) return true;
 
         if (IsSolidSupportTile(x, y)) return false;
@@ -152,7 +152,7 @@ public sealed class CustomLevelDocument
             if (IsSolidSupportTile(x, scanY - 1) && !IsSolidSupportTile(x, scanY))
             {
                 resolvedY = scanY;
-                supportTopY = scanY - 0.5f;
+                supportTopY = scanY;
                 return true;
             }
         }
@@ -180,7 +180,9 @@ public sealed class CustomLevelDocument
         if (!InBounds(x, y)) return false;
         if (string.IsNullOrEmpty(id))
         {
-            return RemoveAt(tiles, x, y);
+            bool removed = RemoveAt(tiles, x, y);
+            if (removed) ReconcileGroundedObjectsInColumn(x);
+            return removed;
         }
         if (!IsAllowedTileId(id)) return false;
         if (!IsBackgroundTileId(id))
@@ -192,7 +194,7 @@ public sealed class CustomLevelDocument
             RemoveBackgroundTileAt(x, y);
         }
         tiles.Add(new CustomLevelCell(x, y, id));
-        ReconcileGroundedObjectsInColumn(x);
+        if (!IsBackgroundTileId(id)) ReconcileGroundedObjectsInColumn(x);
         return true;
     }
 
@@ -215,7 +217,7 @@ public sealed class CustomLevelDocument
                 if (RequiresGroundSupport(obj.id) &&
                     TryResolveGroundedCell(obj.x, obj.y + 1, obj.id, out int upY, out float upTop))
                 {
-                    float ey = (obj.id == "gate_t1" || obj.id == "gate_t2") ? upTop + 1f : upTop + 0.5f;
+                    float ey = GroundedCenterY(obj.id, upTop);
                     objects[i] = new CustomLevelCell(obj.x, upY, obj.id, obj.exactX, ey, obj.spanX, obj.spanY);
                 }
                 else
@@ -230,7 +232,7 @@ public sealed class CustomLevelDocument
             {
                 if (TryResolveGroundedCell(obj.x, obj.y, obj.id, out int groundedY, out float supportTopY))
                 {
-                    float ey = (obj.id == "gate_t1" || obj.id == "gate_t2") ? supportTopY + 1f : supportTopY + 0.5f;
+                    float ey = GroundedCenterY(obj.id, supportTopY);
                     objects[i] = new CustomLevelCell(obj.x, groundedY, obj.id, obj.exactX, ey, obj.spanX, obj.spanY);
                 }
                 else
@@ -254,8 +256,8 @@ public sealed class CustomLevelDocument
         if (!IsAllowedObjectId(id)) return false;
         if ((x == spawnX && y == spawnY) || (x == exitX && y == exitY)) return false;
         if (GetObject(x, y) == null && objects.Count >= MaxObjects) return false;
-        float ex = float.IsNaN(exactX) ? x : exactX;
-        float ey = float.IsNaN(exactY) ? y : exactY;
+        float ex = float.IsNaN(exactX) ? x + 0.5f : exactX;
+        float ey = float.IsNaN(exactY) ? GroundedCenterY(id, y) : exactY;
         float sx = spanX;
         float sy = spanY;
         if (id == "platform" && Math.Abs(sx) < 0.01f && Math.Abs(sy) < 0.01f) sx = 6f;
@@ -270,8 +272,8 @@ public sealed class CustomLevelDocument
         RemoveAt(objects, x, y);
         spawnX = x;
         spawnY = y;
-        exactSpawnX = float.IsNaN(exactX) ? x : exactX;
-        exactSpawnY = float.IsNaN(exactY) ? y : exactY;
+        exactSpawnX = float.IsNaN(exactX) ? x + 0.5f : exactX;
+        exactSpawnY = float.IsNaN(exactY) ? y + 0.95f : exactY;
         return true;
     }
 
@@ -282,10 +284,13 @@ public sealed class CustomLevelDocument
         RemoveAt(objects, x, y);
         exitX = x;
         exitY = y;
-        exactExitX = float.IsNaN(exactX) ? x : exactX;
-        exactExitY = float.IsNaN(exactY) ? y : exactY;
+        exactExitX = float.IsNaN(exactX) ? x + 0.5f : exactX;
+        exactExitY = float.IsNaN(exactY) ? y + 0.5f : exactY;
         return true;
     }
+
+    public static float GroundedCenterY(string id, float floorTop) =>
+        floorTop + (id == "gate_t1" || id == "gate_t2" || id == "gate_latch_t1" ? 1f : 0.5f);
 
     public bool ClearCell(int x, int y)
     {

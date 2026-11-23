@@ -149,14 +149,14 @@ public static class CustomLevelSceneAdapter
         if (player)
         {
             Vector3 p = player.transform.position;
-            doc.SetSpawn(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), p.x, p.y);
+            doc.SetSpawn(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), p.x, p.y);
         }
 
         LevelExit exit = UnityEngine.Object.FindObjectOfType<LevelExit>(true);
         if (exit)
         {
             Vector3 ep = exit.transform.position;
-            doc.SetExit(Mathf.RoundToInt(ep.x), Mathf.RoundToInt(ep.y), ep.x, ep.y);
+            doc.SetExit(Mathf.FloorToInt(ep.x), Mathf.FloorToInt(ep.y), ep.x, ep.y);
         }
 
         if (doc.spawnX == doc.exitX && doc.spawnY == doc.exitY) doc.exitX += 10;
@@ -178,38 +178,38 @@ public static class CustomLevelSceneAdapter
         {
             string id = coin.BaseOreValue >= 200 ? "coin_200" : coin.BaseOreValue >= 150 ? "coin_150" : "coin_100";
             Vector3 p = coin.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), id, p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), id, p.x, p.y);
         }
 
         foreach (BreakableOreCrate crate in UnityEngine.Object.FindObjectsOfType<BreakableOreCrate>(true))
         {
             Vector3 p = crate.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "crate_250", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "crate_250", p.x, p.y);
         }
 
         foreach (OreBankCheckpoint bank in UnityEngine.Object.FindObjectsOfType<OreBankCheckpoint>(true))
         {
             Vector3 p = bank.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "bank", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "bank", p.x, p.y);
         }
 
         foreach (PressurePulseHazard vent in UnityEngine.Object.FindObjectsOfType<PressurePulseHazard>(true))
         {
             Vector3 p = vent.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "vent", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "vent", p.x, p.y);
         }
 
         foreach (PressureGate gate in UnityEngine.Object.FindObjectsOfType<PressureGate>(true))
         {
             string id = gate.LatchWhenOpened ? "gate_latch_t1" : (gate.RequiredTier >= 2 ? "gate_t2" : "gate_t1");
             Vector3 p = gate.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y - 0.5f), id, p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y - 0.5f), id, p.x, p.y);
         }
 
         foreach (PressureGauge gauge in UnityEngine.Object.FindObjectsOfType<PressureGauge>(true))
         {
             Vector3 p = gauge.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "gauge", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "gauge", p.x, p.y);
         }
 
         foreach (EnemyPatrol2D enemy in UnityEngine.Object.FindObjectsOfType<EnemyPatrol2D>(true))
@@ -217,24 +217,24 @@ public static class CustomLevelSceneAdapter
             Vector3 p = enemy.transform.position;
             if (enemy.GetComponent<ShieldedEnemyGuard>())
             {
-                doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "shielded_enemy", p.x, p.y);
+                doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "shielded_enemy", p.x, p.y);
                 continue;
             }
             SpriteRenderer sr = enemy.GetComponent<SpriteRenderer>();
             bool isRed = (sr && sr.color.r > 0.5f && sr.color.g < 0.4f) || enemy.name.Contains("Crveni") || enemy.name.Contains("Red");
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), isRed ? "red_enemy" : "enemy", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), isRed ? "red_enemy" : "enemy", p.x, p.y);
         }
 
         foreach (SentryTurret sentry in UnityEngine.Object.FindObjectsOfType<SentryTurret>(true))
         {
             Vector3 p = sentry.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "sentry", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "sentry", p.x, p.y);
         }
 
         foreach (JumpPad pad in UnityEngine.Object.FindObjectsOfType<JumpPad>(true))
         {
             Vector3 p = pad.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "jump_pad", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "jump_pad", p.x, p.y);
         }
 
         foreach (FollowingPoint plat in UnityEngine.Object.FindObjectsOfType<FollowingPoint>(true))
@@ -251,7 +251,7 @@ public static class CustomLevelSceneAdapter
         foreach (StabilizationPickup pickup in UnityEngine.Object.FindObjectsOfType<StabilizationPickup>(true))
         {
             Vector3 p = pickup.transform.position;
-            doc.AddCapturedObject(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.y), "stabilization", p.x, p.y);
+            doc.AddCapturedObject(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y), "stabilization", p.x, p.y);
         }
 
         return doc;
@@ -265,6 +265,7 @@ public static class CustomLevelSceneAdapter
         Tilemap groundMap = null;
         Tilemap climbingMap = null;
         Tilemap hazardMap = null;
+        Tilemap waterMap = null;
         Tilemap jumpMap = null;
         Tilemap bgMap = null;
 
@@ -275,6 +276,7 @@ public static class CustomLevelSceneAdapter
             if (ln == "Ground" && !groundMap) groundMap = map;
             else if (ln == "Climbing" && !climbingMap) climbingMap = map;
             else if (ln == "Hazard" && !hazardMap) hazardMap = map;
+            else if (ln == "Water" && !waterMap) waterMap = map;
             else if (ln == "Jump" && !jumpMap) jumpMap = map;
             else if (ln == "Background" && !bgMap) bgMap = map;
         }
@@ -293,9 +295,9 @@ public static class CustomLevelSceneAdapter
                 if (cell.id == "ladder") target = climbingMap;
                 else if (cell.id == "bounce") target = jumpMap;
                 else if (cell.id == "bg") target = bgMap ? bgMap : groundMap;
-                else if (cell.id == "hazard_spike" || cell.id == "water" || cell.id == "water_surface" ||
-                         cell.id == "lava" || cell.id == "lava_surface")
-                    target = hazardMap;
+                else if (cell.id == "hazard_spike") target = hazardMap;
+                else if (cell.id == "water" || cell.id == "water_surface" || cell.id == "lava" || cell.id == "lava_surface")
+                    target = waterMap ? waterMap : hazardMap;
 
                 if (target) target.SetTile(new Vector3Int(cell.x, cell.y, 0), tileAsset);
             }

@@ -76,9 +76,6 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
             session.PlaytestCompleted += OnPlaytestCompleted;
         }
 
-        ScenePersist sp = FindObjectOfType<ScenePersist>();
-        if (sp) sp.ResetScenePersist();
-
         if (CustomLevelSceneAdapter.HasCampaignOverride(currentCampaignLevel))
         {
             document = CustomLevelSceneAdapter.LoadCampaignOverride(currentCampaignLevel);
@@ -141,14 +138,11 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                     return false;
                 }
                 y = groundedY;
-                float exactY = (chosen == "gate_t1" || chosen == "gate_t2" || chosen == "gate_latch_t1")
-                    ? supportTopY + 1f
-                    : supportTopY + 0.5f;
-                changed = document.SetObject(x, y, chosen, x, exactY);
+                changed = document.SetObject(x, y, chosen, x + 0.5f, CustomLevelDocument.GroundedCenterY(chosen, supportTopY));
             }
             else
             {
-                changed = document.SetObject(x, y, chosen, x, y, chosen == "platform" ? 6f : 0f, 0f);
+                changed = document.SetObject(x, y, chosen);
             }
         }
 
@@ -418,7 +412,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                 if (!es || !es.IsPointerOverGameObject())
                 {
                     Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                    ApplyToolAtCell(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
+                    ApplyToolAtCell(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y));
                 }
             }
             float panX = Input.GetAxisRaw("Horizontal");
@@ -441,7 +435,7 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
         if (!spawnLivePlaytest)
         {
             spawnMarkerObj = new GameObject("CreatorSpawnMarker");
-            spawnMarkerObj.transform.position = new Vector3(document.spawnX, document.spawnY + 0.8f, 0f);
+            spawnMarkerObj.transform.position = new Vector3(document.exactSpawnX, document.exactSpawnY + 0.8f, 0f);
             TextMeshPro tmp = spawnMarkerObj.AddComponent<TextMeshPro>();
             tmp.text = "SPAWN";
             tmp.fontSize = 3f;

@@ -11,8 +11,8 @@ public static class ProceduralQuarryGenerator
         var doc = new CustomLevelDocument
         {
             formatVersion = CustomLevelDocument.CurrentFormatVersion,
-            levelId = $"proc-{Math.Abs(seed) % 100000}",
-            title = $"Procedural Quarry #{Math.Abs(seed) % 10000:0000}",
+            levelId = $"proc-{Math.Abs((long)seed) % 100000}",
+            title = $"Procedural Quarry #{Math.Abs((long)seed) % 10000:0000}",
             sourceCampaignLevel = 4,
             width = 56,
             height = 26
@@ -22,7 +22,7 @@ public static class ProceduralQuarryGenerator
         int curY = 2;
 
         for (int x = 0; x <= 5; x++) doc.SetTile(x, curY, "ground");
-        doc.SetSpawn(2, curY + 1, 2f, curY + 1f);
+        doc.SetSpawn(2, curY + 1);
         curX = 6;
 
         int segments = 5 + clampedDifficulty;
@@ -44,7 +44,7 @@ public static class ProceduralQuarryGenerator
             {
                 doc.SetTile(curX, curY, "ground");
                 int padY = curY + 1;
-                doc.SetObject(curX, padY, "jump_pad", curX, curY + 0.5f);
+                doc.SetObject(curX, padY, "jump_pad");
                 curY += 3;
                 curX += 2;
             }
@@ -60,7 +60,7 @@ public static class ProceduralQuarryGenerator
                 if (i == 1)
                 {
                     string coinId = (seg >= 2 && NextRange(ref state, 0, 2) == 1) ? "coin_150" : "coin_100";
-                    doc.SetObject(curX + i, curY + 1, coinId, curX + i, curY + 1f);
+                    doc.SetObject(curX + i, curY + 1, coinId);
                 }
                 else if (i == 3 && segLen >= 5)
                 {
@@ -74,8 +74,8 @@ public static class ProceduralQuarryGenerator
         for (int x = curX; x <= curX + 4; x++)
             doc.SetTile(x, curY, "ground");
 
-        doc.SetObject(curX + 1, curY + 1, "vent", curX + 1, curY + 0.5f);
-        doc.SetExit(curX + 3, curY + 1, curX + 3f, curY + 1f);
+        doc.SetObject(curX + 1, curY + 1, "vent");
+        doc.SetExit(curX + 3, curY + 1);
         doc.width = Math.Min(CustomLevelDocument.MaxWidth, Math.Max(40, curX + 10));
         return doc;
     }
@@ -85,30 +85,30 @@ public static class ProceduralQuarryGenerator
     {
         if (segIndex == totalSegments / 2)
         {
-            doc.SetObject(x, floorY + 1, "bank", x, floorY + 0.5f);
+            doc.SetObject(x, floorY + 1, "bank");
             return;
         }
 
         int roll = NextRange(ref state, 0, 5);
         if (roll == 0)
         {
-            doc.SetObject(x, floorY + 1, "crate_250", x, floorY + 0.5f);
+            doc.SetObject(x, floorY + 1, "crate_250");
         }
         else if (roll == 1)
         {
-            doc.SetObject(x, floorY + 1, difficulty >= 2 ? "red_enemy" : "enemy", x, floorY + 0.5f);
+            doc.SetObject(x, floorY + 1, difficulty >= 2 ? "red_enemy" : "enemy");
         }
         else if (roll == 2 && difficulty >= 2)
         {
-            doc.SetObject(x, floorY + 1, "shielded_enemy", x, floorY + 0.5f);
+            doc.SetObject(x, floorY + 1, "shielded_enemy");
         }
         else if (roll == 3 && difficulty >= 2)
         {
-            doc.SetObject(x, floorY + 1, "sentry", x, floorY + 0.5f);
+            doc.SetObject(x, floorY + 1, "sentry");
         }
         else
         {
-            doc.SetObject(x, floorY + 1, "coin_200", x, floorY + 1f);
+            doc.SetObject(x, floorY + 1, "coin_200");
         }
     }
 

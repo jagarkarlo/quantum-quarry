@@ -24,7 +24,7 @@ public sealed class QuarryPressureHUD : MonoBehaviour
         CanvasScaler scaler = root.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(800f, 600f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
         QuarryPressureHUD hud = root.AddComponent<QuarryPressureHUD>();
         hud.session = owner;
         hud.previousTier = owner.Pressure.Tier;

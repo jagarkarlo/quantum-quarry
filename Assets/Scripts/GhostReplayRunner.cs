@@ -81,7 +81,7 @@ public sealed class GhostReplayRunner : MonoBehaviour
         CanvasScaler scaler = canvasObj.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(800f, 600f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
         var panel = new GameObject("SplitsPanel", typeof(RectTransform), typeof(Image));
         panel.transform.SetParent(canvasObj.transform, false);
@@ -89,8 +89,8 @@ public sealed class GhostReplayRunner : MonoBehaviour
         rect.anchorMin = new Vector2(1f, 1f);
         rect.anchorMax = new Vector2(1f, 1f);
         rect.pivot = new Vector2(1f, 1f);
-        rect.anchoredPosition = new Vector2(-142f, -18f);
-        rect.sizeDelta = new Vector2(210f, 46f);
+        rect.anchoredPosition = new Vector2(-106f, -38f);
+        rect.sizeDelta = new Vector2(136f, 38f);
         Image bg = panel.GetComponent<Image>();
         bg.color = new Color(0.04f, 0.08f, 0.12f, 0.82f);
         bg.raycastTarget = false;

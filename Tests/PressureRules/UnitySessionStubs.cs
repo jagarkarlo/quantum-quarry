@@ -14,6 +14,7 @@ namespace UnityEngine
     {
         public GameObject gameObject = new GameObject();
     }
+    public class Canvas : Object { public bool enabled; }
     public class GameObject : Object
     {
         public static GameObject FindGameObjectWithTag(string tag) => null;

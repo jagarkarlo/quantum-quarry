@@ -12,6 +12,7 @@ public class GameSession : MonoBehaviour
     [Header("UI (auto-assigned by tag in each scene)")]
     [SerializeField] TextMeshProUGUI livesText;
     [SerializeField] TextMeshProUGUI scoreText; // shows coins
+    [SerializeField] Canvas gameplayHud;
 
     // Keys
     public const string CoinsKey = "Coins";
@@ -161,6 +162,7 @@ public class GameSession : MonoBehaviour
 
     void RebindUI()
     {
+        if (gameplayHud) gameplayHud.enabled = IsGameplayScene(SceneManager.GetActiveScene().name);
         QuarryPressureHUD.EnsureForScene(this);
         GhostReplayRunner.EnsureForScene(this);
         if (!livesText)

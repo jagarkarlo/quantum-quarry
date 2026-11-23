@@ -257,6 +257,9 @@ public static class QuantumQuarryProjectValidator
         if (!mover || !mover.TryGetRoute(out Vector2 a, out Vector2 b) || a == b || mover.RouteOwner != platform ||
             !mover.GetComponent<BoxCollider2D>() || !mover.GetComponent<StickyPlatform>())
             errors.Add("Platform needs a collidable riding deck and two distinct sibling route anchors.");
+        if (platform)
+            foreach (Transform child in platform.GetComponentsInChildren<Transform>(true))
+                if (child.CompareTag("Player")) errors.Add($"Platform part {child.name} must not claim the Player tag.");
     }
 
     static void ValidateAssetPalette(List<string> errors)

@@ -138,7 +138,14 @@ public sealed class CustomLevelCreatorController : MonoBehaviour
                     return false;
                 }
                 y = groundedY;
-                changed = document.SetObject(x, y, chosen, x + 0.5f, CustomLevelDocument.GroundedCenterY(chosen, supportTopY));
+                var cell = new CustomLevelCell(x, y, chosen, x + 0.5f, CustomLevelDocument.GroundedCenterY(chosen, supportTopY));
+                if (CustomLevelDocument.IsPatrol(chosen) && !document.TryGetPatrolLane(cell, out _, out _, out _))
+                {
+                    statusMessage = "Patrol needs a clear cell above a continuous floor.";
+                    RefreshToolbarText();
+                    return false;
+                }
+                changed = document.SetObject(x, y, chosen, cell.exactX, cell.exactY);
             }
             else
             {

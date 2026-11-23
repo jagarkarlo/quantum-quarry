@@ -140,6 +140,33 @@ public sealed class CustomLevelDocument
         return t == "ground" || t == "rock" || t == "bounce";
     }
 
+    public static bool IsPatrol(string id) => id == "enemy" || id == "red_enemy" || id == "shielded_enemy";
+
+    public bool TryGetPatrolLane(CustomLevelCell cell, out float left, out float right, out float floorTop)
+    {
+        left = right = cell.exactX;
+        floorTop = cell.exactY - 0.5f;
+        int x = (int)Math.Floor(cell.exactX);
+        int y = (int)Math.Floor(cell.exactY);
+        // Early seeded files placed the enemy's center inside the supporting tile.
+        if (IsSolidSupportTile(x, y)) y++;
+        if (!TryResolveGroundedCell(x, y, cell.id, out y, out floorTop) || !WalkablePatrolCell(x, y))
+            return false;
+        int min = x, max = x;
+        while (min > x - 5 && WalkablePatrolCell(min - 1, y)) min--;
+        while (max < x + 5 && WalkablePatrolCell(max + 1, y)) max++;
+        left = Math.Max(cell.exactX - 4f, min + 0.4f);
+        right = Math.Min(cell.exactX + 4f, max + 0.6f);
+        return true;
+    }
+
+    bool WalkablePatrolCell(int x, int y)
+    {
+        string tile = GetTile(x, y);
+        return InBounds(x, y) && IsSolidSupportTile(x, y - 1) &&
+            (tile == null || IsBackgroundTileId(tile) || tile == "ladder");
+    }
+
     public bool TryResolveGroundedCell(int x, int y, string objectId, out int resolvedY, out float supportTopY)
     {
         resolvedY = y;

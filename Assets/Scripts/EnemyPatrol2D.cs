@@ -38,6 +38,16 @@ public class EnemyPatrol2D : MonoBehaviour
     float stateTimer;
     int levelNumber = 1;
     int dir = 1;
+    int supportMask;
+    bool bounded;
+    float laneLeft, laneRight;
+
+    public void SetPatrolLane(float left, float right)
+    {
+        bounded = true;
+        laneLeft = left;
+        laneRight = right;
+    }
 
     public EnemyState CurrentState => currentState;
     public float DetectionRange => (baseDetectionRange + (levelNumber - 1) * detectionRangePerLevel)
@@ -46,6 +56,8 @@ public class EnemyPatrol2D : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        supportMask = groundMask.value | LayerMask.GetMask("Jump");
+        dir = transform.localScale.x < 0f ? -1 : 1;
         levelNumber = GetLevelNumber(SceneManager.GetActiveScene().name);
         SetState(EnemyState.Patrol);
     }
@@ -105,7 +117,7 @@ public class EnemyPatrol2D : MonoBehaviour
         FacePlayer();
         float difficulty = 1f + (levelNumber - 1) * difficultyPerLevel;
         float pressureSpeed = session ? session.Pressure.ChaseMultiplier : 1f;
-        Move(speed * chaseSpeedMultiplier * difficulty * pressureSpeed);
+        Move(speed * chaseSpeedMultiplier * difficulty * pressureSpeed, false);
     }
 
     void Search()
@@ -123,22 +135,34 @@ public class EnemyPatrol2D : MonoBehaviour
         stateTimer = nextState == EnemyState.Alert ? alertDuration : searchDuration;
     }
 
-    void Move(float moveSpeed)
+    void Move(float moveSpeed, bool turnAround = true)
     {
-        if (ShouldTurn()) Flip();
-        rb.velocity = new Vector2(dir * moveSpeed, rb.velocity.y);
-
-        if (!groundCheck || !wallCheck) AutoFlip();
+        float step = moveSpeed * Time.fixedDeltaTime;
+        float travel = SafeTravel(dir, step);
+        if (travel <= 0f && turnAround)
+        {
+            travel = SafeTravel(-dir, step);
+            if (travel > 0f) Flip();
+        }
+        rb.velocity = new Vector2(dir * travel / Time.fixedDeltaTime, rb.velocity.y);
     }
 
-    bool ShouldTurn()
+    float SafeTravel(int direction, float step)
     {
-        if (!groundCheck || !wallCheck) return false;
-
-        bool groundAhead = Physics2D.Raycast(groundCheck.position, Vector2.down, groundCheckDist, groundMask);
-        bool wallAhead   = Physics2D.Raycast(wallCheck.position, Vector2.right * dir, wallCheckDist, groundMask);
-        return !groundAhead || wallAhead;
+        if (!groundCheck || !wallCheck) return 0f;
+        if (bounded)
+            step = Mathf.Min(step, direction > 0 ? laneRight - rb.position.x : rb.position.x - laneLeft);
+        if (step <= 0.00001f) return 0f;
+        Vector2 ground = ProbePosition(groundCheck, direction) + Vector2.right * (direction * step);
+        Vector2 wall = ProbePosition(wallCheck, direction);
+        bool supported = Physics2D.Raycast(ground, Vector2.down, groundCheckDist, supportMask);
+        bool obstructed = Physics2D.Raycast(wall, Vector2.right * direction, wallCheckDist + step, groundMask);
+        return supported && !obstructed ? step : 0f;
     }
+
+    Vector2 ProbePosition(Transform probe, int direction) =>
+        new Vector2(rb.position.x + direction * Mathf.Abs(probe.position.x - transform.position.x),
+            rb.position.y + probe.position.y - transform.position.y);
 
     bool CanSeePlayer(bool requireFacingPlayer)
     {
@@ -182,17 +206,6 @@ public class EnemyPatrol2D : MonoBehaviour
         var s = transform.localScale;
         s.x = Mathf.Abs(s.x) * dir;
         transform.localScale = s;
-    }
-
-    void AutoFlip()
-    {
-        if (Mathf.Abs(rb.velocity.x) > Mathf.Epsilon)
-        {
-            int vdir = rb.velocity.x > 0 ? 1 : -1;
-            var s = transform.localScale;
-            s.x = Mathf.Abs(s.x) * vdir;
-            transform.localScale = s;
-        }
     }
 
     void OnDrawGizmosSelected()

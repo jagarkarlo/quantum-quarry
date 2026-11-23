@@ -347,7 +347,7 @@ public static class CustomLevelSceneAdapter
                                        obj.id == "crate_250" || obj.id == "enemy" || obj.id == "red_enemy" ||
                                        obj.id == "shielded_enemy" || obj.id == "sentry" || obj.id == "stabilization";
                 if (preservePersistedObjects && isPersistedType) continue;
-                SpawnObjectFromPalette(palette, obj, persistParent, liveGameplay);
+                SpawnObjectFromPalette(palette, doc, obj, persistParent, liveGameplay);
             }
             if (persistParent && !persistParent.Find("__CustomAppliedMarker"))
             {
@@ -384,7 +384,7 @@ public static class CustomLevelSceneAdapter
         Physics2D.SyncTransforms();
     }
 
-    static void SpawnObjectFromPalette(QuarryAssetPalette palette, CustomLevelCell cell, Transform persistParent, bool live)
+    static void SpawnObjectFromPalette(QuarryAssetPalette palette, CustomLevelDocument doc, CustomLevelCell cell, Transform persistParent, bool live)
     {
         string id = cell.id;
         Vector3 pos = new Vector3(cell.exactX, cell.exactY, 0f);
@@ -417,17 +417,19 @@ public static class CustomLevelSceneAdapter
         {
             spawned = UnityEngine.Object.Instantiate(palette.pressureGaugePrefab, pos, Quaternion.identity);
         }
-        else if (id == "enemy" && palette.enemyPrefab)
+        else if (CustomLevelDocument.IsPatrol(id))
         {
-            spawned = UnityEngine.Object.Instantiate(palette.enemyPrefab, pos, Quaternion.identity, persistParent);
-        }
-        else if (id == "red_enemy" && palette.redEnemyPrefab)
-        {
-            spawned = UnityEngine.Object.Instantiate(palette.redEnemyPrefab, pos, Quaternion.identity, persistParent);
-        }
-        else if (id == "shielded_enemy" && palette.shieldedEnemyPrefab)
-        {
-            spawned = UnityEngine.Object.Instantiate(palette.shieldedEnemyPrefab, pos, Quaternion.identity, persistParent);
+            if (!doc.TryGetPatrolLane(cell, out float left, out float right, out float top))
+            {
+                Debug.LogWarning($"No walkable patrol floor at ({cell.x},{cell.y}); skipping unsupported {id}.");
+                return;
+            }
+            GameObject prefab = id == "enemy" ? palette.enemyPrefab :
+                id == "red_enemy" ? palette.redEnemyPrefab : palette.shieldedEnemyPrefab;
+            pos.x = Mathf.Clamp(pos.x, left, right);
+            pos.y = top + 0.5f;
+            spawned = UnityEngine.Object.Instantiate(prefab, pos, Quaternion.identity, persistParent);
+            spawned.GetComponent<EnemyPatrol2D>().SetPatrolLane(left, right);
         }
         else if (id == "sentry" && palette.sentryPrefab)
         {

@@ -340,6 +340,12 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
             "Creator automatically writes an autosave recovery snapshot after edits.");
         Require(creator.ApplyToolAtCell(-2, 2, "coin_200") && creator.Document.GetObject(-2, 2) == "coin_200",
             "Creator places a 200-ore coin prefab onto the level.");
+        GameObject.Find("Btn_Objects").GetComponent<UnityEngine.UI.Button>().onClick.Invoke();
+        Require(!creator.ApplyToolAtCell(-20, 40) && !creator.ApplyToolAtCell(-18, 42) &&
+            creator.ApplyToolAtCell(-20, 42) && !creator.ApplyToolAtCell(-19, 41, "rock"),
+            "Rail tool keeps the first anchor after a bad end and rejects terrain across the finished lift.");
+        Require(creator.Undo() && creator.Document.GetObject(-20, 40) == null && creator.Redo(),
+            "Both rail endpoints are restored by one undo/redo operation.");
         string draftPath = Path.Combine(outputDirectory, "creator-draft.json");
         Require(creator.SaveDraft(draftPath) && File.Exists(draftPath),
             "Creator saves a validated JSON draft to disk.");
@@ -351,14 +357,23 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         creator.GenerateProceduralDraft(7319);
         Require(creator.Document.Validate().Count == 0 && creator.Document.levelId.StartsWith("proc-"),
             "Creator generates a valid deterministic procedural level.");
+        yield return CheckGeneratedMovement(creator);
         Require(creator.LoadDraft(draftPath) && creator.Document.GetObject(-2, 2) == "coin_200",
             "Creator reloads the edited Level 4 draft after procedural preview.");
+        var lift = FindObjectOfType<FollowingPoint>();
+        Vector2 expectedA = new Vector2(-19.5f, 40.5f), expectedB = expectedA + Vector2.up * 2f;
+        Require(lift && lift.TryGetRoute(out Vector2 liftA, out Vector2 liftB) &&
+            liftA == expectedA && liftB == expectedB,
+            "A Unity-written draft reloads both vertical waypoints into the real platform prefab.");
         Require(creator.SaveCurrentLevelCampaignOverride() && CustomLevelSceneAdapter.HasCampaignOverride(4),
             "Creator saves a live Campaign Override for Level 4.");
         int savedStageNum = creator.SaveAsPlayableCustomStage(7);
         Require(savedStageNum == 7 && CustomLevelSceneAdapter.GetSavedCustomStageNumbers().Contains(7),
             "Creator saves a playable Custom Stage 7 for the Level Selector.");
         yield return Capture("level-creator-edit", 1280, 720);
+        CheckCreatorButtons();
+        yield return Capture("level-creator-rail-tools", 800, 600);
+        CheckCreatorButtons();
         creator.StartPlaytest();
         yield return null;
         yield return new WaitForSecondsRealtime(0.25f);
@@ -367,7 +382,13 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         PlayerMovement playtestPlayer = FindObjectOfType<PlayerMovement>();
         Require(playtestPlayer && playtestPlayer.gameObject.activeInHierarchy,
             "Creator Playtest activates the playable character at the spawn point.");
+        lift = FindObjectOfType<FollowingPoint>();
+        yield return Until(() => lift.Velocity.y < -1f && lift.transform.position.y > 41.5f, 2f,
+            "The saved vertical lift travels up and starts back down at its authored end.");
         yield return Capture("level-creator-playtest", 1280, 720);
+        var transport = (RectTransform)GameObject.Find("Btn_Playtest").transform.parent;
+        foreach (var pressureLabel in FindObjectOfType<QuarryPressureHUD>().GetComponentsInChildren<TextMeshProUGUI>())
+            Require(!RectsOverlapScreen(transport, pressureLabel.rectTransform), "Playtest controls leave the Pressure HUD uncovered.");
         session.AddCoins(300);
         session.BankOre();
         Require(session.GetCoins() == 300 && PlayerPrefs.GetInt(GameSession.CoinsKey) == campaignCoinsBefore,
@@ -405,10 +426,100 @@ public sealed class QuarryRuntimeValidation : MonoBehaviour
         Require(LevelSelector.CurrentPage == 1 && Array.Find(FindObjectsOfType<LevelSelector>(), s => s.level == 7) != null,
             "Switching to Page 2 displays playable Custom Stage S7 in the level grid.");
         yield return Capture("level-selector-with-custom-stage", 1280, 720);
+        Array.Find(FindObjectsOfType<LevelSelector>(), s => s.level == 7).OpenScene();
+        yield return null;
+        yield return new WaitForSecondsRealtime(0.2f);
+        var savedLift = FindObjectOfType<FollowingPoint>();
+        Require(!FindObjectOfType<CustomLevelCreatorController>() && savedLift &&
+            savedLift.TryGetRoute(out Vector2 savedA, out Vector2 savedB) && savedA == expectedA && savedB == expectedB &&
+            savedLift.Velocity.y > 0f, "Selecting S7 launches the published vertical lift in normal gameplay.");
+        PlayerPrefs.SetInt(CustomLevelSceneAdapter.ActiveCustomStageKey, 0);
         LevelSelector.SetPage(0);
         CustomLevelSceneAdapter.DeleteCampaignOverride(4);
         File.Delete(CustomLevelSceneAdapter.GetCustomStageFilePath(7));
         LevelSelector.SetPage(0);
+    }
+
+    void CheckCreatorButtons()
+    {
+        var buttons = GameObject.Find("CustomCreatorCanvas").GetComponentsInChildren<UnityEngine.UI.Button>();
+        bool fit = true;
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            var r = (RectTransform)buttons[i].transform;
+            var corners = new Vector3[4];
+            r.GetWorldCorners(corners);
+            fit &= corners[0].x >= 0 && corners[0].y >= 0 && corners[2].x <= Screen.width && corners[2].y <= Screen.height;
+            for (int j = 0; j < i; j++) fit &= !RectsOverlapScreen(r, (RectTransform)buttons[j].transform);
+        }
+        Require(fit && GameObject.Find("Btn_gate_t2"), $"All creator object tools fit without overlap at {Screen.width}x{Screen.height}.");
+    }
+
+    IEnumerator CheckGeneratedMovement(CustomLevelCreatorController creator)
+    {
+        for (int x = -15; x <= -13; x++) creator.ApplyToolAtCell(x, 6, "ground");
+        Require(creator.ApplyToolAtCell(-14, 7, "enemy"), "Creator places a patrol on a three-cell test ledge.");
+        CustomLevelCell rail = creator.Document.objects.Find(c => c.id == "platform");
+        Camera.main.transform.position = new Vector3(rail.exactX, rail.exactY + 1f, -10f);
+        yield return Capture("seeded-ferry-guides", 1280, 720);
+        creator.StartPlaytest();
+        yield return new WaitForFixedUpdate();
+        var ferry = FindObjectOfType<FollowingPoint>();
+        var player = FindObjectOfType<PlayerMovement>().GetComponent<Rigidbody2D>();
+        var deck = ferry.GetComponent<Rigidbody2D>();
+        var patrol = Array.Find(FindObjectsOfType<EnemyPatrol2D>(), p => p.transform.position.x < 0).GetComponent<Rigidbody2D>();
+        MovePlayer(player, deck.position + Vector2.up * 0.8f);
+        float min = patrol.position.x, max = min;
+        float furthest = deck.position.x;
+        bool stayedAboard = true, stayedOnLedge = true;
+        int ticks = Mathf.CeilToInt((rail.spanX + 0.6f) / Time.fixedDeltaTime); // At speed 2, this spans a return trip.
+        for (int i = 0; i < ticks; i++)
+        {
+            yield return new WaitForFixedUpdate();
+            if (!creator.IsEditing && deck && patrol && player)
+            {
+                min = Mathf.Min(min, patrol.position.x);
+                max = Mathf.Max(max, patrol.position.x);
+                stayedOnLedge &= min >= -14.61f && max <= -12.39f && Mathf.Abs(patrol.position.y - 7.5f) < 0.1f;
+                stayedAboard &= Mathf.Abs(player.position.x - deck.position.x) < 0.95f &&
+                    player.position.y > deck.position.y && player.position.y < deck.position.y + 1.1f;
+                furthest = Mathf.Max(furthest, deck.position.x);
+            }
+            else throw new InvalidOperationException("Generated movement playtest ended during the ferry crossing.");
+        }
+        Require(stayedAboard && furthest >= rail.exactX + rail.spanX - 0.05f && deck.position.x < furthest - 1f,
+            "An idle real player rides the seeded deck to its far bank and stays aboard after reversal.");
+        Require(stayedOnLedge && max - min > 1.5f,
+            $"The patrol moves across its ledge and stays supported at both turnarounds ({min:F2}..{max:F2}).");
+        var motor = FindObjectOfType<PlayerMovement>();
+        var constraints = player.constraints;
+        motor.enabled = false;
+        player.constraints = RigidbodyConstraints2D.FreezeAll;
+        var stop = CreateTestGround(null, "Rail obstruction", new Vector2(rail.exactX + rail.spanX - 0.25f, rail.exactY),
+            new Vector2(0.3f, 0.2f));
+        try
+        {
+            MovePlayer(player, new Vector2(-11, 7.5f));
+            float obstructionX = stop.bounds.min.x;
+            yield return Until(() => ferry.Velocity.x < 0f && deck.position.x > obstructionX - 1.5f &&
+                ferry.GetComponent<Collider2D>().bounds.max.x <= obstructionX + 0.02f, 4f,
+                "A live solid on a custom rail turns the deck around before penetration.");
+            var enemy = patrol.GetComponent<EnemyPatrol2D>();
+            yield return new WaitForSeconds(3f);
+            Require(GameObject.FindGameObjectsWithTag("Player").Length == 1 && motor.CompareTag("Player"),
+                "The real character is the only Player-tagged object in a generated ferry stage.");
+            Require(enemy.CurrentState == EnemyPatrol2D.EnemyState.Chase &&
+                patrol.position.x > -12.55f && patrol.position.x <= -12.39f && Mathf.Abs(patrol.velocity.x) < 0.01f,
+                $"A chasing patrol stops on the ledge: {enemy.CurrentState}, enemy {patrol.position:F3}, " +
+                $"vx {patrol.velocity.x:F3}, target {motor.transform.position:F3}.");
+        }
+        finally
+        {
+            Destroy(stop.gameObject);
+            player.constraints = constraints;
+            motor.enabled = true;
+        }
+        creator.EnterEditMode();
     }
 
     IEnumerator CheckEnemyAwareness(GameSession session)
